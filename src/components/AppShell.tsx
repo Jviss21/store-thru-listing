@@ -23,6 +23,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BRAND, CURRENT_USER, ORG_NAME, notifications } from "@/lib/mock-data";
+import DemoBanner from "@/components/DemoBanner";
 
 const floorActions = [
   {
@@ -196,6 +197,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const unread = notifications.filter((n) => n.unread).length;
 
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen lg:pl-[17rem]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[17rem] border-r border-ink/10 bg-white shadow-[4px_0_24px_rgba(13,27,52,0.04)] lg:block">
@@ -240,6 +245,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:py-8">
+        <DemoBanner />
         <div key={pathname} className="animate-rise">
           {children}
         </div>

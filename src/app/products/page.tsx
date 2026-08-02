@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Button, Card, Input, PageHeader } from "@/components/ui";
+import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { ProductStatusBadge } from "@/components/StatusBadge";
 import { InfinityBadge } from "@/components/Brand";
 import { BRAND, products as seed } from "@/lib/mock-data";
@@ -163,17 +163,22 @@ function ProductsInner() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <Button type="button">Search</Button>
-        <Button variant="outline" type="button">
-          More filters
-        </Button>
-        <Button variant="outline" type="button">
-          Sort
-        </Button>
       </div>
 
       <p className="text-sm text-muted">{filtered.length} results</p>
 
+      {filtered.length === 0 ? (
+        <Card>
+          <EmptyState
+            title="No products match"
+            description={
+              q
+                ? "Try a different search, or clear the filter to see the full catalog."
+                : "No products in this status yet."
+            }
+          />
+        </Card>
+      ) : (
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
@@ -238,6 +243,7 @@ function ProductsInner() {
           </tbody>
         </table>
       </Card>
+      )}
     </div>
   );
 }

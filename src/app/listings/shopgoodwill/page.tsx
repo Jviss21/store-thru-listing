@@ -14,7 +14,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Button, Card, Input, PageHeader } from "@/components/ui";
+import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { ListingStatusBadge } from "@/components/StatusBadge";
 import { listings as seed } from "@/lib/mock-data";
 import type { Listing, ListingStatus } from "@/lib/types";
@@ -140,6 +140,12 @@ function ShopGoodwillInner() {
       />
 
       <Card className="overflow-x-auto">
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No listings in this view"
+            description="Change bucket or status filters, or clear search to see ShopGoodwill listings."
+          />
+        ) : (
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
             <tr>
@@ -180,6 +186,7 @@ function ShopGoodwillInner() {
             ))}
           </tbody>
         </table>
+        )}
       </Card>
 
       {selected && (

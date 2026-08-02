@@ -1,17 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
-import { BRAND, CURRENT_USER, ORG_NAME } from "@/lib/mock-data";
+import { BRAND, ORG_NAME } from "@/lib/mock-data";
+import {
+  DEFAULT_SETTINGS,
+  loadDemoSettings,
+  saveDemoSettings,
+  type DemoSettings,
+} from "@/lib/demo-settings";
 
 export default function SettingsPage() {
-  const [name, setName] = useState(CURRENT_USER.name);
-  const [email, setEmail] = useState(CURRENT_USER.email);
-  const [org, setOrg] = useState(ORG_NAME);
-  const [autoDraft, setAutoDraft] = useState(true);
-  const [autoList, setAutoList] = useState(true);
+  const [settings, setSettings] = useState<DemoSettings>(DEFAULT_SETTINGS);
+  const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setSettings(loadDemoSettings());
+    setHydrated(true);
+  }, []);
+
+  function update<K extends keyof DemoSettings>(key: K, value: DemoSettings[K]) {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function persist() {
+    const next = {
+      ...settings,
+      org: settings.org.trim() || ORG_NAME,
+    };
+    saveDemoSettings(next);
+    setSettings(next);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  }
 
   return (
     <div className="space-y-5">
@@ -22,30 +45,47 @@ export default function SettingsPage() {
       <Card className="max-w-xl space-y-4 p-5">
         <div>
           <label className="text-sm font-medium">Name</label>
-          <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            className="mt-1"
+            value={settings.name}
+            onChange={(e) => update("name", e.target.value)}
+            disabled={!hydrated}
+          />
         </div>
         <div>
           <label className="text-sm font-medium">Email</label>
-          <Input className="mt-1" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            className="mt-1"
+            value={settings.email}
+            onChange={(e) => update("email", e.target.value)}
+            disabled={!hydrated}
+          />
         </div>
         <div>
           <label className="text-sm font-medium">Organization</label>
-          <Input className="mt-1" value={org} onChange={(e) => setOrg(e.target.value)} />
+          <Input
+            className="mt-1"
+            value={settings.org}
+            onChange={(e) => update("org", e.target.value)}
+            disabled={!hydrated}
+          />
+          <p className="mt-1 text-xs text-muted">Default customer org: {ORG_NAME}</p>
         </div>
         <div>
           <label className="text-sm font-medium">Handle</label>
-          <Input className="mt-1" defaultValue={CURRENT_USER.handle} />
+          <Input
+            className="mt-1"
+            value={settings.handle}
+            onChange={(e) => update("handle", e.target.value)}
+            disabled={!hydrated}
+          />
         </div>
-        <Button
-          type="button"
-          onClick={() => {
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-          }}
-        >
+        <Button type="button" onClick={persist} disabled={!hydrated}>
           Save changes
         </Button>
-        {saved && <p className="text-sm text-mustard">Saved (demo only — not persisted).</p>}
+        {saved && (
+          <p className="text-sm text-mustard">Saved on this device for the demo session.</p>
+        )}
       </Card>
 
       <Card className="max-w-xl space-y-4 p-5">
@@ -55,20 +95,39 @@ export default function SettingsPage() {
         </div>
         <p className="text-sm text-muted">
           Toggle which automation features run for this workspace. Powered quietly by {BRAND.product}.
+          Preferences persist in localStorage for this browser.
         </p>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>
             <span className="font-semibold text-ink">{BRAND.autoDraft}</span>
             <span className="mt-0.5 block text-muted">Suggest titles, categories, and prices</span>
           </span>
-          <input type="checkbox" checked={autoDraft} onChange={(e) => setAutoDraft(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={settings.autoDraft}
+            disabled={!hydrated}
+            onChange={(e) => {
+              const next = { ...settings, autoDraft: e.target.checked };
+              setSettings(next);
+              saveDemoSettings(next);
+            }}
+          />
         </label>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>
             <span className="font-semibold text-ink">{BRAND.autoList}</span>
             <span className="mt-0.5 block text-muted">Push ready products to marketplaces</span>
           </span>
-          <input type="checkbox" checked={autoList} onChange={(e) => setAutoList(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={settings.autoList}
+            disabled={!hydrated}
+            onChange={(e) => {
+              const next = { ...settings, autoList: e.target.checked };
+              setSettings(next);
+              saveDemoSettings(next);
+            }}
+          />
         </label>
       </Card>
     </div>

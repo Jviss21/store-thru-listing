@@ -1,20 +1,51 @@
 # Hammoq — Store thru Listing
 
-Clickable inventory UI prototype covering the full **store → listing** pipeline, based on:
+Customer pilot UI for **Test Goodwill**: store intake → products → marketplace listings → orders, powered by **hammoq / Infinity AI**.
 
-- Your walkthrough video (item creation / store intake → accept/reject → product → marketplace list)
-- Your 23-page inventory management PDF (Home, Products, Listings, Item Creation, Orders, Shipments, Reports, Settings, Notifications)
+**Live demo:** https://store-thru-listing.vercel.app  
+**Access password:** `testgoodwill` (override with `DEMO_PASSWORD` env)
 
-All numbers and records are **fake demo data** — no database or marketplace APIs yet.
+All numbers and records are **illustrative demo data** — no live database or marketplace APIs yet. See [LAUNCH.md](./LAUNCH.md) for what remains before true production.
 
-## Run
+## Run locally
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 — enter the demo password when prompted.
+
+## Deploy (Vercel)
+
+```bash
+# Set production password (once)
+npx vercel env add DEMO_PASSWORD production
+
+# Production deploy
+npx vercel --prod --yes
+```
+
+Project is already linked under Vercel as `store-thru-listing`.
+
+## GitHub (if not connected yet)
+
+`gh` may not be on PATH on every machine. From this folder:
+
+```powershell
+# Install GitHub CLI if needed, then:
+gh auth login
+gh repo create hammoq/store-thru-listing --private --source=. --remote=origin --push
+```
+
+Or without `gh`:
+
+```powershell
+# Create an empty private repo on GitHub, then:
+git remote add origin https://github.com/<org>/store-thru-listing.git
+git push -u origin master
+```
 
 ## What’s included
 
@@ -22,10 +53,16 @@ Open http://localhost:3000
 |------|--------|
 | Home dashboard | `/` |
 | Item Creation | `/manifests`, `/manifests/new`, `/manifests/[id]` |
-| Products | `/products`, `/products/new`, `/products/draft`, `/products/scan-book`, `/products/express-list`, `/products/[id]` |
+| Products | `/products`, `/products/new`, `/products/draft`, `/products/scan-book`, `/products/auto-draft`, `/products/auto-list`, `/products/[id]` |
 | Listings | `/listings/shopgoodwill`, `/listings/ebay` |
 | Orders / Shipments | `/orders`, `/shipments` |
-| Reports | `/reports/*` |
+| Reports | `/reports/*` (CSV/JSON downloads) |
 | Settings / Printer / Notifications | `/settings`, `/settings/printer`, `/notifications` |
 
-Suggested click-path: **Home → Create Item → open `1231WR1Z1` → Accept item → Create product → Listings**.
+Suggested walkthrough: **Home → Auto-Draft → Auto-List → Listings → Orders → Reports**.
+
+## Environment
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `DEMO_PASSWORD` | Recommended for prod | Server-only. Defaults to `testgoodwill` if unset. Never use `NEXT_PUBLIC_*` for this. |

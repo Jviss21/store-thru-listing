@@ -21,8 +21,21 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Test Goodwill — Inventory",
-  description: "Store thru listing with Infinity AI Auto-Draft and Auto-List",
+  title: {
+    default: "Test Goodwill — Store thru Listing",
+    template: "%s · Test Goodwill",
+  },
+  description:
+    "Test Goodwill inventory demo — store thru listing with Infinity AI Auto-Draft and Auto-List, powered by hammoq.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/hammoq-logo.png" }],
+    apple: "/hammoq-logo.png",
+  },
+  openGraph: {
+    title: "Test Goodwill — Store thru Listing",
+    description: "Customer pilot demo powered by hammoq / Infinity AI.",
+    siteName: "Test Goodwill",
+  },
 };
 
 export default function RootLayout({

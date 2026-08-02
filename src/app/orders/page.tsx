@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Input, PageHeader, Badge } from "@/components/ui";
+import { Button, Card, EmptyState, Input, PageHeader, Badge } from "@/components/ui";
 import { orders } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { exportOrdersCsv } from "@/lib/demo-actions";
@@ -56,6 +56,16 @@ function OrdersInner() {
       />
 
       <Card className="overflow-x-auto">
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No orders found"
+            description={
+              q || fulfillment
+                ? "Adjust search or fulfillment filters to see matching orders."
+                : "Orders will appear here once marketplaces sync."
+            }
+          />
+        ) : (
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
             <tr>
@@ -110,6 +120,7 @@ function OrdersInner() {
             ))}
           </tbody>
         </table>
+        )}
       </Card>
     </div>
   );
