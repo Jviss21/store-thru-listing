@@ -124,18 +124,18 @@ function ProductsInner() {
         }
       />
 
-      <Card className="flex flex-wrap items-center gap-3 border-teal/20 bg-teal/5 p-4">
+      <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <p className="text-sm text-ink/80">
           Review {BRAND.autoDraft} suggestions, then push ready SKUs with {BRAND.autoList}.
         </p>
-        <Link href="/products/auto-draft" className="ml-auto text-sm font-semibold text-teal hover:underline">
+        <Link href="/products/auto-draft" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">
           Open queue
         </Link>
       </Card>
 
       {flash && (
-        <div className="rounded-xl border border-teal/30 bg-teal/10 px-4 py-2 text-sm text-teal">
+        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
           {flash}
         </div>
       )}
@@ -181,7 +181,7 @@ function ProductsInner() {
       ) : (
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-sm">
-          <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
+          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-2">
                 <input type="checkbox" />
@@ -224,7 +224,7 @@ function ProductsInner() {
                   {p.listedOn.length ? (
                     <div className="flex flex-wrap gap-1">
                       {p.listedOn.map((c) => (
-                        <span key={c} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        <span key={c} className="rounded bg-mist px-1.5 py-0.5 text-xs">
                           {c}
                         </span>
                       ))}

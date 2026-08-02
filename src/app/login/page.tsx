@@ -37,7 +37,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(240,180,41,0.18),transparent),linear-gradient(180deg,#f7f5f0_0%,#eef1f6_100%)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(240,180,41,0.16),transparent),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(232,122,26,0.1),transparent),linear-gradient(180deg,#f5f7fb_0%,#eef2f8_100%)] px-4">
       <div className="w-full max-w-md rounded-2xl border border-ink/10 bg-white/90 p-8 shadow-float backdrop-blur">
         <div className="mb-6 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}

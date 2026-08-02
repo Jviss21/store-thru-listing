@@ -13,7 +13,7 @@ export default function ShipmentsPage() {
 
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-left text-sm">
-          <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
+          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-2">Order</th>
               <th className="px-3 py-2">Carrier</th>

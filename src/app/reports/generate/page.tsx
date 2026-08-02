@@ -132,7 +132,7 @@ export default function GenerateReportsPage() {
             Download everything (JSON)
           </Button>
         </div>
-        {done && <p className="text-sm font-medium text-teal">{done}</p>}
+        {done && <p className="text-sm font-medium text-brand-orange">{done}</p>}
       </Card>
     </div>
   );

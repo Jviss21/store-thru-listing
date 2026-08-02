@@ -39,13 +39,13 @@ export default function OperationalReportPage() {
         }
       />
       {flash && (
-        <div className="rounded-xl border border-teal/30 bg-teal/10 px-4 py-2 text-sm text-teal">
+        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
           {flash}
         </div>
       )}
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
+          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-2">Date</th>
               <th className="px-3 py-2">Intake</th>

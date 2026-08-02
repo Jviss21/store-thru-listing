@@ -20,7 +20,7 @@ export function Button({
         size === "icon" && "h-10 w-10 rounded-xl",
         variant === "primary" && "bg-ink text-white hover:bg-ink/90",
         variant === "accent" && "bg-accent text-accent-ink hover:brightness-95 shadow-glow",
-        variant === "secondary" && "bg-teal text-white hover:bg-teal/90",
+        variant === "secondary" && "bg-brand-orange text-white hover:bg-brand-orange/90",
         variant === "success" && "bg-mustard text-ink hover:brightness-95",
         variant === "danger" && "bg-coral text-white hover:bg-coral/90",
         variant === "outline" &&

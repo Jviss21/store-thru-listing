@@ -18,6 +18,7 @@
   --mustard: #c9a032;
   --accent: var(--gold);
   --accent-ink: #0d1b34;
+  /* Legacy aliases → brand orange / rust (do not reintroduce teal/lime) */
   --teal: var(--orange);
   --coral: var(--rust);
   --background: var(--paper);

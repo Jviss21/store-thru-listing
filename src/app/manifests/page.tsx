@@ -170,7 +170,7 @@ export default function ManifestsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
+            <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-2">
                   <input

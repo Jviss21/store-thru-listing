@@ -290,7 +290,7 @@ export default function HomePage() {
         </Link>
         <Link href="/products?status=Draft">
           <Card className="h-full p-5 transition hover:-translate-y-0.5 hover:shadow-float">
-            <div className="flex items-center gap-2 text-teal">
+            <div className="flex items-center gap-2 text-brand-orange">
               <Package className="h-4 w-4" />
               <p className="text-xs font-semibold uppercase tracking-[0.14em]">In pipeline</p>
             </div>

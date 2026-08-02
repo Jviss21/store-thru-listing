@@ -12,7 +12,7 @@ export function InfinityBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-teal/25 bg-teal/10 px-2 py-0.5 text-[11px] font-semibold text-teal",
+        "inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-ink",
         className
       )}
     >

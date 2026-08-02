@@ -15,6 +15,7 @@ const config: Config = {
         border: "var(--border)",
         muted: "var(--muted)",
         ink: "var(--ink)",
+        "ink-soft": "var(--ink-soft)",
         mist: "var(--mist)",
         gold: "var(--gold)",
         rust: "var(--rust)",
@@ -24,6 +25,7 @@ const config: Config = {
           DEFAULT: "var(--accent)",
           ink: "var(--accent-ink)",
         },
+        /* Legacy aliases — prefer brand-orange / rust / accent in new UI */
         teal: "var(--teal)",
         coral: "var(--coral)",
         sidebar: "var(--sidebar)",

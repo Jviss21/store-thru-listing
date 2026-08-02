@@ -124,7 +124,7 @@ function EbayInner() {
             key={s}
             onClick={() => setStatus(s)}
             className={`rounded-full px-3 py-1 text-xs ${
-              status === s ? "bg-primary text-white" : "bg-gray-100 text-gray-700"
+              status === s ? "bg-ink text-white" : "bg-mist text-ink/80 hover:bg-mist/80"
             }`}
           >
             {s}
@@ -142,7 +142,7 @@ function EbayInner() {
           />
         ) : (
         <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
+          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-2">Image</th>
               <th className="px-3 py-2">External ID</th>

@@ -154,7 +154,7 @@ function NewProductInner() {
       </div>
 
       {message && (
-        <div className="rounded-xl border border-teal/30 bg-teal/10 px-4 py-3 text-sm text-teal">
+        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-3 text-sm text-ink">
           {message}
         </div>
       )}
@@ -164,12 +164,12 @@ function NewProductInner() {
         </div>
       )}
 
-      <Card className="flex flex-wrap items-center gap-3 border-teal/20 bg-teal/5 p-4">
+      <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <p className="text-sm text-ink/80">
           Prefer speed? Send accepted intake through {BRAND.autoDraft}, then publish with {BRAND.autoList}.
         </p>
-        <Link href="/products/auto-draft" className="ml-auto text-sm font-semibold text-teal hover:underline">
+        <Link href="/products/auto-draft" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">
           Open {BRAND.autoDraft}
         </Link>
       </Card>

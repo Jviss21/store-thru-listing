@@ -65,7 +65,7 @@ export default function AutoDraftPage() {
       />
 
       {toast && (
-        <div className="rounded-xl border border-teal/30 bg-teal/10 px-4 py-2 text-sm text-teal">
+        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
           {toast}
         </div>
       )}
@@ -120,13 +120,13 @@ export default function AutoDraftPage() {
                 <td className="px-3 py-3 font-mono text-xs">{r.sku}</td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-teal" />
+                    <Sparkles className="h-3.5 w-3.5 text-accent" />
                     <span className="font-medium">{r.title}</span>
                   </div>
                 </td>
                 <td className="px-3 py-3">{r.category}</td>
                 <td className="px-3 py-3">{formatCurrency(r.suggestedPrice)}</td>
-                <td className="px-3 py-3 font-semibold text-teal">{r.confidence}%</td>
+                <td className="px-3 py-3 font-semibold text-brand-orange">{r.confidence}%</td>
                 <td className="px-3 py-3 text-muted">{r.source}</td>
               </tr>
             ))}

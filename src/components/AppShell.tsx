@@ -87,7 +87,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
             Infinity AI
           </p>
-          <Sparkles className="h-3.5 w-3.5 text-teal" />
+          <Sparkles className="h-3.5 w-3.5 text-accent" />
         </div>
         {floorActions.map((a) => {
           const Icon = a.icon;

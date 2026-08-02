@@ -123,7 +123,7 @@ function ShopGoodwillInner() {
               key={s}
               onClick={() => setStatus(s)}
               className={`rounded-full px-3 py-1 text-xs ${
-                status === s ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                status === s ? "bg-ink text-white" : "bg-mist text-ink/80 hover:bg-mist/80"
               }`}
             >
               {s}
@@ -147,7 +147,7 @@ function ShopGoodwillInner() {
           />
         ) : (
         <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="border-b bg-gray-50 text-xs uppercase text-muted">
+          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-2">Image</th>
               <th className="px-3 py-2">Product ID</th>
@@ -172,7 +172,7 @@ function ShopGoodwillInner() {
                 <td className="px-3 py-3 font-mono text-xs">{l.sku}</td>
                 <td className="px-3 py-3">
                   {l.tags.map((t) => (
-                    <span key={t} className="mr-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                    <span key={t} className="mr-1 rounded bg-mist px-1.5 py-0.5 text-xs">
                       {t}
                     </span>
                   ))}
@@ -193,7 +193,7 @@ function ShopGoodwillInner() {
         <div className="fixed inset-y-0 right-0 z-40 w-full max-w-md border-l bg-white shadow-xl">
           <div className="flex h-14 items-center justify-between border-b px-4">
             <h2 className="font-semibold">Listing detail</h2>
-            <button onClick={() => setSelected(null)} className="rounded p-1 hover:bg-gray-100">
+            <button onClick={() => setSelected(null)} className="rounded p-1 hover:bg-mist">
               <X className="h-4 w-4" />
             </button>
           </div>
