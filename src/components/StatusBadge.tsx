@@ -34,7 +34,7 @@ const listingTone: Record<ListingStatus, "neutral" | "blue" | "green" | "orange"
   Expired: "neutral",
   Delisted: "neutral",
   Recycled: "orange",
-  "Needs Fix": "red",
+  "Additional QA Required": "red",
 };
 
 function Pill({

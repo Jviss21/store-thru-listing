@@ -95,11 +95,6 @@ function ProductsInner() {
             >
               Export CSV
             </Button>
-            <Link href="/products/express-list">
-              <Button variant="outline" type="button">
-                Quick List
-              </Button>
-            </Link>
             <Link href="/products/scan-book">
               <Button variant="outline" type="button">
                 Scan book

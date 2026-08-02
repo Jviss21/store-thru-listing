@@ -54,11 +54,11 @@ export default function HomePage() {
             <p className="mt-1 text-sm text-muted">Unfulfilled orders waiting on labels</p>
           </Card>
         </Link>
-        <Link href="/listings/ebay?status=Needs%20Fix">
+        <Link href="/listings/ebay?status=Additional%20QA%20Required">
           <Card className="h-full p-5 transition hover:-translate-y-0.5 hover:shadow-float">
             <div className="flex items-center gap-2 text-coral">
               <Wrench className="h-4 w-4" />
-              <p className="text-xs font-semibold uppercase tracking-[0.14em]">Needs Fix</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]">Additional QA Required</p>
             </div>
             <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink">
               {formatNumber(s.failedListings)}

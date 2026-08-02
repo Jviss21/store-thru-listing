@@ -30,7 +30,7 @@ const OPEN_STATUSES: ListingStatus[] = [
   "Expired",
   "Delisted",
   "Recycled",
-  "Needs Fix",
+  "Additional QA Required",
 ];
 
 function EbayInner() {

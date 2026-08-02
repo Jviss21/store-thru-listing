@@ -12,7 +12,6 @@ import {
   Package,
   PlusCircle,
   Rocket,
-  ScanBarcode,
   Settings,
   ShoppingCart,
   Sparkles,
@@ -38,13 +37,6 @@ const floorActions = [
     label: BRAND.autoList,
     icon: Rocket,
     hint: "Push to channels",
-    primary: false,
-  },
-  {
-    href: "/products/express-list",
-    label: BRAND.quickList,
-    icon: ScanBarcode,
-    hint: "Scan SKU & list",
     primary: false,
   },
 ];

@@ -27,7 +27,7 @@ export type ListingStatus =
   | "Expired"
   | "Delisted"
   | "Recycled"
-  | "Needs Fix";
+  | "Additional QA Required";
 
 export type OrderFulfillment = "Unfulfilled" | "Partial" | "Fulfilled";
 export type PaymentStatus = "Pending" | "Paid" | "Refunded";

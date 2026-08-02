@@ -18,7 +18,6 @@ export const BRAND = {
   ai: "Infinity AI",
   autoDraft: "Auto-Draft",
   autoList: "Auto-List",
-  quickList: "Quick List",
 };
 
 export const CURRENT_USER = {
@@ -102,7 +101,7 @@ const LISTING_STATUSES: ListingStatus[] = [
   "Expired",
   "Delisted",
   "Recycled",
-  "Needs Fix",
+  "Additional QA Required",
 ];
 
 export const infinityStats = {
@@ -292,7 +291,7 @@ function buildListings(): Listing[] {
     for (const channel of product.listedOn) {
       const status =
         id % 17 === 0
-          ? ("Needs Fix" as const)
+          ? ("Additional QA Required" as const)
           : LISTING_STATUSES[id % LISTING_STATUSES.length];
       rows.push({
         id: `l${id}`,
@@ -369,7 +368,7 @@ export const notifications = [
     body: `${dashboardStats.failedAccount} — Infinity AI flagged title/category mismatches.`,
     at: hoursAgo(1),
     unread: true,
-    href: "/listings/ebay?status=Needs%20Fix",
+    href: "/listings/ebay?status=Additional%20QA%20Required",
   },
   {
     id: "n2",
