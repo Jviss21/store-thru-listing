@@ -59,16 +59,16 @@ const daysAgo = (d: number) => new Date(now - d * 86400000).toISOString();
 const minsAgo = (m: number) => new Date(now - m * 60000).toISOString();
 
 const COLORS = [
+  "#0d1b34",
+  "#f0b429",
+  "#e87a1a",
+  "#c94a2a",
+  "#c9a032",
   "#2563eb",
-  "#0f766e",
-  "#ea580c",
-  "#7c3aed",
-  "#dc2626",
-  "#1d4ed8",
-  "#334155",
-  "#c8f135",
-  "#0891b2",
-  "#be185d",
+  "#162a4a",
+  "#5a6b82",
+  "#d4920a",
+  "#a63b22",
 ];
 
 const STAFF = [

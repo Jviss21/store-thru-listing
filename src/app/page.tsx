@@ -21,7 +21,7 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0 opacity-45"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 12% 20%, rgba(200,241,53,0.3), transparent 42%), radial-gradient(circle at 88% 10%, rgba(15,118,110,0.28), transparent 38%)",
+              "radial-gradient(circle at 12% 20%, rgba(240,180,41,0.32), transparent 42%), radial-gradient(circle at 88% 10%, rgba(232,122,26,0.26), transparent 38%)",
           }}
         />
         <div className="relative animate-rise">

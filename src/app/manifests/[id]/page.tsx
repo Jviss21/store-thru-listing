@@ -268,7 +268,7 @@ export default function ManifestDetailPage() {
                 <ReviewStatusBadge status={item.reviewStatus} />
                 <div className="flex items-center gap-1">
                   <button
-                    className="rounded p-1.5 text-emerald-600 hover:bg-emerald-50"
+                    className="rounded p-1.5 text-mustard hover:bg-mustard/10"
                     title="Accept"
                     onClick={() => setItemStatus(item.id, "Accepted")}
                   >

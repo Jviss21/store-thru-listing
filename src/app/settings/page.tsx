@@ -45,7 +45,7 @@ export default function SettingsPage() {
         >
           Save changes
         </Button>
-        {saved && <p className="text-sm text-emerald-700">Saved (demo only — not persisted).</p>}
+        {saved && <p className="text-sm text-mustard">Saved (demo only — not persisted).</p>}
       </Card>
 
       <Card className="max-w-xl space-y-4 p-5">

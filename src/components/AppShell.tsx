@@ -66,8 +66,17 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-b border-ink/10 px-5 pb-5 pt-6">
         <Link href="/" onClick={onNavigate} className="block">
           <p className="font-display text-xl font-bold tracking-tight text-ink">{ORG_NAME}</p>
-          <p className="mt-1 text-[11px] font-medium text-muted">
-            Powered by <span className="text-ink/70">{BRAND.product}</span>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-muted">
+            Powered by
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hammoq-logo.png"
+              alt=""
+              width={16}
+              height={16}
+              className="h-4 w-4 rounded-full object-cover opacity-80"
+            />
+            <span className="text-ink/70">{BRAND.product}</span>
           </p>
         </Link>
       </div>
@@ -189,7 +198,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen lg:pl-[17rem]">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[17rem] border-r border-ink/10 bg-white shadow-[4px_0_24px_rgba(12,18,34,0.04)] lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[17rem] border-r border-ink/10 bg-white shadow-[4px_0_24px_rgba(13,27,52,0.04)] lg:block">
         <Sidebar />
       </aside>
 

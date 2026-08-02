@@ -1,6 +1,6 @@
 export function Sparkline({
   values,
-  className = "text-emerald-500",
+  className = "text-teal",
   width = 72,
   height = 28,
 }: {

@@ -41,7 +41,7 @@ function ProductsInner() {
       createdAt: p.createdAt,
       category: p.category,
       price: p.price,
-      imageColor: "#c8f135",
+      imageColor: "#f0b429",
       listedOn: p.listedOn as ("ShopGoodwill" | "eBay")[],
     }));
     return [...local, ...seed];

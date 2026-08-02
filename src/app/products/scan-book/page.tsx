@@ -51,7 +51,7 @@ export default function ScanBookPage() {
       <Card className="max-w-xl space-y-4 p-5">
         <div className="flex items-center justify-between rounded-md border bg-gray-50 px-3 py-2 text-sm">
           <span>Amazon account</span>
-          <span className={amazonLinked ? "text-emerald-600" : "text-muted"}>
+          <span className={amazonLinked ? "text-mustard" : "text-muted"}>
             {amazonLinked ? "Connected" : "Not connected (demo)"}
           </span>
         </div>

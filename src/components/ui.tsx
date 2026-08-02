@@ -21,7 +21,7 @@ export function Button({
         variant === "primary" && "bg-ink text-white hover:bg-ink/90",
         variant === "accent" && "bg-accent text-accent-ink hover:brightness-95 shadow-glow",
         variant === "secondary" && "bg-teal text-white hover:bg-teal/90",
-        variant === "success" && "bg-teal text-white hover:bg-teal/90",
+        variant === "success" && "bg-mustard text-ink hover:brightness-95",
         variant === "danger" && "bg-coral text-white hover:bg-coral/90",
         variant === "outline" &&
           "border border-ink/15 bg-white/70 backdrop-blur hover:bg-white text-ink",
@@ -96,12 +96,12 @@ export function Badge({
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide",
         tone === "neutral" && "bg-ink/5 text-ink/70",
-        tone === "blue" && "bg-sky-100 text-sky-900",
-        tone === "green" && "bg-teal/15 text-teal",
-        tone === "orange" && "bg-orange-100 text-orange-900",
+        tone === "blue" && "bg-ink/8 text-ink",
+        tone === "green" && "bg-mustard/20 text-ink",
+        tone === "orange" && "bg-brand-orange/15 text-brand-orange",
         tone === "red" && "bg-coral/15 text-coral",
-        tone === "purple" && "bg-violet-100 text-violet-900",
-        tone === "yellow" && "bg-accent/40 text-ink",
+        tone === "purple" && "bg-ink/10 text-ink",
+        tone === "yellow" && "bg-accent/35 text-ink",
         className
       )}
     >

@@ -67,7 +67,7 @@ export default function TopSalesPage() {
                 </td>
                 <td className="px-3 py-3">{formatCurrency(r.soldPrice)}</td>
                 <td className="px-3 py-3">{formatCurrency(r.cost)}</td>
-                <td className="px-3 py-3 text-emerald-700">
+                <td className="px-3 py-3 text-mustard">
                   {formatCurrency(r.soldPrice - r.cost)}
                 </td>
                 <td className="px-3 py-3">{r.autoListed ? "Yes" : "—"}</td>

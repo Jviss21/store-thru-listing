@@ -3,26 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --ink: #0c1222;
-  --ink-soft: #1a2336;
-  --mist: #e8eef6;
-  --paper: #f7f9fc;
+  /* Hammoq brand palette (from logo) */
+  --ink: #0d1b34;
+  --ink-soft: #162a4a;
+  --mist: #e9eef5;
+  --paper: #f6f8fb;
   --card: rgba(255, 255, 255, 0.78);
-  --border: rgba(12, 18, 34, 0.08);
-  --muted: #5b6b82;
-  --accent: #c8f135;
-  --accent-ink: #0c1222;
-  --teal: #0f766e;
-  --coral: #e85d4c;
+  --border: rgba(13, 27, 52, 0.08);
+  --muted: #5a6b82;
+  /* Accent cycle: gold → orange → rust → mustard */
+  --gold: #f0b429;
+  --orange: #e87a1a;
+  --rust: #c94a2a;
+  --mustard: #c9a032;
+  --accent: var(--gold);
+  --accent-ink: #0d1b34;
+  --teal: var(--orange);
+  --coral: var(--rust);
   --background: var(--paper);
   --foreground: var(--ink);
   --primary: var(--ink);
-  --primary-hover: #1a2336;
-  --success: #0f766e;
-  --danger: #e85d4c;
-  --warning: #d97706;
-  --sidebar: #0c1222;
-  --glow: rgba(200, 241, 53, 0.35);
+  --primary-hover: #162a4a;
+  --success: var(--mustard);
+  --danger: var(--rust);
+  --warning: var(--gold);
+  --sidebar: #0d1b34;
+  --glow: rgba(240, 180, 41, 0.35);
 }
 
 body {
@@ -38,10 +44,10 @@ body::before {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(900px 500px at 10% -10%, rgba(200, 241, 53, 0.18), transparent 55%),
-    radial-gradient(800px 480px at 95% 5%, rgba(15, 118, 110, 0.12), transparent 50%),
-    radial-gradient(600px 400px at 50% 100%, rgba(232, 93, 76, 0.08), transparent 45%),
-    linear-gradient(180deg, #f4f7fb 0%, #eef3f8 100%);
+    radial-gradient(900px 500px at 10% -10%, rgba(240, 180, 41, 0.16), transparent 55%),
+    radial-gradient(800px 480px at 95% 5%, rgba(232, 122, 26, 0.12), transparent 50%),
+    radial-gradient(600px 400px at 50% 100%, rgba(201, 74, 42, 0.08), transparent 45%),
+    linear-gradient(180deg, #f5f7fb 0%, #eef2f8 100%);
   pointer-events: none;
 }
 
@@ -59,7 +65,7 @@ body::before {
 }
 
 .pipeline-rail {
-  background: linear-gradient(90deg, transparent, rgba(12, 18, 34, 0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgba(13, 27, 52, 0.12), transparent);
   height: 2px;
 }
 

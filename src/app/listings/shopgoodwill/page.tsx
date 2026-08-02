@@ -97,7 +97,7 @@ function ShopGoodwillInner() {
       />
 
       {toast && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <div className="rounded-md border border-mustard/30 bg-mustard/10 px-4 py-2 text-sm text-ink">
           {toast}
         </div>
       )}

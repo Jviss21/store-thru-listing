@@ -16,6 +16,10 @@ const config: Config = {
         muted: "var(--muted)",
         ink: "var(--ink)",
         mist: "var(--mist)",
+        gold: "var(--gold)",
+        rust: "var(--rust)",
+        mustard: "var(--mustard)",
+        "brand-orange": "var(--orange)",
         accent: {
           DEFAULT: "var(--accent)",
           ink: "var(--accent-ink)",
@@ -29,9 +33,9 @@ const config: Config = {
         },
       },
       boxShadow: {
-        card: "0 1px 0 rgba(12,18,34,0.04), 0 12px 32px rgba(12,18,34,0.06)",
-        glow: "0 0 0 1px rgba(200,241,53,0.4), 0 8px 28px rgba(200,241,53,0.25)",
-        float: "0 18px 50px rgba(12,18,34,0.14)",
+        card: "0 1px 0 rgba(13,27,52,0.04), 0 12px 32px rgba(13,27,52,0.06)",
+        glow: "0 0 0 1px rgba(240,180,41,0.4), 0 8px 28px rgba(240,180,41,0.25)",
+        float: "0 18px 50px rgba(13,27,52,0.14)",
       },
       borderRadius: {
         xl2: "1.25rem",

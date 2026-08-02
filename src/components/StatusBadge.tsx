@@ -47,13 +47,13 @@ function Pill({
   className?: string;
 }) {
   const map: Record<string, string> = {
-    neutral: "bg-gray-100 text-gray-700",
-    blue: "bg-blue-100 text-blue-800",
-    green: "bg-emerald-100 text-emerald-800",
-    orange: "bg-orange-100 text-orange-800",
-    red: "bg-red-100 text-red-800",
-    purple: "bg-purple-100 text-purple-800",
-    yellow: "bg-amber-100 text-amber-900",
+    neutral: "bg-ink/5 text-ink/70",
+    blue: "bg-ink/8 text-ink",
+    green: "bg-mustard/20 text-ink",
+    orange: "bg-brand-orange/15 text-brand-orange",
+    red: "bg-coral/15 text-coral",
+    purple: "bg-ink/10 text-ink",
+    yellow: "bg-accent/35 text-ink",
   };
   return (
     <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", map[tone], className)}>
