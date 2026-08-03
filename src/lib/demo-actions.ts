@@ -348,10 +348,13 @@ export function exportTopSalesCsv() {
 export function exportSuppliersCsv() {
   downloadCsv(
     file("suppliers", "csv"),
-    supplierReportRows.map(({ spark: _spark, ...rest }) => rest) as unknown as Record<
-      string,
-      unknown
-    >[]
+    supplierReportRows.map((row) => ({
+      name: row.name,
+      amount: row.amount,
+      itemsListed: row.itemsListed,
+      itemsSold: row.itemsSold,
+      avgDaysToSell: row.avgDaysToSell,
+    }))
   );
 }
 
@@ -373,7 +376,14 @@ export function exportAllDemoJson() {
     eventLogRows,
     manifestReportRows,
     top50Sales,
-    supplierReportRows: supplierReportRows.map(({ spark: _s, ...rest }) => rest),
+    supplierReportRows: supplierReportRows.map((row) => ({
+      name: row.name,
+      amount: row.amount,
+      itemsListed: row.itemsListed,
+      itemsSold: row.itemsSold,
+      avgDaysToSell: row.avgDaysToSell,
+      spark: row.spark,
+    })),
     created: readStore(),
   });
 }
