@@ -24,8 +24,9 @@ This app is a **10-org pilot** with **Phase 1 auth** (NextAuth credentials) and 
 - [ ] Optional SSO / invite flows
 
 ### Marketplace integrations (Phase 2)
-- [ ] ShopGoodwill OAuth + listing create/update/end APIs
-- [ ] eBay OAuth + Trading / Inventory / Fulfillment APIs
+- [x] Adapter stubs + `NEXT_PUBLIC_MARKETPLACE_MODE=mock|live` switch
+- [ ] ShopGoodwill OAuth + listing create/update/end APIs (keys required)
+- [ ] eBay OAuth + Trading / Inventory / Fulfillment APIs (keys required)
 - [ ] Webhooks or polling for sold / unpaid / cancelled events
 
 ### Infinity AI
@@ -50,4 +51,4 @@ This app is a **10-org pilot** with **Phase 1 auth** (NextAuth credentials) and 
 - Infinity AI Auto-List queue (simulated)
 - Connections stubs for ShopGoodwill / eBay
 
-When marketplace backends are ready, replace `MockApiClient` via `createApiClient()` — keep routes and `orgId` scoping.
+Set `NEXT_PUBLIC_MARKETPLACE_MODE=live` to route connections through marketplace stubs; without vendor keys they return `NOT_CONFIGURED`. Keep routes and `orgId` scoping.

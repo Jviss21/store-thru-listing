@@ -53,15 +53,32 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 | Auth / session / org memberships | **Real** (NextAuth + seed or Prisma) |
 | Org switch + Ops impersonation | **Real** (JWT + cookies; audit when DB ready) |
 | Products, listings, orders, Auto-List queue | **Still mock** (`MockApiClient`) |
-| Marketplace OAuth / sync | **Stub** UI only |
+| Marketplace OAuth / sync | **Stubs** (`marketplaces/*`; live mode via env) |
 
-### Phase 2 — NEXT (marketplace APIs)
+### Phase 2 — IN PROGRESS (marketplace stubs)
 
-- [ ] ShopGoodwill OAuth + listing create/update/end
-- [ ] eBay OAuth + Inventory / Trading / Fulfillment
-- [ ] Wire `createApiClient()` HTTP client scoped by `session.orgId`
-- [ ] Durable photo storage
-- [ ] Persist products/listings/orders in Prisma (replace mock datasets)
+| Item | Status |
+|------|--------|
+| Env switch `NEXT_PUBLIC_MARKETPLACE_MODE=mock\|live` via `createApiClient()` | Done (scaffold) |
+| ShopGoodwill client stub (`src/lib/api/marketplaces/shopgoodwill.ts`) | Done (NOT_CONFIGURED without keys) |
+| eBay client stub (`src/lib/api/marketplaces/ebay.ts`) | Done (NOT_CONFIGURED without keys) |
+| API routes `/api/marketplaces/{status,connect,sync}` | Done (scaffold) |
+| Real OAuth + listing create/update/end against vendor APIs | Next (needs keys) |
+| Persist products/listings/orders in Prisma | Later |
+| Durable photo storage | Later |
+
+#### Phase 2 env vars (optional — do not block pilot)
+
+| Variable | Channel | Notes |
+|----------|---------|-------|
+| `NEXT_PUBLIC_MARKETPLACE_MODE` | both | `mock` (default) or `live` |
+| `SHOPGOODWILL_CLIENT_ID` | SGW | OAuth client id |
+| `SHOPGOODWILL_CLIENT_SECRET` | SGW | OAuth secret |
+| `SHOPGOODWILL_API_BASE_URL` | SGW | API host |
+| `EBAY_CLIENT_ID` | eBay | App id (Client ID) |
+| `EBAY_CLIENT_SECRET` | eBay | Cert id (Client Secret) |
+| `EBAY_RU_NAME` | eBay | RuName / redirect name |
+| `EBAY_ENV` | eBay | `sandbox` or `production` |
 
 ## Phase 3 (later)
 

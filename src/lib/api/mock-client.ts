@@ -447,14 +447,7 @@ export function createMockApiClient(): ApiClient {
   };
 }
 
-/** Factory — mock today; swap for HTTP client when backend lands. */
+/** @deprecated Prefer createApiClient from `@/lib/api` (env-based mock | live). */
 export function createApiClient(): ApiClient {
   return createMockApiClient();
-}
-
-/** Singleton for client components. */
-let client: ApiClient | null = null;
-export function getApiClient(): ApiClient {
-  if (!client) client = createApiClient();
-  return client;
 }
