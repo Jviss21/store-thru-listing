@@ -11,6 +11,12 @@ import {
   type ListingFormState,
 } from "@/components/ListingEditorForm";
 import { ProductStatusBadge } from "@/components/StatusBadge";
+import {
+  SaveButton,
+  SaveConfirmBar,
+  SaveToast,
+  useSaveFeedback,
+} from "@/components/SaveFeedback";
 import { Button } from "@/components/ui";
 import {
   exportEbayListingPack,
@@ -65,8 +71,9 @@ export default function ProductDetailPage() {
   const seed = getProduct(id);
   const [product, setProduct] = useState<Product | null>(seed ?? null);
   const [form, setForm] = useState<ListingFormState | null>(null);
-  const [flash, setFlash] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { feedback, justSaved, announce } = useSaveFeedback();
 
   useEffect(() => {
     const local = getCreatedProducts().find((p) => p.id === id);
@@ -87,15 +94,19 @@ export default function ProductDetailPage() {
     return (
       <div className="space-y-3 p-8">
         <p className="font-medium">Product not found</p>
-        <Link href="/products" className="text-sm text-primary hover:underline">Back to products</Link>
+        <Link href="/products" className="text-sm text-primary hover:underline">
+          Back to products
+        </Link>
       </div>
     );
   }
 
   const productListings = listings.filter((l) => l.productId === product.id);
+  const isDraft = product.status === "Draft";
 
   async function save() {
     if (!product || !form) return;
+    setSaving(true);
     let aspects: import("@/lib/api/ebay-aspects").EbayAspect[] = [];
     if (form.channels.includes("eBay") && form.ebayCategoryId) {
       const aspectsRes = await getEbayAspectsClient().getEbayCategoryAspects(form.ebayCategoryId);
@@ -103,8 +114,8 @@ export default function ProductDetailPage() {
     }
     const err = validateListingForm(form, aspects);
     if (err) {
-      setFlash(err);
-      setTimeout(() => setFlash(null), 3500);
+      announce(err, { error: true });
+      setSaving(false);
       return;
     }
     setPhotoOverlay(product.id, form.imageUrls);
@@ -153,8 +164,8 @@ export default function ProductDetailPage() {
       widthIn: Number(form.widthIn) || undefined,
       heightIn: Number(form.heightIn) || undefined,
     });
-    setFlash("Product saved.");
-    setTimeout(() => setFlash(null), 2500);
+    announce(isDraft ? "Draft product saved." : "Product saved successfully.");
+    setSaving(false);
   }
 
   return (
@@ -172,25 +183,73 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" type="button" onClick={() => exportListingPacket({ title: form.title, sku: form.sku, channel: "ShopGoodwill", price: Number(form.price) || product.price, category: form.category, description: form.description, images: form.imageUrls, productId: product.id })}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() =>
+              exportListingPacket({
+                title: form.title,
+                sku: form.sku,
+                channel: "ShopGoodwill",
+                price: Number(form.price) || product.price,
+                category: form.category,
+                description: form.description,
+                images: form.imageUrls,
+                productId: product.id,
+              })
+            }
+          >
             <Download className="h-4 w-4" /> SGW pack
           </Button>
-          <Button variant="outline" type="button" onClick={() => exportEbayListingPack({ title: form.title, sku: form.sku, channel: "eBay", price: Number(form.startingPrice) || Number(form.price) || product.price, category: form.category, description: form.description, images: form.imageUrls, productId: product.id })}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() =>
+              exportEbayListingPack({
+                title: form.title,
+                sku: form.sku,
+                channel: "eBay",
+                price: Number(form.startingPrice) || Number(form.price) || product.price,
+                category: form.category,
+                description: form.description,
+                images: form.imageUrls,
+                productId: product.id,
+              })
+            }
+          >
             <Download className="h-4 w-4" /> eBay pack
           </Button>
-          <Button variant="outline" type="button" onClick={() => router.push("/products")}>Cancel</Button>
-          <Button type="button" onClick={() => void save()}>Save</Button>
+          <Button variant="outline" type="button" onClick={() => router.push("/products")}>
+            Cancel
+          </Button>
+          <SaveButton justSaved={justSaved} saving={saving} onClick={() => void save()} />
+          {justSaved && (
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-save-ok">
+              ✓ Saved
+            </span>
+          )}
         </div>
       </div>
-      {flash && <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm">{flash}</div>}
+
+      <SaveToast feedback={feedback} />
+
+      {isDraft && (
+        <div className="rounded-xl border border-gold/40 bg-gold/15 px-4 py-3 text-sm font-medium text-ink">
+          Draft product — will not be listed until you create a channel listing.
+        </div>
+      )}
+
       {productListings.length > 0 && (
         <div className="rounded-xl border border-ink/10 bg-mist/40 px-4 py-3 text-sm">
           <p className="font-medium">Channel listings</p>
           <ul className="mt-2 flex flex-wrap gap-3">
             {productListings.map((l) => (
               <li key={l.id}>
-                <Link href={`/listings/${l.id}?from=/products/${product.id}`} className="text-primary hover:underline">
+                <Link
+                  href={`/listings/${l.id}?from=/products/${product.id}`}
+                  className="text-primary hover:underline"
+                >
                   {l.channel} · {l.status} → Open / Edit
                 </Link>
               </li>
@@ -199,6 +258,7 @@ export default function ProductDetailPage() {
         </div>
       )}
       <ListingEditorForm value={form} onChange={setForm} />
+      <SaveConfirmBar show={justSaved} message="Product saved successfully" />
     </div>
   );
 }

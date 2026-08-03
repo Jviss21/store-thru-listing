@@ -4,13 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ImagePlus,
   Package,
+  Pencil,
   Plus,
   RefreshCw,
+  RotateCw,
   Ship,
   Trash2,
   X,
 } from "lucide-react";
 import { Button, Card, Input, Textarea } from "@/components/ui";
+import { PhotoEditor } from "@/components/PhotoEditor";
 import { ProductImage } from "@/components/ProductImage";
 import {
   defaultEbayCategoryIdForProductCategory,
@@ -28,7 +31,8 @@ import {
   getStrategyByName,
   strategyToFormDefaults,
 } from "@/lib/listing-strategies";
-import { readFilesAsDataUrls } from "@/lib/photos";
+import { readFilesAsDataUrls, urlToDataUrl } from "@/lib/photos";
+import { rotateImage90Cw } from "@/lib/image-edit";
 import {
   BOX_PADDINGS,
   CARRIERS,
@@ -544,6 +548,9 @@ export function ListingEditorForm({
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewIdx, setPreviewIdx] = useState(value.mainImageIndex);
+  const [editorIdx, setEditorIdx] = useState<number | null>(null);
+  const [editorSrc, setEditorSrc] = useState<string | null>(null);
+  const [rotatingIdx, setRotatingIdx] = useState<number | null>(null);
   const [ebayCategories, setEbayCategories] = useState<EbayCategoryOption[]>([]);
   const [aspects, setAspects] = useState<EbayAspect[]>([]);
   const [sgwFields, setSgwFields] = useState<SgwCategoryField[]>([]);
@@ -669,13 +676,71 @@ export function ListingEditorForm({
     if (value.imageUrls.length === 0) setPreviewIdx(0);
   }
 
-  function addStockImages() {
+  async function addStockImages() {
     if (readOnly) return;
-    const next = [...value.imageUrls, ...STOCK_FALLBACKS.slice(0, 3)];
-    patch({
-      imageUrls: next,
-      mainImageIndex: value.imageUrls.length === 0 ? 0 : value.mainImageIndex,
-    });
+    try {
+      const urls = await Promise.all(STOCK_FALLBACKS.slice(0, 3).map((u) => urlToDataUrl(u)));
+      const next = [...value.imageUrls, ...urls];
+      patch({
+        imageUrls: next,
+        mainImageIndex: value.imageUrls.length === 0 ? 0 : value.mainImageIndex,
+      });
+      if (value.imageUrls.length === 0) setPreviewIdx(0);
+    } catch {
+      const next = [...value.imageUrls, ...STOCK_FALLBACKS.slice(0, 3)];
+      patch({
+        imageUrls: next,
+        mainImageIndex: value.imageUrls.length === 0 ? 0 : value.mainImageIndex,
+      });
+    }
+  }
+
+  async function ensureEditableUrl(index: number): Promise<string | null> {
+    const url = value.imageUrls[index];
+    if (!url) return null;
+    if (url.startsWith("data:")) return url;
+    try {
+      const dataUrl = await urlToDataUrl(url);
+      const next = [...value.imageUrls];
+      next[index] = dataUrl;
+      patch({ imageUrls: next });
+      return dataUrl;
+    } catch {
+      return url;
+    }
+  }
+
+  async function rotateThumb(index: number) {
+    if (readOnly) return;
+    setRotatingIdx(index);
+    try {
+      const url = await ensureEditableUrl(index);
+      if (!url) return;
+      const nextUrl = await rotateImage90Cw(url);
+      const next = [...value.imageUrls];
+      next[index] = nextUrl;
+      patch({ imageUrls: next });
+    } catch {
+      /* leave original */
+    } finally {
+      setRotatingIdx(null);
+    }
+  }
+
+  async function openEditor(index: number) {
+    if (readOnly) return;
+    setPreviewIdx(index);
+    const url = await ensureEditableUrl(index);
+    if (!url) return;
+    setEditorSrc(url);
+    setEditorIdx(index);
+  }
+
+  function replaceImageAt(index: number, dataUrl: string) {
+    const next = [...value.imageUrls];
+    next[index] = dataUrl;
+    patch({ imageUrls: next });
+    setEditorSrc(dataUrl);
   }
 
   function addTag() {
@@ -744,22 +809,53 @@ export function ListingEditorForm({
         {value.imageUrls.length > 0 && (
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {value.imageUrls.map((url, i) => (
-              <button
-                key={`${url}-${i}`}
-                type="button"
+              <div
+                key={`${url.slice(0, 48)}-${i}`}
                 className={cn(
-                  "relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2",
-                  i === previewIdx ? "border-primary" : "border-transparent"
+                  "relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2",
+                  i === previewIdx ? "border-primary" : "border-ink/10"
                 )}
-                onClick={() => setPreviewIdx(i)}
               >
-                <ProductImage src={url} seed={`img-${i}`} alt="" className="h-full w-full" />
+                <button
+                  type="button"
+                  className="h-full w-full"
+                  onClick={() => setPreviewIdx(i)}
+                >
+                  <ProductImage src={url} seed={`img-${i}`} alt="" className="h-full w-full" />
+                </button>
                 {i === value.mainImageIndex && (
-                  <span className="absolute left-0.5 top-0.5 rounded bg-primary px-1 py-0.5 text-[9px] font-semibold text-white">
+                  <span className="pointer-events-none absolute left-0.5 top-0.5 rounded bg-primary px-1 py-0.5 text-[9px] font-semibold text-white">
                     Main Image
                   </span>
                 )}
-              </button>
+                {!readOnly && (
+                  <div className="absolute bottom-0.5 right-0.5 flex gap-0.5">
+                    <button
+                      type="button"
+                      title="Rotate 90°"
+                      disabled={rotatingIdx === i}
+                      className="rounded bg-ink/80 p-1 text-white hover:bg-ink disabled:opacity-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void rotateThumb(i);
+                      }}
+                    >
+                      <RotateCw className={cn("h-3 w-3", rotatingIdx === i && "animate-spin")} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Edit photo"
+                      className="rounded bg-gold p-1 text-ink hover:brightness-95"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void openEditor(i);
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -783,6 +879,28 @@ export function ListingEditorForm({
               />
               {!readOnly && (
                 <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void rotateThumb(previewIdx);
+                    }}
+                  >
+                    <RotateCw className="h-3.5 w-3.5" /> Rotate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="accent"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void openEditor(previewIdx);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit photo
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1659,6 +1777,20 @@ export function ListingEditorForm({
           placeholder="Additional note"
         />
       </Card>
+
+      {editorIdx != null && editorSrc && (
+        <PhotoEditor
+          open
+          src={editorSrc}
+          onClose={() => {
+            setEditorIdx(null);
+            setEditorSrc(null);
+          }}
+          onSave={(dataUrl) => {
+            replaceImageAt(editorIdx, dataUrl);
+          }}
+        />
+      )}
     </div>
   );
 }

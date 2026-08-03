@@ -16,6 +16,7 @@
   --orange: #e87a1a;
   --rust: #c94a2a;
   --mustard: #c9a032;
+  --save-ok: #0f9b94;
   --accent: var(--gold);
   --accent-ink: #0d1b34;
   /* Legacy aliases → brand orange / rust (do not reintroduce teal/lime) */
@@ -111,4 +112,38 @@ body::before {
 
 .live-dot {
   animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes save-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 160, 0.55);
+    transform: scale(1);
+  }
+  40% {
+    box-shadow: 0 0 0 10px rgba(14, 165, 160, 0);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 160, 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes save-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-save-pulse {
+  animation: save-pulse 0.7s ease-out 2;
+}
+
+.animate-save-toast {
+  animation: save-toast-in 0.28s ease-out both;
 }

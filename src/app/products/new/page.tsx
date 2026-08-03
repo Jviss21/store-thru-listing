@@ -10,6 +10,12 @@ import {
   validateListingForm,
   type ListingFormState,
 } from "@/components/ListingEditorForm";
+import {
+  SaveButton,
+  SaveConfirmBar,
+  SaveToast,
+  useSaveFeedback,
+} from "@/components/SaveFeedback";
 import { Button, Card } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
@@ -21,10 +27,16 @@ function NewProductInner() {
   const params = useSearchParams();
   const [form, setForm] = useState<ListingFormState>(() => {
     const base = emptyFormState();
-    return { ...base, title: params.get("title") ?? "", sku: params.get("sku") ?? base.sku, channels: [] };
+    return {
+      ...base,
+      title: params.get("title") ?? "",
+      sku: params.get("sku") ?? base.sku,
+      channels: [],
+    };
   });
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { feedback, justSaved, announce } = useSaveFeedback();
 
   async function buildAndSave(status: "Draft" | "Active") {
     if (!form.title.trim() || !form.sku.trim()) {
@@ -82,9 +94,12 @@ function NewProductInner() {
   }
 
   async function saveDraft() {
+    setSaving(true);
     const product = await buildAndSave("Draft");
-    if (!product) return;
-    setMessage("Draft saved.");
+    if (!product) {
+      setSaving(false);
+      return;
+    }
     exportListingPacket({
       title: product.title,
       sku: product.sku,
@@ -95,11 +110,17 @@ function NewProductInner() {
       images: product.imageUrls,
       productId: product.id,
     });
+    announce("Draft saved successfully.");
+    setSaving(false);
   }
 
   async function saveAndList() {
+    setSaving(true);
     const product = await buildAndSave("Active");
-    if (!product) return;
+    if (!product) {
+      setSaving(false);
+      return;
+    }
     const channel = form.channels[0]!;
     saveCreatedListing({
       id: `listing-${Date.now()}`,
@@ -121,9 +142,12 @@ function NewProductInner() {
       images: product.imageUrls,
       productId: product.id,
     });
-    setMessage(`Listing created for ${channel} (Queued).`);
+    announce(`Listing created for ${channel} (Queued).`);
+    setSaving(false);
     setTimeout(() => {
-      router.push(channel === "eBay" ? "/listings/ebay?status=Queued" : "/listings/shopgoodwill?status=Queued");
+      router.push(
+        channel === "eBay" ? "/listings/ebay?status=Queued" : "/listings/shopgoodwill?status=Queued"
+      );
     }, 800);
   }
 
@@ -134,19 +158,46 @@ function NewProductInner() {
           <h1 className="font-display text-3xl font-bold tracking-tight">New Product</h1>
           <p className="text-sm text-muted">Full product + channel form with photos and specifics.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" type="button" onClick={() => void saveDraft()}><Download className="h-4 w-4" /> Save draft</Button>
-          <Button variant="accent" type="button" onClick={() => void saveAndList()}><Upload className="h-4 w-4" /> Create listing</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <SaveButton
+            justSaved={justSaved}
+            saving={saving}
+            savedLabel="Draft saved"
+            onClick={() => void saveDraft()}
+          >
+            <Download className="h-4 w-4" /> Save draft
+          </SaveButton>
+          {justSaved && (
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-save-ok">
+              ✓ Saved
+            </span>
+          )}
+          <Button variant="accent" type="button" disabled={saving} onClick={() => void saveAndList()}>
+            <Upload className="h-4 w-4" /> Create listing
+          </Button>
         </div>
       </div>
-      {message && <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-3 text-sm">{message}</div>}
-      {error && <div className="rounded-xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">{error}</div>}
+      <SaveToast feedback={feedback} />
+      {error && (
+        <div className="rounded-xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
+          {error}
+        </div>
+      )}
+      <div className="rounded-xl border border-gold/40 bg-gold/15 px-4 py-3 text-sm font-medium text-ink">
+        Draft product — will not be listed until you create a channel listing.
+      </div>
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <p className="text-sm">Prefer speed? Use {BRAND.autoList}.</p>
-        <Link href="/products/auto-list" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">Open {BRAND.autoList}</Link>
+        <Link
+          href="/products/auto-list"
+          className="ml-auto text-sm font-semibold text-brand-orange hover:underline"
+        >
+          Open {BRAND.autoList}
+        </Link>
       </Card>
       <ListingEditorForm value={form} onChange={setForm} />
+      <SaveConfirmBar show={justSaved} message="Draft saved successfully" />
     </div>
   );
 }

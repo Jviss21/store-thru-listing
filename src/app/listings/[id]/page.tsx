@@ -12,6 +12,12 @@ import {
   type ListingFormState,
 } from "@/components/ListingEditorForm";
 import { ListingStatusBadge } from "@/components/StatusBadge";
+import {
+  SaveButton,
+  SaveConfirmBar,
+  SaveToast,
+  useSaveFeedback,
+} from "@/components/SaveFeedback";
 import { Button } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
@@ -26,9 +32,9 @@ export default function ListingEditPage() {
   const { org, api, hydrated } = useOrg();
   const [listing, setListing] = useState<Listing | null>(null);
   const [form, setForm] = useState<ListingFormState | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [ready, setReady] = useState(false);
+  const { feedback, justSaved, announce } = useSaveFeedback();
   const statusFilter = searchParams.get("status");
   const from = searchParams.get("from");
   const backHref = useMemo(() => {
@@ -62,9 +68,8 @@ export default function ListingEditPage() {
     }
     const err = validateListingForm(form, aspects);
     if (err) {
-      setToast(err);
+      announce(err, { error: true });
       setSaving(false);
-      setTimeout(() => setToast(null), 3500);
       return;
     }
     const next = applyFormToListing(listing, form);
@@ -72,9 +77,10 @@ export default function ListingEditPage() {
     if (updateRes.ok) {
       setListing(updateRes.data);
       setForm(listingToFormState(updateRes.data));
-      setToast("Listing saved.");
-    } else setToast(updateRes.error || "Save failed");
-    setTimeout(() => setToast(null), 2500);
+      announce("Listing saved successfully.");
+    } else {
+      announce(updateRes.error || "Save failed", { error: true });
+    }
     setSaving(false);
   }
 
@@ -83,7 +89,9 @@ export default function ListingEditPage() {
     return (
       <div className="space-y-3 p-8">
         <p className="font-medium">Listing not found</p>
-        <Link href="/listings" className="text-sm text-primary hover:underline">Back to listings</Link>
+        <Link href="/listings" className="text-sm text-primary hover:underline">
+          Back to listings
+        </Link>
       </div>
     );
   }
@@ -103,20 +111,41 @@ export default function ListingEditPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" type="button" onClick={() => router.push(backHref)}>Cancel</Button>
-          <Button type="button" disabled={!editable || saving} onClick={() => void save()}>
-            {saving ? "Saving…" : "Save"}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" type="button" onClick={() => router.push(backHref)}>
+            Cancel
           </Button>
+          <SaveButton
+            justSaved={justSaved}
+            saving={saving}
+            disabled={!editable}
+            onClick={() => void save()}
+          />
+          {justSaved && (
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-save-ok">
+              ✓ Saved
+            </span>
+          )}
         </div>
       </div>
-      {toast && <div className="rounded-xl border border-mustard/30 bg-mustard/10 px-4 py-2 text-sm">{toast}</div>}
+      <SaveToast feedback={feedback} />
       {!editable && (
         <div className="rounded-xl border border-coral/25 bg-coral/10 px-4 py-3 text-sm">
-          This listing can’t be edited{listing.status === "Sold" ? " because it is Sold." : listing.status === "Active" && (listing.bids ?? 0) > 0 ? ` because it has ${listing.bids} bid(s).` : "."}
+          This listing can’t be edited
+          {listing.status === "Sold"
+            ? " because it is Sold."
+            : listing.status === "Active" && (listing.bids ?? 0) > 0
+              ? ` because it has ${listing.bids} bid(s).`
+              : "."}
         </div>
       )}
-      <ListingEditorForm value={form} onChange={setForm} lockedChannel={listing.channel} readOnly={!editable} />
+      <ListingEditorForm
+        value={form}
+        onChange={setForm}
+        lockedChannel={listing.channel}
+        readOnly={!editable}
+      />
+      <SaveConfirmBar show={justSaved} message="Listing saved successfully" />
     </div>
   );
 }

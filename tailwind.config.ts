@@ -20,6 +20,7 @@ const config: Config = {
         gold: "var(--gold)",
         rust: "var(--rust)",
         mustard: "var(--mustard)",
+        "save-ok": "var(--save-ok)",
         "brand-orange": "var(--orange)",
         accent: {
           DEFAULT: "var(--accent)",
