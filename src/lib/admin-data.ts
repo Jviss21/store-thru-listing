@@ -3,7 +3,6 @@ import {
   CURRENT_USER,
   ORG_NAME,
   ORG_SLUG,
-  STRATEGIES,
   CARRIERS,
   dashboardStats,
   infinityStats,
