@@ -9,6 +9,7 @@ import type {
   ProductStatus,
   Shipment,
 } from "./types";
+import { productPhotoUrls } from "./photos";
 
 /** Single front-end customer for this demo. */
 export const ORG_NAME = "Test Goodwill";
@@ -19,6 +20,56 @@ export const BRAND = {
   autoDraft: "Auto-Draft",
   autoList: "Auto-List",
 };
+
+export const STRATEGIES = [
+  "Clothing/Shoes/Purses",
+  "Lots $19.99",
+  "HardGoods $14.99",
+  "Electronics Fixed $29.99",
+  "Books $4.99",
+  "Collectibles Auction",
+];
+
+export const CARRIERS = ["FedEx", "UPS", "USPS", "OnTrac"];
+
+export const CONDITIONS = [
+  "Used - Good",
+  "Used - Very Good",
+  "Used - Acceptable",
+  "New with tags",
+  "For parts or not working",
+];
+
+export const CATEGORY_PATHS: Record<string, string> = {
+  "Home Goods": "Home & Garden > Household Supplies",
+  Electronics: "Electronics > Consumer Electronics",
+  Sports: "Sporting Goods > Outdoor Recreation",
+  "Books & Media": "Books & Magazines > Books",
+  Apparel: "Clothing, Shoes & Accessories",
+  "General Merchandise": "Everything Else > General Merchandise",
+  "Toys & Games": "Toys & Hobbies > Games",
+  "Jewelry & Accessories": "Jewelry & Watches > Fashion Jewelry",
+  "Tools & Hardware": "Business & Industrial > Hand Tools",
+  Collectibles: "Collectibles > Decorative Collectibles",
+};
+
+const SAMPLE_TITLES = [
+  "Adidas Men Athletic Shoes Size 10 Blue",
+  "Harley Davidson Helmet Bag Leather",
+  "Cuisinart Stainless Cookware Set 10pc",
+  "Vintage Pyrex Mixing Bowl Nesting Set",
+  "Nintendo Switch OLED Console Dock Only",
+  "Levi's 501 Jeans Mens 34x32 Dark Wash",
+  "KitchenAid Stand Mixer Bowl Stainless",
+  "Sony WH-1000XM4 Wireless Headphones",
+  "Patagonia Fleece Jacket Mens Large",
+  "Lego City Fire Station Incomplete Set",
+  "Coach Crossbody Purse Brown Leather",
+  "DeWalt 20V Drill Driver Kit Bare Tool",
+  "Yankee Candle Large Jar Fresh Cotton",
+  "Apple AirPods Pro Gen 2 Case Only",
+  "North Face Backpack Black 28L Daypack",
+];
 
 export const CURRENT_USER = {
   name: "John Doe",
@@ -255,6 +306,8 @@ function buildProducts(): Product[] {
   for (let i = 1; i <= 120; i++) {
     const status = PRODUCT_STATUSES[i % 10 === 0 ? 2 : i % 3 === 0 ? 1 : 0];
     const staff = STAFF[i % STAFF.length];
+    const category = CATEGORIES[i % CATEGORIES.length];
+    const strategy = STRATEGIES[i % STRATEGIES.length];
     const listedOn: ListingChannel[] =
       status === "Active"
         ? i % 3 === 0
@@ -263,20 +316,50 @@ function buildProducts(): Product[] {
             ? ["ShopGoodwill"]
             : ["eBay"]
         : [];
+    const titleBase = SAMPLE_TITLES[i % SAMPLE_TITLES.length];
+    const uprightProductId = String(41516000 + i);
+    const brand = ["Adidas", "Harley-Davidson", "Cuisinart", "Sony", "Levi's", "Generic"][i % 6];
+    const condition = CONDITIONS[i % CONDITIONS.length];
     rows.push({
       id: `p${i}`,
-      title: `Sample Product ${i} — ${CATEGORIES[i % CATEGORIES.length]}`,
-      sku: `SKU-${(1000 + i).toString()}`,
+      title: `${titleBase} · Lot ${i}`,
+      subtitle: i % 3 === 0 ? `${brand} · ${condition}` : undefined,
+      sku: `TGW${(610000 + i).toString(36).toUpperCase()}`,
       status,
-      location: i % 5 === 0 ? "—" : `Bin ${String.fromCharCode(65 + (i % 6))}-${10 + (i % 20)}`,
+      location:
+        i % 7 === 0
+          ? `Cart - ${10 + (i % 20)}`
+          : `${String.fromCharCode(65 + (i % 8))} - ${1 + (i % 12)} - ${1 + (i % 5)}`,
       supplier: SUPPLIERS[i % SUPPLIERS.length],
       createdBy: staff.handle,
       createdAt: daysAgo(i % 21),
-      category: CATEGORIES[i % CATEGORIES.length],
+      category,
+      categoryPath: CATEGORY_PATHS[category] ?? category,
       price: Math.round((12 + (i % 40) * 3.25 + (i % 7)) * 100) / 100,
       imageColor: COLORS[i % COLORS.length],
+      imageUrls: productPhotoUrls(`tgw-p${i}`, 3 + (i % 3)),
       listedOn,
-      description: `Demo catalog item ${i} for ${ORG_NAME}. Condition notes and accessories go here.`,
+      description: `Pre-owned ${titleBase} from ${ORG_NAME}. Inspected by ${staff.handle}. Photos show actual item. Smoke-free facility.`,
+      privateDescription: `TGW${(610000 + i).toString(36).toUpperCase()}-${String(i % 5).padStart(2, "0")}`,
+      carrier: CARRIERS[i % CARRIERS.length],
+      condition,
+      brand,
+      mpn: i % 4 === 0 ? `MPN-${8000 + i}` : undefined,
+      upc: i % 5 === 0 ? `0${88000000000 + i}` : undefined,
+      weightLbs: Math.round((0.5 + (i % 15) * 0.35) * 100) / 100,
+      lengthIn: 8 + (i % 10),
+      widthIn: 6 + (i % 8),
+      heightIn: 2 + (i % 6),
+      strategy,
+      tags:
+        i % 4 === 0
+          ? ["HMQ-Auto-List"]
+          : i % 5 === 0
+            ? ["HMQ-Auto-Draft"]
+            : i % 3 === 0
+              ? ["Demo", "Priority"]
+              : ["Demo"],
+      uprightProductId,
     });
   }
   return rows;
@@ -293,22 +376,57 @@ function buildListings(): Listing[] {
         id % 17 === 0
           ? ("Additional QA Required" as const)
           : LISTING_STATUSES[id % LISTING_STATUSES.length];
+      const itemSpecifics: Record<string, string> = {
+        Brand: product.brand ?? "Unbranded",
+        Condition: product.condition ?? "Used - Good",
+        Department: product.category,
+        Color: ["Black", "Blue", "Brown", "Silver", "Multi"][id % 5],
+      };
+      if (product.mpn) itemSpecifics.MPN = product.mpn;
+      if (product.upc) itemSpecifics.UPC = product.upc;
       rows.push({
         id: `l${id}`,
         productId: product.id,
         channel,
         title: product.title,
+        subtitle: product.subtitle,
         sku: product.sku,
         status,
         price: Math.round(product.price * (channel === "eBay" ? 1.05 : 1) * 100) / 100,
-        strategy: product.category ?? "General",
-        tags: id % 4 === 0 ? ["Auto-List"] : id % 5 === 0 ? ["Auto-Draft"] : ["Demo"],
+        quantity: 1,
+        strategy: product.strategy ?? "General",
+        tags: product.tags ?? ["Demo"],
         postedBy: product.createdBy,
-        postedAt: product.createdAt,
+        postedAt: hoursAgo(id % 72),
+        productCreatedAt: product.createdAt,
         location: product.location,
         supplier: product.supplier,
-        externalId: channel === "eBay" ? `EB-${20000 + id}` : `EXT-${30000 + id}`,
+        carrier: product.carrier ?? "FedEx",
+        categoryPath: product.categoryPath,
+        externalId:
+          channel === "eBay"
+            ? `EB-${20000 + id}`
+            : id % 3 === 0
+              ? `SGW-${400000 + id}`
+              : "—",
+        uprightProductId: product.uprightProductId ?? String(41516000 + id),
+        privateDescription: product.privateDescription ?? product.sku,
+        condition: product.condition ?? "Used - Good",
+        brand: product.brand ?? "Unbranded",
+        mpn: product.mpn,
+        upc: product.upc,
+        weightLbs: product.weightLbs ?? 1,
+        lengthIn: product.lengthIn ?? 10,
+        widthIn: product.widthIn ?? 8,
+        heightIn: product.heightIn ?? 4,
+        description: product.description ?? "",
         imageColor: product.imageColor,
+        imageUrls: product.imageUrls,
+        itemSpecifics,
+        returnsPolicy: "30-day returns · Buyer pays return shipping",
+        paymentPolicy: "Managed payments (eBay / marketplace default)",
+        shippingPolicy: `${product.carrier ?? "FedEx"} Ground · Calculated`,
+        itemLocation: "Test Goodwill · Anonymized Demo Facility, USA",
       });
       id += 1;
     }
@@ -543,15 +661,20 @@ export const eventLogRows = [
   },
 ];
 
-export const top50Sales = Array.from({ length: 50 }).map((_, i) => ({
-  rank: i + 1,
-  title: `Sample Product ${((i * 3) % 120) + 1} sale`,
-  channel: i % 2 === 0 ? "ShopGoodwill" : "eBay",
-  soldPrice: Math.round((260 - i * 3.8) * 100) / 100,
-  cost: 40 + (i % 6) * 7,
-  soldAt: daysAgo(i % 18),
-  autoListed: i % 3 !== 0,
-}));
+export const top50Sales = Array.from({ length: 50 }).map((_, i) => {
+  const product = products[((i * 3) % products.length)];
+  return {
+    rank: i + 1,
+    title: product?.title ?? `Sample Product ${((i * 3) % 120) + 1} sale`,
+    sku: product?.sku ?? `TGW${1000 + i}`,
+    channel: i % 2 === 0 ? "ShopGoodwill" : "eBay",
+    soldPrice: Math.round((260 - i * 3.8) * 100) / 100,
+    cost: 40 + (i % 6) * 7,
+    soldAt: daysAgo(i % 18),
+    autoListed: i % 3 !== 0,
+    supplier: product?.supplier ?? SUPPLIERS[i % SUPPLIERS.length],
+  };
+});
 
 export const refundRows = Array.from({ length: 18 }).map((_, i) => ({
   orderNumber: `ORD-${2004 + i * 3}`,

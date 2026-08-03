@@ -6,7 +6,10 @@ import Link from "next/link";
 import { Button, Card, EmptyState, Input, PageHeader, Badge } from "@/components/ui";
 import { orders } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
-import { exportOrdersCsv } from "@/lib/demo-actions";
+import {
+  exportOrdersCsv,
+  exportRefundsCsv,
+} from "@/lib/demo-actions";
 
 function OrdersInner() {
   const searchParams = useSearchParams();
@@ -27,9 +30,21 @@ function OrdersInner() {
         title="Orders"
         description="Paid and unpaid marketplace orders waiting on fulfillment."
         actions={
-          <Button type="button" variant="outline" onClick={() => exportOrdersCsv()}>
-            Export CSV
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => exportOrdersCsv()}>
+              Export orders CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => exportOrdersCsv({ paymentStatus: "Paid" })}
+            >
+              Export paid CSV
+            </Button>
+            <Button type="button" variant="outline" onClick={() => exportRefundsCsv()}>
+              Export refunds CSV
+            </Button>
+          </div>
         }
       />
 

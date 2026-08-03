@@ -1,15 +1,43 @@
+"use client";
+
+import { useState } from "react";
+import { Download } from "lucide-react";
 import { Badge, Card, PageHeader, Button } from "@/components/ui";
 import { shipments } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
+import { exportShipmentsCsv } from "@/lib/demo-actions";
 
 export default function ShipmentsPage() {
+  const [flash, setFlash] = useState<string | null>(null);
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Shipments"
         description="Labels, carriers, and tracking for fulfilled orders."
-        actions={<Button type="button">Create shipment</Button>}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                exportShipmentsCsv();
+                setFlash("Shipments CSV downloaded.");
+                setTimeout(() => setFlash(null), 2000);
+              }}
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+            <Button type="button">Create shipment</Button>
+          </>
+        }
       />
+
+      {flash && (
+        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
+          {flash}
+        </div>
+      )}
 
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-left text-sm">

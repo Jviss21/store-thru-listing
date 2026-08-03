@@ -5,7 +5,8 @@ import { useState } from "react";
 import { Check, Download, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
-import { BRAND, ORG_SLUG, autoDraftQueue } from "@/lib/mock-data";
+import { ProductImage } from "@/components/ProductImage";
+import { BRAND, ORG_SLUG, autoDraftQueue, getProduct } from "@/lib/mock-data";
 import { downloadCsv, stamp } from "@/lib/download";
 import { formatCurrency } from "@/lib/utils";
 
@@ -99,6 +100,7 @@ export default function AutoDraftPage() {
                   onChange={(e) => setSelected(e.target.checked ? rows.map((r) => r.id) : [])}
                 />
               </th>
+              <th className="px-3 py-2">Image</th>
               <th className="px-3 py-2">SKU</th>
               <th className="px-3 py-2">Suggested title</th>
               <th className="px-3 py-2">Category</th>
@@ -108,31 +110,42 @@ export default function AutoDraftPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b hover:bg-mist/40">
-                <td className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(r.id)}
-                    onChange={() => toggle(r.id)}
-                  />
-                </td>
-                <td className="px-3 py-3 font-mono text-xs">{r.sku}</td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-accent" />
-                    <span className="font-medium">{r.title}</span>
-                  </div>
-                </td>
-                <td className="px-3 py-3">{r.category}</td>
-                <td className="px-3 py-3">{formatCurrency(r.suggestedPrice)}</td>
-                <td className="px-3 py-3 font-semibold text-brand-orange">{r.confidence}%</td>
-                <td className="px-3 py-3 text-muted">{r.source}</td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const product = getProduct(r.productId);
+              return (
+                <tr key={r.id} className="border-b hover:bg-mist/40">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(r.id)}
+                      onChange={() => toggle(r.id)}
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                    <ProductImage
+                      src={product?.imageUrls[0]}
+                      seed={r.productId}
+                      alt={r.title}
+                      className="h-10 w-10"
+                    />
+                  </td>
+                  <td className="px-3 py-3 font-mono text-xs">{r.sku}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-accent" />
+                      <span className="font-medium">{r.title}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">{r.category}</td>
+                  <td className="px-3 py-3">{formatCurrency(r.suggestedPrice)}</td>
+                  <td className="px-3 py-3 font-semibold text-brand-orange">{r.confidence}%</td>
+                  <td className="px-3 py-3 text-muted">{r.source}</td>
+                </tr>
+              );
+            })}
             {!rows.length && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
                   Queue clear — Infinity AI has no pending Auto-Drafts.
                 </td>
               </tr>

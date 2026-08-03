@@ -5,14 +5,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useRef, useState } from "react";
 import { Download, ImagePlus, Upload, X } from "lucide-react";
 import { Button, Card, Input, Textarea } from "@/components/ui";
-import { CATEGORIES, SUPPLIERS, BRAND } from "@/lib/mock-data";
-import { InfinityBadge } from "@/components/Brand";
 import {
   exportListingPacket,
   saveCreatedListing,
   saveCreatedProduct,
   type CreatedProduct,
 } from "@/lib/demo-actions";
+import { readFilesAsDataUrls } from "@/lib/photos";
+import {
+  CARRIERS,
+  CATEGORIES,
+  CATEGORY_PATHS,
+  CONDITIONS,
+  STRATEGIES,
+  SUPPLIERS,
+  BRAND,
+} from "@/lib/mock-data";
+import { InfinityBadge } from "@/components/Brand";
 
 type LocalImage = {
   id: string;
@@ -31,30 +40,33 @@ function NewProductInner() {
   const [category, setCategory] = useState(CATEGORIES[5]);
   const [supplier, setSupplier] = useState(SUPPLIERS[0]);
   const [price, setPrice] = useState("24.99");
-  const [location, setLocation] = useState("Location A");
+  const [location, setLocation] = useState("A - 1 - 1");
   const [description, setDescription] = useState("");
+  const [privateDescription, setPrivateDescription] = useState("");
+  const [condition, setCondition] = useState(CONDITIONS[0]);
+  const [strategy, setStrategy] = useState(STRATEGIES[0]);
+  const [carrier, setCarrier] = useState(CARRIERS[0]);
+  const [brand, setBrand] = useState("");
   const [channel, setChannel] = useState<"ShopGoodwill" | "eBay">("ShopGoodwill");
   const [images, setImages] = useState<LocalImage[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function onFiles(files: FileList | null) {
+  async function onFiles(files: FileList | null) {
     if (!files?.length) return;
-    const next: LocalImage[] = [];
-    Array.from(files).forEach((file, i) => {
-      if (!file.type.startsWith("image/")) return;
-      next.push({
-        id: `${Date.now()}-${i}`,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        main: images.length === 0 && i === 0,
-      });
-    });
-    if (!next.length) {
+    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!list.length) {
       setError("Please choose image files (JPG, PNG, WebP, etc.).");
       return;
     }
     setError(null);
+    const dataUrls = await readFilesAsDataUrls(list);
+    const next: LocalImage[] = list.map((file, i) => ({
+      id: `${Date.now()}-${i}`,
+      name: file.name,
+      url: dataUrls[i],
+      main: images.length === 0 && i === 0,
+    }));
     setImages((prev) => {
       const merged = [...prev, ...next];
       if (!merged.some((img) => img.main) && merged[0]) merged[0].main = true;
@@ -72,14 +84,22 @@ function NewProductInner() {
       title: title.trim(),
       sku: sku.trim(),
       category,
+      categoryPath: CATEGORY_PATHS[category] ?? category,
       supplier,
       price: Number(price) || 0,
       location,
       description,
+      privateDescription: privateDescription || sku.trim(),
       status,
       imageNames: images.map((img) => img.name),
+      imageUrls: images.map((img) => img.url),
       createdAt: new Date().toISOString(),
       listedOn: [],
+      condition,
+      brand: brand || undefined,
+      carrier,
+      strategy,
+      tags: channel === "eBay" ? ["HMQ-Auto-List"] : ["Demo"],
     };
   }
 
@@ -95,7 +115,8 @@ function NewProductInner() {
       price: product.price,
       category: product.category,
       description: product.description,
-      images: product.imageNames,
+      images: product.imageUrls,
+      productId: product.id,
     });
   }
 
@@ -120,7 +141,8 @@ function NewProductInner() {
       price: listing.price,
       category: product.category,
       description: product.description,
-      images: product.imageNames,
+      images: product.imageUrls,
+      productId: product.id,
     });
     setMessage(
       `Listing created for ${channel}. CSV + JSON downloaded. Opening listings…`
@@ -303,6 +325,46 @@ function NewProductInner() {
             <Input className="mt-1" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
           <div>
+            <label className="text-sm font-medium">Condition</label>
+            <select
+              className="mt-1 h-10 w-full rounded-xl border border-ink/10 bg-white px-3 text-sm"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+            >
+              {CONDITIONS.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Strategy</label>
+            <select
+              className="mt-1 h-10 w-full rounded-xl border border-ink/10 bg-white px-3 text-sm"
+              value={strategy}
+              onChange={(e) => setStrategy(e.target.value)}
+            >
+              {STRATEGIES.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Carrier</label>
+            <select
+              className="mt-1 h-10 w-full rounded-xl border border-ink/10 bg-white px-3 text-sm"
+              value={carrier}
+              onChange={(e) => setCarrier(e.target.value)}
+            >
+              {CARRIERS.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Brand</label>
+            <Input className="mt-1" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Optional" />
+          </div>
+          <div>
             <label className="text-sm font-medium">List to channel</label>
             <select
               className="mt-1 h-10 w-full rounded-xl border border-ink/10 bg-white px-3 text-sm"
@@ -312,6 +374,15 @@ function NewProductInner() {
               <option value="ShopGoodwill">ShopGoodwill</option>
               <option value="eBay">eBay</option>
             </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium">Private description</label>
+            <Input
+              className="mt-1"
+              value={privateDescription}
+              onChange={(e) => setPrivateDescription(e.target.value)}
+              placeholder="Internal note / secondary SKU"
+            />
           </div>
           <div className="md:col-span-2">
             <label className="text-sm font-medium">Description</label>

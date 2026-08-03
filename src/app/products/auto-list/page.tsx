@@ -5,9 +5,10 @@ import { useState } from "react";
 import { Download, Rocket, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
-import { BRAND, ORG_SLUG, autoListQueue } from "@/lib/mock-data";
+import { ProductImage } from "@/components/ProductImage";
+import { BRAND, ORG_SLUG, autoListQueue, getProduct } from "@/lib/mock-data";
 import { downloadCsv, stamp } from "@/lib/download";
-import { exportListingPacket } from "@/lib/demo-actions";
+import { exportEbayListingPack, exportListingPacket } from "@/lib/demo-actions";
 import { formatCurrency } from "@/lib/utils";
 
 export default function AutoListPage() {
@@ -22,14 +23,25 @@ export default function AutoListPage() {
   function listSelected() {
     const chosen = rows.filter((r) => selected.includes(r.id));
     if (!chosen.length) return;
-    chosen.forEach((r) =>
-      exportListingPacket({
-        title: r.title,
-        sku: r.sku,
-        channel: r.channel,
-        price: r.price,
-      })
-    );
+    chosen.forEach((r) => {
+      if (r.channel === "eBay") {
+        exportEbayListingPack({
+          title: r.title,
+          sku: r.sku,
+          channel: r.channel,
+          price: r.price,
+          productId: r.productId,
+        });
+      } else {
+        exportListingPacket({
+          title: r.title,
+          sku: r.sku,
+          channel: r.channel,
+          price: r.price,
+          productId: r.productId,
+        });
+      }
+    });
     setRows((prev) => prev.filter((r) => !selected.includes(r.id)));
     setToast(
       `${BRAND.autoList} published ${chosen.length} item(s). Listing packets downloaded.`
@@ -110,6 +122,7 @@ export default function AutoListPage() {
                   onChange={(e) => setSelected(e.target.checked ? rows.map((r) => r.id) : [])}
                 />
               </th>
+              <th className="px-3 py-2">Image</th>
               <th className="px-3 py-2">SKU</th>
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">Channel</th>
@@ -118,13 +131,23 @@ export default function AutoListPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const product = getProduct(r.productId);
+              return (
               <tr key={r.id} className="border-b hover:bg-mist/40">
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={selected.includes(r.id)}
                     onChange={() => toggle(r.id)}
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <ProductImage
+                    src={product?.imageUrls[0]}
+                    seed={r.productId}
+                    alt={r.title}
+                    className="h-10 w-10"
                   />
                 </td>
                 <td className="px-3 py-3 font-mono text-xs">{r.sku}</td>
@@ -138,10 +161,11 @@ export default function AutoListPage() {
                 <td className="px-3 py-3">{formatCurrency(r.price)}</td>
                 <td className="px-3 py-3 font-semibold text-brand-orange">{r.readiness}%</td>
               </tr>
-            ))}
+            );
+            })}
             {!rows.length && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
                   Nothing queued — Auto-List is caught up.
                 </td>
               </tr>

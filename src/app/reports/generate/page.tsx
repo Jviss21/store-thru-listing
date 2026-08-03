@@ -7,30 +7,29 @@ import {
   exportAllDemoJson,
   exportAutoDraftQueueCsv,
   exportAutoListQueueCsv,
+  exportEventsCsv,
+  exportItemCreationCsv,
   exportListingsCsv,
   exportManifestsCsv,
+  exportOperationalCsv,
   exportOrdersCsv,
+  exportProductivityCsv,
   exportProductsCsv,
   exportRefundsCsv,
   exportShipmentsCsv,
+  exportSuppliersCsv,
+  exportTopSalesCsv,
 } from "@/lib/demo-actions";
-import { downloadCsv, stamp } from "@/lib/download";
-import {
-  BRAND,
-  ORG_NAME,
-  ORG_SLUG,
-  listerProductivity,
-  operationalActivity,
-  top50Sales,
-} from "@/lib/mock-data";
+import { BRAND, ORG_NAME, ORG_SLUG } from "@/lib/mock-data";
 
 const OPTIONS = [
   { id: "sgw", label: "ShopGoodwill listings", run: () => exportListingsCsv("ShopGoodwill") },
   { id: "ebay", label: "eBay listings", run: () => exportListingsCsv("eBay") },
   { id: "orders", label: "Orders", run: () => exportOrdersCsv() },
-  { id: "paid", label: "Paid orders", run: () => exportOrdersCsv() },
+  { id: "paid", label: "Paid orders", run: () => exportOrdersCsv({ paymentStatus: "Paid" }) },
   { id: "refunds", label: "Refunds", run: () => exportRefundsCsv() },
   { id: "intake", label: "Intake item batches", run: () => exportManifestsCsv() },
+  { id: "itemcreation", label: "Item creation (supplier rollups)", run: () => exportItemCreationCsv() },
   { id: "shipments", label: "Shipments", run: () => exportShipmentsCsv() },
   { id: "products", label: "Products", run: () => exportProductsCsv() },
   {
@@ -43,33 +42,11 @@ const OPTIONS = [
     label: `${BRAND.autoList} queue`,
     run: () => exportAutoListQueueCsv(),
   },
-  {
-    id: "productivity",
-    label: "Lister productivity",
-    run: () =>
-      downloadCsv(
-        `${ORG_SLUG}-productivity-${stamp()}.csv`,
-        listerProductivity as unknown as Record<string, unknown>[]
-      ),
-  },
-  {
-    id: "operational",
-    label: "Operational activity",
-    run: () =>
-      downloadCsv(
-        `${ORG_SLUG}-operational-${stamp()}.csv`,
-        operationalActivity as unknown as Record<string, unknown>[]
-      ),
-  },
-  {
-    id: "topsales",
-    label: "Top sales",
-    run: () =>
-      downloadCsv(
-        `${ORG_SLUG}-top-sales-${stamp()}.csv`,
-        top50Sales as unknown as Record<string, unknown>[]
-      ),
-  },
+  { id: "productivity", label: "Lister productivity", run: () => exportProductivityCsv() },
+  { id: "operational", label: "Operational activity", run: () => exportOperationalCsv() },
+  { id: "events", label: "Event logs", run: () => exportEventsCsv() },
+  { id: "topsales", label: "Top sales", run: () => exportTopSalesCsv() },
+  { id: "suppliers", label: "Suppliers", run: () => exportSuppliersCsv() },
   { id: "alljson", label: "Full demo JSON pack", run: () => exportAllDemoJson() },
 ];
 

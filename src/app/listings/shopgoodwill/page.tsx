@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { ListingStatusBadge } from "@/components/StatusBadge";
+import { ProductImage } from "@/components/ProductImage";
 import { listings as seed } from "@/lib/mock-data";
 import type { Listing, ListingStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
@@ -53,7 +54,7 @@ function ShopGoodwillInner() {
         return false;
       if (status !== "All" && l.status !== status) return false;
       if (!q) return true;
-      return `${l.title} ${l.sku} ${l.externalId} ${l.tags.join(" ")}`
+      return `${l.title} ${l.sku} ${l.externalId} ${l.uprightProductId} ${l.tags.join(" ")} ${l.privateDescription} ${l.location}`
         .toLowerCase()
         .includes(q.toLowerCase());
     });
@@ -66,6 +67,20 @@ function ShopGoodwillInner() {
     }
     setToast(message);
     setTimeout(() => setToast(null), 2000);
+  }
+
+  function downloadPack(listing: Listing) {
+    exportListingPacket({
+      title: listing.title,
+      sku: listing.sku,
+      channel: listing.channel,
+      price: listing.price,
+      category: listing.strategy,
+      description: listing.description,
+      images: listing.imageUrls,
+      listingId: listing.id,
+      productId: listing.productId,
+    });
   }
 
   return (
@@ -134,7 +149,7 @@ function ShopGoodwillInner() {
 
       <Input
         className="max-w-md"
-        placeholder="Filter by title, SKU, tags…"
+        placeholder="Filter by title, SKU, tags, location…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
@@ -146,51 +161,83 @@ function ShopGoodwillInner() {
             description="Change bucket or status filters, or clear search to see ShopGoodwill listings."
           />
         ) : (
-        <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
-            <tr>
-              <th className="px-4 py-2">Image</th>
-              <th className="px-3 py-2">Product ID</th>
-              <th className="px-3 py-2">SKU</th>
-              <th className="px-3 py-2">Tags</th>
-              <th className="px-3 py-2">Strategy</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((l) => (
-              <tr
-                key={l.id}
-                className="cursor-pointer border-b hover:bg-blue-50/50"
-                onClick={() => setSelected(l)}
-              >
-                <td className="px-4 py-3">
-                  <div className="h-10 w-10 rounded border" style={{ background: l.imageColor }} />
-                </td>
-                <td className="px-3 py-3 font-mono text-xs text-primary">{l.externalId}</td>
-                <td className="px-3 py-3 font-mono text-xs">{l.sku}</td>
-                <td className="px-3 py-3">
-                  {l.tags.map((t) => (
-                    <span key={t} className="mr-1 rounded bg-mist px-1.5 py-0.5 text-xs">
-                      {t}
-                    </span>
-                  ))}
-                </td>
-                <td className="px-3 py-3">{l.strategy}</td>
-                <td className="px-3 py-3">
-                  <ListingStatusBadge status={l.status} />
-                </td>
-                <td className="px-3 py-3">{formatCurrency(l.price)}</td>
+          <table className="w-full min-w-[1400px] text-left text-sm">
+            <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
+              <tr>
+                <th className="px-3 py-2">Image</th>
+                <th className="px-3 py-2">Product ID</th>
+                <th className="px-3 py-2">SKU</th>
+                <th className="px-3 py-2">Tags</th>
+                <th className="px-3 py-2">Strategy</th>
+                <th className="px-3 py-2">ShopGoodwill ID</th>
+                <th className="px-3 py-2">Title</th>
+                <th className="px-3 py-2">Private Desc</th>
+                <th className="px-3 py-2">Location</th>
+                <th className="px-3 py-2">Supplier</th>
+                <th className="px-3 py-2">Carrier</th>
+                <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Created</th>
+                <th className="px-3 py-2">Product Created</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((l) => (
+                <tr
+                  key={l.id}
+                  className="cursor-pointer border-b hover:bg-blue-50/50"
+                  onClick={() => setSelected(l)}
+                >
+                  <td className="px-3 py-2">
+                    <ProductImage
+                      src={l.imageUrls[0]}
+                      seed={l.productId}
+                      alt={l.title}
+                      className="h-10 w-10"
+                      fallbackColor={l.imageColor}
+                    />
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-primary">{l.uprightProductId}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{l.sku}</td>
+                  <td className="px-3 py-2">
+                    {l.tags.map((t) => (
+                      <span key={t} className="mr-1 rounded bg-mist px-1.5 py-0.5 text-xs">
+                        {t}
+                      </span>
+                    ))}
+                  </td>
+                  <td className="px-3 py-2 max-w-[120px] truncate" title={l.strategy}>
+                    {l.strategy}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs">{l.externalId}</td>
+                  <td className="px-3 py-2 max-w-[180px] truncate font-medium" title={l.title}>
+                    {l.title}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-muted">{l.privateDescription}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{l.location}</td>
+                  <td className="px-3 py-2">{l.supplier}</td>
+                  <td className="px-3 py-2">{l.carrier}</td>
+                  <td className="px-3 py-2 max-w-[140px] truncate" title={l.categoryPath}>
+                    {l.categoryPath}
+                  </td>
+                  <td className="px-3 py-2">
+                    <ListingStatusBadge status={l.status} />
+                  </td>
+                  <td className="px-3 py-2 text-muted whitespace-nowrap">
+                    {new Date(l.postedAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-3 py-2 text-muted whitespace-nowrap">
+                    {new Date(l.productCreatedAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </Card>
 
       {selected && (
-        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-md border-l bg-white shadow-xl">
+        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-lg border-l bg-white shadow-xl">
           <div className="flex h-14 items-center justify-between border-b px-4">
             <h2 className="font-semibold">Listing detail</h2>
             <button onClick={() => setSelected(null)} className="rounded p-1 hover:bg-mist">
@@ -198,37 +245,49 @@ function ShopGoodwillInner() {
             </button>
           </div>
           <div className="space-y-4 overflow-y-auto p-4" style={{ maxHeight: "calc(100vh - 8rem)" }}>
-            <div
-              className="aspect-video rounded-md border"
-              style={{ background: selected.imageColor }}
-            />
+            <div className="grid grid-cols-3 gap-2">
+              {selected.imageUrls.slice(0, 3).map((url) => (
+                <ProductImage
+                  key={url}
+                  src={url}
+                  seed={selected.productId}
+                  alt={selected.title}
+                  className="aspect-square w-full"
+                />
+              ))}
+            </div>
             <p className="text-xs uppercase text-muted">{selected.strategy}</p>
             <h3 className="text-lg font-semibold leading-snug">{selected.title}</h3>
+            {selected.subtitle && <p className="text-sm text-muted">{selected.subtitle}</p>}
             <p className="text-xs text-muted">
               Posted by {selected.postedBy} · {new Date(selected.postedAt).toLocaleDateString()}
             </p>
             <ListingStatusBadge status={selected.status} />
+            <p className="text-sm text-muted">{selected.description}</p>
             <dl className="space-y-2 rounded-md border p-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted">SKU</dt>
-                <dd className="font-mono text-xs">{selected.sku}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Product ID</dt>
-                <dd className="text-primary">{selected.externalId}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Location</dt>
-                <dd>{selected.location}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Supplier</dt>
-                <dd>{selected.supplier}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-muted">Price</dt>
-                <dd className="font-medium">{formatCurrency(selected.price)}</dd>
-              </div>
+              {[
+                ["SKU", selected.sku],
+                ["Product ID", selected.uprightProductId],
+                ["ShopGoodwill ID", selected.externalId],
+                ["Private description", selected.privateDescription],
+                ["Inventory location", selected.location],
+                ["Supplier", selected.supplier],
+                ["Carrier", selected.carrier],
+                ["Category", selected.categoryPath],
+                ["Condition", selected.condition],
+                ["Brand", selected.brand],
+                ["Price", formatCurrency(selected.price)],
+                [
+                  "Dims / weight",
+                  `${selected.lengthIn}×${selected.widthIn}×${selected.heightIn} in · ${selected.weightLbs} lb`,
+                ],
+                ["Tags", selected.tags.join(", ")],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-3">
+                  <dt className="text-muted shrink-0">{k}</dt>
+                  <dd className="text-right font-mono text-xs">{v}</dd>
+                </div>
+              ))}
             </dl>
           </div>
           <div className="absolute bottom-0 left-0 right-0 flex flex-wrap gap-1 border-t bg-white p-3 text-xs">
@@ -241,15 +300,7 @@ function ShopGoodwillInner() {
               type="button"
               onClick={() => {
                 act("Listed — packet downloaded", "Active");
-                if (selected) {
-                  exportListingPacket({
-                    title: selected.title,
-                    sku: selected.sku,
-                    channel: selected.channel,
-                    price: selected.price,
-                    category: selected.strategy,
-                  });
-                }
+                downloadPack(selected);
               }}
             >
               <Plus className="h-3.5 w-3.5" /> List + download
@@ -259,14 +310,7 @@ function ShopGoodwillInner() {
               variant="outline"
               type="button"
               onClick={() => {
-                if (!selected) return;
-                exportListingPacket({
-                  title: selected.title,
-                  sku: selected.sku,
-                  channel: selected.channel,
-                  price: selected.price,
-                  category: selected.strategy,
-                });
+                downloadPack(selected);
                 act("Listing files downloaded");
               }}
             >

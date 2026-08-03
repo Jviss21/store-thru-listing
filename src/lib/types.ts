@@ -78,10 +78,26 @@ export interface Product {
   createdBy: string;
   createdAt: string;
   category: string;
+  categoryPath: string;
   price: number;
   imageColor: string;
+  imageUrls: string[];
   listedOn: ListingChannel[];
   description?: string;
+  privateDescription?: string;
+  carrier?: string;
+  condition?: string;
+  brand?: string;
+  mpn?: string;
+  upc?: string;
+  weightLbs?: number;
+  lengthIn?: number;
+  widthIn?: number;
+  heightIn?: number;
+  strategy?: string;
+  tags?: string[];
+  uprightProductId?: string;
+  subtitle?: string;
 }
 
 export interface Listing {
@@ -89,17 +105,39 @@ export interface Listing {
   productId: string;
   channel: ListingChannel;
   title: string;
+  subtitle?: string;
   sku: string;
   status: ListingStatus;
   price: number;
+  quantity: number;
   strategy: string;
   tags: string[];
   postedBy: string;
   postedAt: string;
+  productCreatedAt: string;
   location: string;
   supplier: string;
+  carrier: string;
+  categoryPath: string;
   externalId: string;
+  uprightProductId: string;
+  privateDescription: string;
+  condition: string;
+  brand: string;
+  mpn?: string;
+  upc?: string;
+  weightLbs: number;
+  lengthIn: number;
+  widthIn: number;
+  heightIn: number;
+  description: string;
   imageColor: string;
+  imageUrls: string[];
+  itemSpecifics: Record<string, string>;
+  returnsPolicy: string;
+  paymentPolicy: string;
+  shippingPolicy: string;
+  itemLocation: string;
 }
 
 export interface Order {
@@ -122,4 +160,42 @@ export interface Shipment {
   cost: number;
   shippedAt: string;
   status: "Label created" | "In transit" | "Delivered";
+}
+
+/** Flat row used for eBay listing input pack CSV/JSON downloads. */
+export interface EbayListingInputPack {
+  organization: string;
+  channel: "eBay";
+  title: string;
+  subtitle: string;
+  description: string;
+  condition: string;
+  category: string;
+  categoryPath: string;
+  itemSpecifics: string;
+  brand: string;
+  mpn: string;
+  upc: string;
+  price: number;
+  quantity: number;
+  sku: string;
+  photoUrls: string;
+  shippingPolicy: string;
+  weightLbs: number;
+  lengthIn: number;
+  widthIn: number;
+  heightIn: number;
+  returnsPolicy: string;
+  paymentPolicy: string;
+  itemLocation: string;
+  privateDescription: string;
+  inventoryLocation: string;
+  supplier: string;
+  carrier: string;
+  strategy: string;
+  tags: string;
+  uprightProductId: string;
+  externalId: string;
+  status: string;
+  generatedAt: string;
 }

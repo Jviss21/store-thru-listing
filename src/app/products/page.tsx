@@ -6,10 +6,16 @@ import { useSearchParams } from "next/navigation";
 import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { ProductStatusBadge } from "@/components/StatusBadge";
 import { InfinityBadge } from "@/components/Brand";
+import { ProductImage } from "@/components/ProductImage";
 import { BRAND, products as seed } from "@/lib/mock-data";
 import type { ProductStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
-import { exportBarcodesTxt, exportProductsCsv, getCreatedProducts } from "@/lib/demo-actions";
+import {
+  exportBarcodesTxt,
+  exportProductsCsv,
+  getCreatedProducts,
+  getPhotoOverlay,
+} from "@/lib/demo-actions";
 
 const TABS: Array<ProductStatus | "All"> = ["All", "Active", "Draft", "Recycled"];
 
@@ -42,9 +48,16 @@ function ProductsInner() {
       category: p.category,
       price: p.price,
       imageColor: "#f0b429",
+      imageUrls: p.imageUrls?.length ? p.imageUrls : getPhotoOverlay(p.id),
       listedOn: p.listedOn as ("ShopGoodwill" | "eBay")[],
     }));
-    return [...local, ...seed];
+    return [
+      ...local,
+      ...seed.map((p) => {
+        const overlay = getPhotoOverlay(p.id);
+        return overlay.length ? { ...p, imageUrls: overlay } : p;
+      }),
+    ];
   }, [created]);
 
   const filtered = useMemo(() => {
@@ -201,10 +214,12 @@ function ProductsInner() {
                   <input type="checkbox" />
                 </td>
                 <td className="px-3 py-3">
-                  <div
-                    className="h-10 w-10 rounded border"
-                    style={{ background: p.imageColor }}
-                    title={p.title}
+                  <ProductImage
+                    src={"imageUrls" in p ? p.imageUrls?.[0] : undefined}
+                    seed={p.id}
+                    alt={p.title}
+                    className="h-10 w-10"
+                    fallbackColor={p.imageColor}
                   />
                 </td>
                 <td className="px-3 py-3">

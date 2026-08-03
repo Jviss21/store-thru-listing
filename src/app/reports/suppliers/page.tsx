@@ -29,7 +29,10 @@ export default function SuppliersReportPage() {
             onClick={() => {
               downloadCsv(
                 `${ORG_SLUG}-suppliers-${stamp()}.csv`,
-                supplierReportRows as unknown as Record<string, unknown>[]
+                supplierReportRows.map(({ spark: _spark, ...rest }) => rest) as unknown as Record<
+                  string,
+                  unknown
+                >[]
               );
               setFlash("Suppliers CSV downloaded.");
               setTimeout(() => setFlash(null), 2000);
