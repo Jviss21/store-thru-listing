@@ -317,7 +317,7 @@ export function createMockApiClient(): ApiClient {
       async list(orgId) {
         const idx = orgIndex(orgId);
         return ok(
-          baseOrders.slice(0, Math.max(20, 80 - idx * 5)).map((o) => ({
+          baseOrders.slice(0, Math.max(40, 140 - idx * 8)).map((o) => ({
             ...o,
             id: `${orgId}-${o.id}`,
             orderNumber: `${skuPrefix(orgId)}-${o.orderNumber}`,

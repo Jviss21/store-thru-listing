@@ -219,20 +219,38 @@ export function exportProductsCsv() {
   downloadCsv(file("products", "csv"), [...created, ...seed]);
 }
 
-export function exportOrdersCsv(opts?: { paymentStatus?: "Paid" | "Pending" | "Refunded" }) {
+export function exportOrdersCsv(opts?: {
+  paymentStatus?: "Paid" | "Pending" | "Refunded" | "Partially Paid" | "Partially Refunded";
+}) {
   const rows = orders
     .filter((o) => !opts?.paymentStatus || o.paymentStatus === opts.paymentStatus)
     .map((o) => ({
       orderNumber: o.orderNumber,
       channel: o.channel,
+      channelOrderId: o.channelOrderId,
       customer: o.customer,
       total: o.total,
       paymentStatus: o.paymentStatus,
       fulfillmentStatus: o.fulfillmentStatus,
+      pickPackStatus: o.pickPackStatus,
+      shipBy: o.shipBy,
+      sku: o.sku,
+      title: o.title,
       itemCount: o.itemCount,
+      orderType: o.orderType,
+      category: o.category,
+      location: o.location,
+      destination: o.destination,
+      shippingMethod: o.shippingMethod,
       createdAt: o.createdAt,
+      paidAt: o.paidAt ?? "",
+      isOverdue: o.isOverdue,
+      isUrgent: o.isUrgent,
+      isNotFound: o.isNotFound,
     }));
-  const suffix = opts?.paymentStatus ? opts.paymentStatus.toLowerCase() : "all";
+  const suffix = opts?.paymentStatus
+    ? opts.paymentStatus.toLowerCase().replace(/\s+/g, "-")
+    : "all";
   downloadCsv(file(`orders-${suffix}`, "csv"), rows);
 }
 

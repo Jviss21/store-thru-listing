@@ -51,7 +51,6 @@ export default function OrderDetailPage() {
         />
         <Card className="p-6 text-sm text-muted">
           No matching seed order for <span className="font-mono text-ink">{id}</span>.
-          Locally created shipments may reference a demo order number only.
         </Card>
       </div>
     );
@@ -70,11 +69,18 @@ export default function OrderDetailPage() {
         title={order.orderNumber}
         description={`${order.channel} · ${order.customer}`}
         actions={
-          <Link href="/shipments">
-            <Button type="button" variant="outline">
-              <Truck className="h-4 w-4" /> Related shipments
-            </Button>
-          </Link>
+          <>
+            <Link href="/shipments/new">
+              <Button type="button" variant="accent">
+                New shipment
+              </Button>
+            </Link>
+            <Link href="/shipments">
+              <Button type="button" variant="outline">
+                <Truck className="h-4 w-4" /> Related shipments
+              </Button>
+            </Link>
+          </>
         }
       />
 
@@ -86,12 +92,13 @@ export default function OrderDetailPage() {
               tone={
                 order.paymentStatus === "Paid"
                   ? "green"
-                  : order.paymentStatus === "Refunded"
+                  : order.paymentStatus === "Refunded" ||
+                      order.paymentStatus === "Partially Refunded"
                     ? "red"
                     : "yellow"
               }
             >
-              {order.paymentStatus}
+              {order.paymentStatus === "Pending" ? "Unpaid" : order.paymentStatus}
             </Badge>
           </div>
         </Card>
@@ -116,6 +123,9 @@ export default function OrderDetailPage() {
         <Card className="p-4">
           <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Items</p>
           <p className="mt-1 font-display text-2xl font-bold text-ink">{order.itemCount}</p>
+          <p className="text-xs text-muted">
+            {order.orderType}-item · {order.pickPackStatus}
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Total</p>
@@ -127,10 +137,14 @@ export default function OrderDetailPage() {
 
       <Card className="p-5">
         <h2 className="font-display text-lg font-semibold text-ink">Order details</h2>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted">Order ID</dt>
             <dd className="font-medium text-ink">{order.id}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Channel Order ID</dt>
+            <dd className="font-mono text-sm font-medium text-ink">{order.channelOrderId}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted">Channel</dt>
@@ -141,9 +155,64 @@ export default function OrderDetailPage() {
             <dd className="font-medium text-ink">{order.customer}</dd>
           </div>
           <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Title / SKU</dt>
+            <dd className="font-medium text-ink">
+              {order.title}
+              <span className="mt-0.5 block font-mono text-xs text-muted">{order.sku}</span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Item / Unit</dt>
+            <dd className="font-medium text-ink">
+              {order.itemId}
+              <span className="mt-0.5 block font-mono text-xs text-muted">{order.unitId}</span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Ship by</dt>
+            <dd
+              className={
+                order.isOverdue
+                  ? "font-semibold text-coral"
+                  : order.isUrgent
+                    ? "font-semibold text-brand-orange"
+                    : "font-medium text-ink"
+              }
+            >
+              {new Date(order.shipBy).toLocaleString()}
+              {order.isOverdue && " · Overdue"}
+              {order.isUrgent && !order.isOverdue && " · Urgent"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Shipping</dt>
+            <dd className="font-medium text-ink">
+              {order.shippingMethod} · {order.destination}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Location / Category</dt>
+            <dd className="font-medium text-ink">
+              {order.location}
+              <span className="mt-0.5 block text-xs text-muted">{order.category}</span>
+            </dd>
+          </div>
+          <div>
             <dt className="text-xs uppercase tracking-wide text-muted">Created</dt>
             <dd className="font-medium text-ink">
               {new Date(order.createdAt).toLocaleString()}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Paid</dt>
+            <dd className="font-medium text-ink">
+              {order.paidAt ? new Date(order.paidAt).toLocaleString() : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-muted">Tracking</dt>
+            <dd className="font-mono text-xs font-medium text-ink">
+              {order.trackingNumber ?? "—"}
             </dd>
           </div>
         </dl>

@@ -128,6 +128,7 @@ export const REJECT_REASONS = [
 const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3600000).toISOString();
 const daysAgo = (d: number) => new Date(now - d * 86400000).toISOString();
+const daysFromNow = (d: number) => new Date(now + d * 86400000).toISOString();
 const minsAgo = (m: number) => new Date(now - m * 60000).toISOString();
 
 const COLORS = [
@@ -454,21 +455,137 @@ function buildListings(): Listing[] {
 
 export const listings = buildListings();
 
+const ORDER_SHIPPING_METHODS = [
+  "Standard",
+  "Expedited",
+  "Priority Mail",
+  "FedEx Ground",
+  "Flat $9.99",
+  "Local pickup",
+] as const;
+
+const BUYER_HANDLES = [
+  "thriftfinder88",
+  "mountainbuyer",
+  "co_reseller",
+  "dealhunter_jg",
+  "vintagevault",
+  "sgw_shopper",
+  "ebay_poweruser",
+  "closetclearout",
+  "localpickup_only",
+  "jewelry_jane",
+];
+
+function buildChannelOrderId(channel: ListingChannel, i: number) {
+  if (channel === "eBay") {
+    const a = String(3 + (i % 7)).padStart(2, "0");
+    const b = String(14000 + ((i * 37) % 9000)).padStart(5, "0");
+    const c = String(10000 + ((i * 91) % 90000)).padStart(5, "0");
+    return `${a}-${b}-${c}`;
+  }
+  return `SGW-${400000 + i * 17}`;
+}
+
 function buildOrders(): Order[] {
   const rows: Order[] = [];
-  const pay = ["Paid", "Paid", "Paid", "Pending", "Refunded"] as const;
-  const fulfill = ["Unfulfilled", "Unfulfilled", "Partial", "Fulfilled", "Fulfilled"] as const;
-  for (let i = 1; i <= 80; i++) {
+  const pay = [
+    "Paid",
+    "Paid",
+    "Paid",
+    "Paid",
+    "Pending",
+    "Refunded",
+    "Partially Paid",
+    "Partially Refunded",
+  ] as const;
+  const fulfill = [
+    "Unfulfilled",
+    "Unfulfilled",
+    "Unfulfilled",
+    "Partial",
+    "Fulfilled",
+    "Fulfilled",
+  ] as const;
+  const pickPack = [
+    "Not started",
+    "Not started",
+    "Being pulled",
+    "Picked",
+    "Packed",
+    "Not found",
+  ] as const;
+
+  for (let i = 1; i <= 140; i++) {
+    const channel: ListingChannel = i % 2 === 0 ? "eBay" : "ShopGoodwill";
+    const itemCount = 1 + (i % 5);
+    const orderType = itemCount > 1 ? "Multi" : "Single";
+    const fulfillmentStatus = fulfill[i % fulfill.length];
+    let pickPackStatus = pickPack[i % pickPack.length];
+    if (i % 23 === 0) pickPackStatus = "Not found";
+    if (fulfillmentStatus === "Fulfilled" && pickPackStatus === "Not started") {
+      pickPackStatus = "Packed";
+    }
+    if (fulfillmentStatus === "Unfulfilled" && i % 11 === 0) {
+      pickPackStatus = "Being pulled";
+    }
+    if (fulfillmentStatus === "Unfulfilled" && orderType === "Multi" && i % 9 === 0) {
+      pickPackStatus = "Picked";
+    }
+
+    const createdAt = hoursAgo(i * 1.7 + (i % 5));
+    const paymentStatus = pay[i % pay.length];
+    const paidAt =
+      paymentStatus === "Pending" ? null : hoursAgo(i * 1.5 + (i % 3));
+
+    let shipBy: string;
+    if (i % 13 === 0) shipBy = daysAgo(1 + (i % 4));
+    else if (i % 7 === 0) shipBy = daysFromNow(i % 2);
+    else shipBy = daysFromNow(3 + (i % 10));
+
+    const isNotFound = pickPackStatus === "Not found";
+    const open = fulfillmentStatus !== "Fulfilled";
+    const shipByMs = new Date(shipBy).getTime();
+    const isOverdue = open && shipByMs < now;
+    const isUrgent = open && !isOverdue && shipByMs - now <= 2 * 86400000;
+
+    const titleBase = SAMPLE_TITLES[i % SAMPLE_TITLES.length];
+    const sku = `TGW${(610000 + i).toString(36).toUpperCase()}`;
+    const trackingNumber =
+      fulfillmentStatus === "Fulfilled" || fulfillmentStatus === "Partial"
+        ? `9400${String(1100000000000000 + i * 2213).slice(0, 16)}`
+        : null;
+
     rows.push({
       id: `o${i}`,
       orderNumber: `ORD-${2000 + i}`,
-      channel: i % 2 === 0 ? "eBay" : "ShopGoodwill",
-      customer: `Customer ${i}`,
-      total: Math.round((18 + (i % 25) * 7.4) * 100) / 100,
-      paymentStatus: pay[i % pay.length],
-      fulfillmentStatus: fulfill[i % fulfill.length],
-      itemCount: 1 + (i % 4),
-      createdAt: hoursAgo(i * 2),
+      channel,
+      channelOrderId: buildChannelOrderId(channel, i),
+      customer: BUYER_HANDLES[i % BUYER_HANDLES.length],
+      total: Math.round((18 + (i % 25) * 7.4 + itemCount * 3.2) * 100) / 100,
+      paymentStatus,
+      fulfillmentStatus,
+      itemCount,
+      createdAt,
+      paidAt,
+      shipBy,
+      title: `${titleBase} · Lot ${i}`,
+      sku,
+      itemId: String(23248000 + i),
+      unitId: `U-${90000 + i}`,
+      trackingNumber,
+      pickPackStatus,
+      shippingMethod: ORDER_SHIPPING_METHODS[i % ORDER_SHIPPING_METHODS.length],
+      orderType,
+      category: CATEGORIES[i % CATEGORIES.length],
+      location:
+        i % 7 === 0
+          ? `Cart - ${10 + (i % 20)}`
+          : `${String.fromCharCode(65 + (i % 8))} - ${1 + (i % 12)} - ${1 + (i % 5)}`,
+      destination: i % 11 === 0 ? "International" : "Domestic",
+      isOverdue,
+      isUrgent,
+      isNotFound,
     });
   }
   return rows;
@@ -487,13 +604,7 @@ function hexChunk(seed: number, len: number) {
 }
 
 function channelOrderIdFor(order: Order, i: number) {
-  if (order.channel === "eBay") {
-    const a = String(3 + (i % 7)).padStart(2, "0");
-    const b = String(14000 + ((i * 37) % 9000)).padStart(5, "0");
-    const c = String(10000 + ((i * 91) % 90000)).padStart(5, "0");
-    return `${a}-${b}-${c}`;
-  }
-  return `SGW-${400000 + i * 17}`;
+  return order.channelOrderId || buildChannelOrderId(order.channel, i);
 }
 
 function buildShipments(): Shipment[] {
@@ -783,11 +894,16 @@ export function getListing(id: string) {
 }
 
 export function getOrder(id: string) {
+  const key = id.toLowerCase();
   return orders.find(
     (o) =>
       o.id === id ||
       o.orderNumber === id ||
-      o.orderNumber.toLowerCase() === id.toLowerCase()
+      o.orderNumber.toLowerCase() === key ||
+      o.channelOrderId === id ||
+      o.channelOrderId.toLowerCase() === key ||
+      o.itemId === id ||
+      o.sku.toLowerCase() === key
   );
 }
 

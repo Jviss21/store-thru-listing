@@ -27,7 +27,21 @@ export type ListingStatus =
   | "Recycled"
   | "Additional QA Required";
 export type OrderFulfillment = "Unfulfilled" | "Partial" | "Fulfilled";
-export type PaymentStatus = "Pending" | "Paid" | "Refunded";
+export type PaymentStatus =
+  | "Pending"
+  | "Paid"
+  | "Refunded"
+  | "Partially Paid"
+  | "Partially Refunded";
+export type PickPackStatus =
+  | "Not started"
+  | "Being pulled"
+  | "Picked"
+  | "Packed"
+  | "Not found";
+export type OrderTypeKind = "Single" | "Multi";
+export type ShippingDestination = "Domestic" | "International";
+export type ShipTimeline = "On time" | "Urgent" | "Overdue";
 export type ListingType = "Auction" | "Fixed Price";
 
 export interface ManifestItem {
@@ -77,9 +91,38 @@ export interface Listing {
 }
 
 export interface Order {
-  id: string; orderNumber: string; channel: ListingChannel; customer: string; total: number;
-  paymentStatus: PaymentStatus; fulfillmentStatus: OrderFulfillment; itemCount: number; createdAt: string;
+  id: string;
+  orderNumber: string;
+  channel: ListingChannel;
+  /** Marketplace-facing order id (eBay 12-34567-89012 / SGW-…). */
+  channelOrderId: string;
+  customer: string;
+  total: number;
+  paymentStatus: PaymentStatus;
+  fulfillmentStatus: OrderFulfillment;
+  itemCount: number;
+  createdAt: string;
+  paidAt: string | null;
+  shipBy: string;
+  title: string;
+  sku: string;
+  itemId: string;
+  unitId: string;
+  trackingNumber: string | null;
+  pickPackStatus: PickPackStatus;
+  shippingMethod: string;
+  orderType: OrderTypeKind;
+  category: string;
+  location: string;
+  destination: ShippingDestination;
+  /** Derived: ship-by in the past and not fulfilled. */
+  isOverdue: boolean;
+  /** Derived: ship-by within 2 days and not fulfilled. */
+  isUrgent: boolean;
+  /** True when pick/pack flagged missing inventory. */
+  isNotFound: boolean;
 }
+
 export type ShipmentStatus = "Label created" | "In transit" | "Delivered";
 export interface Shipment {
   id: string;
