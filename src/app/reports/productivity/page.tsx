@@ -20,7 +20,7 @@ export default function ProductivityReportPage() {
       </div>
       <PageHeader
         title="Lister Productivity"
-        description={`Manual posts plus ${BRAND.ai} ${BRAND.autoDraft} / ${BRAND.autoList} assists.`}
+        description={`Manual posts plus ${BRAND.ai} ${BRAND.autoList} assists.`}
         actions={
           <Button
             variant="outline"
@@ -50,7 +50,6 @@ export default function ProductivityReportPage() {
               <th className="px-4 py-2">User</th>
               <th className="px-3 py-2">Posted</th>
               <th className="px-3 py-2">Listed</th>
-              <th className="px-3 py-2">Auto-Draft</th>
               <th className="px-3 py-2">Auto-List</th>
               <th className="px-3 py-2">Sold</th>
               <th className="px-3 py-2">Revenue</th>
@@ -62,7 +61,6 @@ export default function ProductivityReportPage() {
                 <td className="px-4 py-3 font-medium">{r.user}</td>
                 <td className="px-3 py-3">{r.posted}</td>
                 <td className="px-3 py-3">{r.listed}</td>
-                <td className="px-3 py-3">{r.autoDrafted}</td>
                 <td className="px-3 py-3">{r.autoListed}</td>
                 <td className="px-3 py-3">{r.sold}</td>
                 <td className="px-3 py-3">{formatCurrency(r.revenue)}</td>

@@ -20,7 +20,7 @@ export default function OperationalReportPage() {
       </div>
       <PageHeader
         title="Operational Activity"
-        description="30-day pipeline throughput including Infinity AI Auto-Draft and Auto-List."
+        description="30-day pipeline throughput including Infinity AI Auto-List."
         actions={
           <Button
             variant="outline"
@@ -51,7 +51,6 @@ export default function OperationalReportPage() {
               <th className="px-3 py-2">Intake</th>
               <th className="px-3 py-2">Photographed</th>
               <th className="px-3 py-2">Posted</th>
-              <th className="px-3 py-2">Auto-Draft</th>
               <th className="px-3 py-2">Auto-List</th>
               <th className="px-3 py-2">Sold</th>
               <th className="px-3 py-2">Shipped</th>
@@ -65,13 +64,12 @@ export default function OperationalReportPage() {
                 <td className="px-3 py-3">{r.intake}</td>
                 <td className="px-3 py-3">{r.photographed}</td>
                 <td className="px-3 py-3">{r.posted}</td>
-                <td className="px-3 py-3">{r.autoDrafted}</td>
                 <td className="px-3 py-3">{r.autoListed}</td>
                 <td className="px-3 py-3">{r.sold}</td>
                 <td className="px-3 py-3">{r.shipped}</td>
                 <td className="px-3 py-3">
                   <Sparkline
-                    values={[r.intake, r.autoDrafted, r.autoListed, r.sold, r.shipped]}
+                    values={[r.intake, r.autoListed, r.sold, r.shipped]}
                   />
                 </td>
               </tr>

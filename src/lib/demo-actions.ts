@@ -3,7 +3,6 @@
 import {
   ORG_NAME,
   ORG_SLUG,
-  autoDraftQueue,
   autoListQueue,
   eventLogRows,
   getListing,
@@ -287,21 +286,6 @@ export function exportShipmentsCsv() {
   );
 }
 
-export function exportAutoDraftQueueCsv() {
-  downloadCsv(
-    file("auto-draft-queue", "csv"),
-    autoDraftQueue.map((r) => ({
-      sku: r.sku,
-      title: r.title,
-      category: r.category,
-      suggestedPrice: r.suggestedPrice,
-      confidence: r.confidence,
-      source: r.source,
-      generatedAt: r.generatedAt,
-    }))
-  );
-}
-
 export function exportAutoListQueueCsv() {
   downloadCsv(
     file("auto-list-queue", "csv"),
@@ -369,7 +353,6 @@ export function exportAllDemoJson() {
     shipments,
     manifests,
     refunds: refundRows,
-    autoDraftQueue,
     autoListQueue,
     listerProductivity,
     operationalActivity,

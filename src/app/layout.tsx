@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · Test Goodwill",
   },
   description:
-    "Test Goodwill inventory demo — store thru listing with Infinity AI Auto-Draft and Auto-List, powered by hammoq.",
+    "Test Goodwill inventory demo — store thru listing with Infinity AI Auto-List, powered by hammoq.",
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/hammoq-logo.png" }],
     apple: "/hammoq-logo.png",

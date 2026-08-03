@@ -53,13 +53,13 @@ git push -u origin master
 |------|--------|
 | Home dashboard | `/` |
 | Item Creation | `/manifests`, `/manifests/new`, `/manifests/[id]` |
-| Products | `/products`, `/products/new`, `/products/draft`, `/products/scan-book`, `/products/auto-draft`, `/products/auto-list`, `/products/[id]` |
+| Products | `/products`, `/products/new`, `/products/draft`, `/products/scan-book`, `/products/auto-list`, `/products/[id]` |
 | Listings | `/listings/shopgoodwill`, `/listings/ebay` |
 | Orders / Shipments | `/orders`, `/shipments` |
 | Reports | `/reports/*` (CSV/JSON downloads) |
 | Settings / Printer / Notifications | `/settings`, `/settings/printer`, `/notifications` |
 
-Suggested walkthrough: **Home → Auto-Draft → Auto-List → Listings → Orders → Reports**.
+Suggested walkthrough: **Home → Auto-List → Listings → Orders → Reports**.
 
 ## Environment
 

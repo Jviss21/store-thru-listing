@@ -13,10 +13,10 @@ import {
   PlusCircle,
   Rocket,
   Settings,
+  Shield,
   ShoppingCart,
   Sparkles,
   Truck,
-  Wand2,
   X,
   Zap,
 } from "lucide-react";
@@ -27,18 +27,11 @@ import DemoBanner from "@/components/DemoBanner";
 
 const floorActions = [
   {
-    href: "/products/auto-draft",
-    label: BRAND.autoDraft,
-    icon: Wand2,
-    hint: `${BRAND.ai} drafts`,
-    primary: true,
-  },
-  {
     href: "/products/auto-list",
     label: BRAND.autoList,
     icon: Rocket,
     hint: "Push to channels",
-    primary: false,
+    primary: true,
   },
 ];
 
@@ -169,6 +162,21 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               {unread}
             </span>
           )}
+        </Link>
+        <Link
+          href="/admin"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+            pathname.startsWith("/admin")
+              ? "bg-ink text-accent shadow-sm"
+              : "text-ink/80 hover:bg-mist hover:text-ink"
+          )}
+        >
+          <Shield
+            className={cn("h-4 w-4", pathname.startsWith("/admin") ? "text-accent" : "text-muted")}
+          />
+          Admin
         </Link>
         <Link
           href="/settings"

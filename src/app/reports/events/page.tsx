@@ -20,7 +20,7 @@ export default function EventLogsPage() {
       </div>
       <PageHeader
         title="Event Logs"
-        description={`Cross-system audit trail — includes ${BRAND.ai} Auto-Draft / Auto-List events.`}
+        description={`Cross-system audit trail — includes ${BRAND.ai} Auto-List events.`}
         actions={
           <Button
             variant="outline"

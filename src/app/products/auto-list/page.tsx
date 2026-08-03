@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Download, Rocket, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
@@ -75,11 +74,6 @@ export default function AutoListPage() {
             <Button variant="outline" type="button" onClick={exportQueue}>
               <Download className="h-4 w-4" /> Export queue
             </Button>
-            <Link href="/products/auto-draft">
-              <Button variant="outline" type="button">
-                Open {BRAND.autoDraft}
-              </Button>
-            </Link>
             <Button variant="accent" type="button" disabled={!selected.length} onClick={listSelected}>
               <Rocket className="h-4 w-4" /> Auto-List + download
             </Button>

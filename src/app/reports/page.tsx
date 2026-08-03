@@ -9,7 +9,6 @@ import {
   Store,
   Trophy,
   Users,
-  Wand2,
 } from "lucide-react";
 import { BRAND, ORG_NAME } from "@/lib/mock-data";
 
@@ -17,20 +16,14 @@ const reports = [
   {
     href: "/reports/productivity",
     title: "Lister Productivity",
-    description: `Posts, lists, ${BRAND.autoDraft}, and sales by teammate.`,
+    description: `Posts, lists, ${BRAND.autoList}, and sales by teammate.`,
     icon: Users,
   },
   {
     href: "/reports/operational",
     title: "Operational Activity",
-    description: `Daily intake → ${BRAND.autoDraft} → ${BRAND.autoList} → sell → ship.`,
+    description: `Daily intake → ${BRAND.autoList} → sell → ship.`,
     icon: BarChart3,
-  },
-  {
-    href: "/products/auto-draft",
-    title: BRAND.autoDraft,
-    description: `${BRAND.ai} draft queue — approve titles and pricing.`,
-    icon: Wand2,
   },
   {
     href: "/products/auto-list",

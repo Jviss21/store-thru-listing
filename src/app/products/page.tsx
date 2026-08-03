@@ -85,16 +85,11 @@ function ProductsInner() {
     <div className="space-y-5">
       <PageHeader
         title="Products"
-        description={`${BRAND.ai} drafts and lists sit alongside your catalog — export downloads real CSV files.`}
+        description={`${BRAND.ai} Auto-List sits alongside your catalog — export downloads real CSV files.`}
         actions={
           <>
-            <Link href="/products/auto-draft">
-              <Button variant="accent" type="button">
-                {BRAND.autoDraft}
-              </Button>
-            </Link>
             <Link href="/products/auto-list">
-              <Button variant="outline" type="button">
+              <Button variant="accent" type="button">
                 {BRAND.autoList}
               </Button>
             </Link>
@@ -140,9 +135,9 @@ function ProductsInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <p className="text-sm text-ink/80">
-          Review {BRAND.autoDraft} suggestions, then push ready SKUs with {BRAND.autoList}.
+          Push ready SKUs to marketplaces with {BRAND.autoList}.
         </p>
-        <Link href="/products/auto-draft" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">
+        <Link href="/products/auto-list" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">
           Open queue
         </Link>
       </Card>

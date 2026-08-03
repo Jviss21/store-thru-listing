@@ -9,7 +9,6 @@ import {
   Rocket,
   Truck,
   Users,
-  Wand2,
   Wrench,
 } from "lucide-react";
 import { Button, Card, Badge } from "@/components/ui";
@@ -295,10 +294,9 @@ export default function HomePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em]">In pipeline</p>
             </div>
             <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink">
-              {formatNumber(infinityStats.autoDraftedToday + infinityStats.autoListedToday)}
+              {formatNumber(infinityStats.autoListedToday)}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {formatNumber(infinityStats.autoDraftedToday)} Auto-Draft ·{" "}
               {formatNumber(infinityStats.autoListedToday)} Auto-List today
             </p>
           </Card>
@@ -310,12 +308,6 @@ export default function HomePage() {
           <Users className="h-4 w-4" />
           <span>Tools</span>
         </div>
-        <Link href="/products/auto-draft">
-          <Button variant="outline" size="md" type="button">
-            <Wand2 className="h-4 w-4" />
-            {BRAND.autoDraft}
-          </Button>
-        </Link>
         <Link href="/products/auto-list">
           <Button variant="outline" size="md" type="button">
             <Rocket className="h-4 w-4" />

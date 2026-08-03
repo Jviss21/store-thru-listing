@@ -17,7 +17,6 @@ export const ORG_SLUG = "test-goodwill";
 export const BRAND = {
   product: "hammoq",
   ai: "Infinity AI",
-  autoDraft: "Auto-Draft",
   autoList: "Auto-List",
 };
 
@@ -156,7 +155,6 @@ const LISTING_STATUSES: ListingStatus[] = [
 ];
 
 export const infinityStats = {
-  autoDraftedToday: 214,
   autoListedToday: 168,
   aiSuggestedTitles: 392,
   aiCategoryMatchRate: 94,
@@ -269,7 +267,7 @@ function buildManifests(): Manifest[] {
               {
                 id: "e5",
                 user: "infinity-ai",
-                action: "Infinity AI suggested Auto-Draft for 2 accepted items",
+                action: "Infinity AI suggested Auto-List for 2 accepted items",
                 at: hoursAgo(5),
               },
             ]
@@ -287,7 +285,7 @@ function buildManifests(): Manifest[] {
                       user: i % 3 === 0 ? "infinity-ai" : staff.handle,
                       action:
                         i % 3 === 0
-                          ? "Infinity AI queued accepted items for Auto-Draft"
+                          ? "Infinity AI queued accepted items for Auto-List"
                           : "updated batch status",
                       at: hoursAgo(i % 40),
                     },
@@ -354,11 +352,9 @@ function buildProducts(): Product[] {
       tags:
         i % 4 === 0
           ? ["HMQ-Auto-List"]
-          : i % 5 === 0
-            ? ["HMQ-Auto-Draft"]
-            : i % 3 === 0
-              ? ["Demo", "Priority"]
-              : ["Demo"],
+          : i % 3 === 0
+            ? ["Demo", "Priority"]
+            : ["Demo"],
       uprightProductId,
     });
   }
@@ -490,11 +486,11 @@ export const notifications = [
   },
   {
     id: "n2",
-    title: `${infinityStats.pendingAiReview} Auto-Drafts waiting review`,
-    body: "Infinity AI prepared drafts from accepted intake items.",
+    title: `${infinityStats.pendingAiReview} items ready for Auto-List`,
+    body: "Infinity AI prepared channel packets from accepted intake items.",
     at: hoursAgo(2),
     unread: true,
-    href: "/products/auto-draft",
+    href: "/products/auto-list",
   },
   {
     id: "n3",
@@ -536,7 +532,6 @@ export const listerProductivity = STAFF.map((s, i) => ({
   listed: 102 - i * 8,
   sold: 18 - i,
   revenue: Math.round((2400 - i * 210) * 100) / 100,
-  autoDrafted: 40 - i * 3,
   autoListed: 28 - i * 2,
 }));
 
@@ -547,7 +542,6 @@ export const operationalActivity = Array.from({ length: 30 }).map((_, i) => {
     intake: 140 + i * 4 + (i % 4) * 12,
     photographed: 110 + i * 3,
     posted: 95 + i * 3,
-    autoDrafted: 70 + i * 2,
     autoListed: 55 + i * 2,
     sold: 48 + i * 2,
     shipped: 44 + i * 2,
@@ -566,8 +560,8 @@ export const eventLogRows = [
   {
     at: minsAgo(2),
     user: "infinity-ai",
-    entity: "Auto-Draft",
-    action: "Generated draft title + category for SKU-1012",
+    entity: "Product SKU-1012",
+    action: "Generated title + category suggestion",
   },
   {
     at: minsAgo(8),
@@ -590,8 +584,8 @@ export const eventLogRows = [
   {
     at: minsAgo(35),
     user: "infinity-ai",
-    entity: "Auto-Draft",
-    action: "Price suggestion $34.50 (confidence 93%) for SKU-1044",
+    entity: "Product SKU-1044",
+    action: "Price suggestion $34.50 (confidence 93%)",
   },
   {
     at: hoursAgo(1),
@@ -627,7 +621,7 @@ export const eventLogRows = [
     at: hoursAgo(5),
     user: "slee",
     entity: "Product SKU-1088",
-    action: "Approved Auto-Draft and sent to Auto-List",
+    action: "Sent ready product to Auto-List",
   },
   {
     at: hoursAgo(6),
@@ -638,7 +632,7 @@ export const eventLogRows = [
   {
     at: hoursAgo(7),
     user: "infinity-ai",
-    entity: "Auto-Draft",
+    entity: "Infinity AI",
     action: "Skipped 3 items below confidence threshold",
   },
   {
@@ -692,21 +686,6 @@ export const supplierReportRows = weeklySupplierSales.map((s, i) => ({
   itemsSold: 120 - i * 9,
   avgDaysToSell: 5 + i,
 }));
-
-export const autoDraftQueue = products
-  .filter((p) => p.status === "Draft")
-  .slice(0, 28)
-  .map((p, i) => ({
-    id: `ad-${p.id}`,
-    productId: p.id,
-    title: p.title,
-    sku: p.sku,
-    category: p.category,
-    suggestedPrice: p.price,
-    confidence: 88 + (i % 10),
-    source: i % 2 === 0 ? "Intake accept" : "Photo complete",
-    generatedAt: hoursAgo(i + 1),
-  }));
 
 export const autoListQueue = products
   .filter((p) => p.status === "Active" && p.listedOn.length < 2)

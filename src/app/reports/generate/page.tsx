@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import {
   exportAllDemoJson,
-  exportAutoDraftQueueCsv,
   exportAutoListQueueCsv,
   exportEventsCsv,
   exportItemCreationCsv,
@@ -33,11 +32,6 @@ const OPTIONS = [
   { id: "shipments", label: "Shipments", run: () => exportShipmentsCsv() },
   { id: "products", label: "Products", run: () => exportProductsCsv() },
   {
-    id: "autodraft",
-    label: `${BRAND.autoDraft} queue`,
-    run: () => exportAutoDraftQueueCsv(),
-  },
-  {
     id: "autolist",
     label: `${BRAND.autoList} queue`,
     run: () => exportAutoListQueueCsv(),
@@ -51,7 +45,7 @@ const OPTIONS = [
 ];
 
 export default function GenerateReportsPage() {
-  const [selected, setSelected] = useState<string[]>(["sgw", "ebay", "autodraft", "autolist"]);
+  const [selected, setSelected] = useState<string[]>(["sgw", "ebay", "autolist"]);
   const [done, setDone] = useState<string | null>(null);
 
   function toggle(id: string) {

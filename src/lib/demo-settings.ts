@@ -7,7 +7,6 @@ export type DemoSettings = {
   email: string;
   org: string;
   handle: string;
-  autoDraft: boolean;
   autoList: boolean;
 };
 
@@ -16,7 +15,6 @@ export const DEFAULT_SETTINGS: DemoSettings = {
   email: CURRENT_USER.email,
   org: ORG_NAME,
   handle: CURRENT_USER.handle,
-  autoDraft: true,
   autoList: true,
 };
 

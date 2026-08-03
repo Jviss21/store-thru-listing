@@ -20,7 +20,6 @@ This app is a **customer-shareable pilot UI** with client-side mock data and a p
 - [ ] Webhooks or polling for sold / unpaid / cancelled events
 
 ### Infinity AI
-- [ ] Production Auto-Draft service (vision + catalog signals → title/category/price)
 - [ ] Production Auto-List routing (channel rules, pricing floors, QA gates)
 - [ ] Audit log of AI suggestions vs human edits
 
@@ -44,7 +43,7 @@ This app is a **customer-shareable pilot UI** with client-side mock data and a p
 - Password-gated public URL for safe customer sharing
 - End-to-end UI path: intake → draft → list → orders → reports
 - CSV/JSON report and listing packet downloads
-- Infinity AI Auto-Draft / Auto-List queues (simulated)
+- Infinity AI Auto-List queue (simulated)
 - Org branding for Test Goodwill + hammoq palette
 
 When the systems above are ready, replace mock modules under `src/lib/mock-data.ts` / `demo-actions.ts` with authenticated API clients — keep the existing route structure where possible.

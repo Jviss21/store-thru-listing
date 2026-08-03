@@ -99,22 +99,6 @@ export default function SettingsPage() {
         </p>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>
-            <span className="font-semibold text-ink">{BRAND.autoDraft}</span>
-            <span className="mt-0.5 block text-muted">Suggest titles, categories, and prices</span>
-          </span>
-          <input
-            type="checkbox"
-            checked={settings.autoDraft}
-            disabled={!hydrated}
-            onChange={(e) => {
-              const next = { ...settings, autoDraft: e.target.checked };
-              setSettings(next);
-              saveDemoSettings(next);
-            }}
-          />
-        </label>
-        <label className="flex items-center justify-between gap-3 text-sm">
-          <span>
             <span className="font-semibold text-ink">{BRAND.autoList}</span>
             <span className="mt-0.5 block text-muted">Push ready products to marketplaces</span>
           </span>

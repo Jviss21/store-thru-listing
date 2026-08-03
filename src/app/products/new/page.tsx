@@ -189,10 +189,10 @@ function NewProductInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <p className="text-sm text-ink/80">
-          Prefer speed? Send accepted intake through {BRAND.autoDraft}, then publish with {BRAND.autoList}.
+          Prefer speed? Publish ready products with {BRAND.autoList}.
         </p>
-        <Link href="/products/auto-draft" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">
-          Open {BRAND.autoDraft}
+        <Link href="/products/auto-list" className="ml-auto text-sm font-semibold text-brand-orange hover:underline">
+          Open {BRAND.autoList}
         </Link>
       </Card>
 
