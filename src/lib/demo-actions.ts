@@ -277,10 +277,18 @@ export function exportShipmentsCsv() {
   downloadCsv(
     file("shipments", "csv"),
     shipments.map((s) => ({
+      shipmentNumber: s.shipmentNumber,
       orderNumber: s.orderNumber,
+      channelOrderId: s.channelOrderId,
+      channel: s.channel,
       carrier: s.carrier,
       trackingNumber: s.trackingNumber,
+      easyPostId: s.easyPostId,
       cost: s.cost,
+      fees: s.fees,
+      insurance: s.insurance ?? "",
+      createdBy: s.createdBy,
+      packedBy: s.packedBy,
       status: s.status,
       shippedAt: s.shippedAt,
     }))

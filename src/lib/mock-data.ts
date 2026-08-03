@@ -476,22 +476,69 @@ function buildOrders(): Order[] {
 
 export const orders = buildOrders();
 
+function hexChunk(seed: number, len: number) {
+  let n = Math.abs(seed * 2654435761) >>> 0;
+  let out = "";
+  while (out.length < len) {
+    n = (n * 1664525 + 1013904223) >>> 0;
+    out += n.toString(16).padStart(8, "0");
+  }
+  return out.slice(0, len);
+}
+
+function channelOrderIdFor(order: Order, i: number) {
+  if (order.channel === "eBay") {
+    const a = String(3 + (i % 7)).padStart(2, "0");
+    const b = String(14000 + ((i * 37) % 9000)).padStart(5, "0");
+    const c = String(10000 + ((i * 91) % 90000)).padStart(5, "0");
+    return `${a}-${b}-${c}`;
+  }
+  return `SGW-${400000 + i * 17}`;
+}
+
 function buildShipments(): Shipment[] {
   const rows: Shipment[] = [];
-  const carriers = ["USPS", "UPS", "FedEx"];
+  const carriers = ["FedEx", "UPS", "USPS", "OnTrac"];
   const statuses = ["Label created", "In transit", "Delivered"] as const;
-  const fulfilled = orders.filter((o) => o.fulfillmentStatus !== "Unfulfilled");
-  fulfilled.slice(0, 48).forEach((o, i) => {
+  const pool = orders.filter((o) => o.fulfillmentStatus !== "Unfulfilled");
+  // Dense mock set so search / filter / sort feel real (Upright-scale density).
+  const target = 120;
+  for (let i = 0; i < target; i++) {
+    const o = pool[i % pool.length]!;
+    const carrier = carriers[i % carriers.length]!;
+    const staff = STAFF[i % STAFF.length]!;
+    const packer = STAFF[(i + 3) % STAFF.length]!;
+    const labelCost = Math.round((5.2 + (i % 17) * 1.45 + (i % 5) * 0.37) * 100) / 100;
+    const fees = Math.round((0.04 + (i % 9) * 0.01) * 100) / 100;
+    const insured = i % 7 === 0 ? Math.round((15 + (i % 5) * 10) * 100) / 100 : null;
+    const shipmentNumber = String(382975300000 + i * 137 + (i % 11) * 19);
+    const tracking =
+      carrier === "USPS"
+        ? `9400${String(1100000000000000 + i * 1117).slice(0, 16)}`
+        : carrier === "UPS"
+          ? `1Z999AA1${String(1000000000 + i * 7919).slice(0, 10)}`
+          : carrier === "OnTrac"
+            ? `C${String(10000000000 + i * 3331).slice(0, 11)}`
+            : shipmentNumber;
     rows.push({
       id: `s${i + 1}`,
+      shipmentNumber,
+      orderId: o.id,
       orderNumber: o.orderNumber,
-      carrier: carriers[i % carriers.length],
-      trackingNumber: `9400${String(1100000000000000 + i * 1117).slice(0, 16)}`,
-      cost: Math.round((6.5 + (i % 9) * 1.35) * 100) / 100,
-      shippedAt: daysAgo(i % 10),
-      status: statuses[i % statuses.length],
+      channelOrderId: channelOrderIdFor(o, i),
+      channel: o.channel,
+      carrier,
+      trackingNumber: tracking,
+      easyPostId: `shp_${hexChunk(i + 42, 32)}`,
+      cost: labelCost,
+      fees,
+      insurance: insured,
+      createdBy: staff.handle,
+      packedBy: packer.handle,
+      shippedAt: daysAgo(i % 28),
+      status: statuses[i % statuses.length]!,
     });
-  });
+  }
   return rows;
 }
 
@@ -733,4 +780,23 @@ export function getProduct(id: string) {
 
 export function getListing(id: string) {
   return listings.find((l) => l.id === id);
+}
+
+export function getOrder(id: string) {
+  return orders.find(
+    (o) =>
+      o.id === id ||
+      o.orderNumber === id ||
+      o.orderNumber.toLowerCase() === id.toLowerCase()
+  );
+}
+
+export function getShipment(id: string) {
+  return shipments.find(
+    (s) =>
+      s.id === id ||
+      s.shipmentNumber === id ||
+      s.easyPostId === id ||
+      s.trackingNumber === id
+  );
 }

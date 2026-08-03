@@ -80,9 +80,27 @@ export interface Order {
   id: string; orderNumber: string; channel: ListingChannel; customer: string; total: number;
   paymentStatus: PaymentStatus; fulfillmentStatus: OrderFulfillment; itemCount: number; createdAt: string;
 }
+export type ShipmentStatus = "Label created" | "In transit" | "Delivered";
 export interface Shipment {
-  id: string; orderNumber: string; carrier: string; trackingNumber: string; cost: number;
-  shippedAt: string; status: "Label created" | "In transit" | "Delivered";
+  id: string;
+  /** Numeric display ID shown in the Shipments list (Upright-style). */
+  shipmentNumber: string;
+  orderId: string;
+  orderNumber: string;
+  /** Marketplace-facing order id shown next to the channel icon. */
+  channelOrderId: string;
+  channel: ListingChannel;
+  carrier: string;
+  trackingNumber: string;
+  easyPostId: string;
+  /** Label cost (alias kept as `cost` for existing CSV/export callers). */
+  cost: number;
+  fees: number;
+  insurance: number | null;
+  createdBy: string;
+  packedBy: string;
+  shippedAt: string;
+  status: ShipmentStatus;
 }
 
 export interface EbayListingInputPack {
