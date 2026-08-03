@@ -1,17 +1,39 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import { canAccessPath, canViewMasterEventLog } from "@/lib/roles";
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
+    const role = String(token?.role ?? "Viewer");
+    const isOps = Boolean(token?.isOps);
 
     // Ops console: Hammoq staff only
-    if (pathname.startsWith("/ops") && !token?.isOps) {
+    if (pathname.startsWith("/ops") && !isOps) {
       const url = req.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("next", "/ops");
       url.searchParams.set("ops", "1");
+      return NextResponse.redirect(url);
+    }
+
+    // Master event log: Admin or Hammoq Ops only
+    if (
+      (pathname.startsWith("/admin/audit") || pathname.startsWith("/reports/events")) &&
+      !canViewMasterEventLog(role, isOps)
+    ) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      url.searchParams.set("denied", "master-events");
+      return NextResponse.redirect(url);
+    }
+
+    // Section / admin route guards (UI RoleGate is the friendly fallback)
+    if (token && !canAccessPath(pathname, role, isOps)) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      url.searchParams.set("denied", "role");
       return NextResponse.redirect(url);
     }
 

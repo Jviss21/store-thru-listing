@@ -23,6 +23,8 @@ import { downloadCsv, downloadJson, stamp } from "@/lib/download";
 import { getStrategyByName } from "@/lib/listing-strategies";
 import { productPhotoUrls } from "@/lib/photos";
 import type { EbayListingInputPack, Listing } from "@/lib/types";
+import { logEvent } from "@/lib/event-log";
+import { loadSession } from "@/lib/session";
 
 const KEY = "test-goodwill-demo-created";
 
@@ -103,6 +105,16 @@ export function saveCreatedProduct(product: CreatedProduct) {
   const store = readStore();
   store.products = [product, ...store.products.filter((p) => p.id !== product.id)];
   writeStore(store);
+  const session = loadSession();
+  logEvent({
+    section: "products",
+    action: product.status === "Draft" ? "Saved draft product" : "Saved product",
+    resource: `Product ${product.sku}`,
+    resourceHref: `/products/${encodeURIComponent(product.id)}`,
+    user: session.handle || undefined,
+    userName: session.name || undefined,
+    orgId: session.activeOrgId,
+  });
   return product;
 }
 
@@ -115,6 +127,17 @@ export function saveCreatedListing(listing: CreatedListing) {
     product.status = "Active";
   }
   writeStore(store);
+  const session = loadSession();
+  logEvent({
+    section: "listings",
+    action: listing.status === "Queued" ? "Queued listing" : "Saved listing",
+    resource: `Listing ${listing.sku} · ${listing.channel}`,
+    resourceHref:
+      listing.channel === "eBay" ? "/listings/ebay" : "/listings/shopgoodwill",
+    user: session.handle || undefined,
+    userName: session.name || undefined,
+    orgId: session.activeOrgId,
+  });
   return listing;
 }
 

@@ -14,6 +14,7 @@ import {
   Package,
   PlusCircle,
   Rocket,
+  ScrollText,
   Settings,
   Shield,
   ShoppingCart,
@@ -29,6 +30,7 @@ import { BRAND, notifications } from "@/lib/mock-data";
 import DemoBanner from "@/components/DemoBanner";
 import { useOrg } from "@/components/OrgProvider";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
+import { canAccessNav, canViewMasterEventLog, type NavSection } from "@/lib/roles";
 
 const floorActions = [
   {
@@ -37,17 +39,18 @@ const floorActions = [
     icon: Rocket,
     hint: "Push to channels",
     primary: true,
+    section: "auto-list" as NavSection,
   },
 ];
 
-const nav = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/manifests", label: "Item Creation", icon: ClipboardList },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/listings/shopgoodwill", label: "Listings", icon: List },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/shipments", label: "Shipments", icon: Truck },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
+const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavSection }> = [
+  { href: "/", label: "Home", icon: Home, section: "home" },
+  { href: "/manifests", label: "Item Creation", icon: ClipboardList, section: "manifests" },
+  { href: "/products", label: "Products", icon: Package, section: "products" },
+  { href: "/listings/shopgoodwill", label: "Listings", icon: List, section: "listings" },
+  { href: "/orders", label: "Orders", icon: ShoppingCart, section: "orders" },
+  { href: "/shipments", label: "Shipments", icon: Truck, section: "shipments" },
+  { href: "/reports", label: "Reports", icon: FileBarChart, section: "reports" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -60,6 +63,12 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const unread = notifications.filter((n) => n.unread).length;
   const { org, session, isOps } = useOrg();
+  const role = session.role;
+  const showMasterLog = canViewMasterEventLog(role, isOps);
+  const showAdmin = canAccessNav("admin", role, isOps);
+  const showConnections = canAccessNav("connections", role, isOps);
+  const visibleNav = nav.filter((item) => canAccessNav(item.section, role, isOps));
+  const visibleFloor = floorActions.filter((a) => canAccessNav(a.section, role, isOps));
 
   return (
     <div className="flex h-full flex-col bg-white text-ink">
@@ -87,59 +96,63 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-2 border-b border-ink/10 p-4">
-        <div className="flex items-center justify-between px-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
-            Infinity AI
-          </p>
-          <Sparkles className="h-3.5 w-3.5 text-accent" />
-        </div>
-        {floorActions.map((a) => {
-          const Icon = a.icon;
-          return (
-            <Link
-              key={a.href}
-              href={a.href}
-              onClick={onNavigate}
-              className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
-                a.primary
-                  ? "bg-ink text-white shadow-card hover:bg-ink/90"
-                  : "border border-ink/10 bg-mist/60 hover:border-ink/20 hover:bg-mist"
-              )}
-            >
-              <span
+      {visibleFloor.length > 0 && (
+        <div className="space-y-2 border-b border-ink/10 p-4">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+              Infinity AI
+            </p>
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+          </div>
+          {visibleFloor.map((a) => {
+            const Icon = a.icon;
+            return (
+              <Link
+                key={a.href}
+                href={a.href}
+                onClick={onNavigate}
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                  a.primary ? "bg-accent text-ink" : "bg-white text-ink shadow-sm"
+                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
+                  a.primary
+                    ? "bg-ink text-white shadow-card hover:bg-ink/90"
+                    : "border border-ink/10 bg-mist/60 hover:border-ink/20 hover:bg-mist"
                 )}
               >
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-tight">{a.label}</span>
-                <span className={cn("block text-[11px]", a.primary ? "text-white/70" : "text-muted")}>
-                  {a.hint}
+                <span
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                    a.primary ? "bg-accent text-ink" : "bg-white text-ink shadow-sm"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
                 </span>
-              </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold leading-tight">{a.label}</span>
+                  <span className={cn("block text-[11px]", a.primary ? "text-white/70" : "text-muted")}>
+                    {a.hint}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+          {canAccessNav("products", role, isOps) && (
+            <Link
+              href="/products/new"
+              onClick={onNavigate}
+              className="flex items-center gap-2 px-1 pt-1 text-xs font-semibold text-muted hover:text-ink"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Manual new product
             </Link>
-          );
-        })}
-        <Link
-          href="/products/new"
-          onClick={onNavigate}
-          className="flex items-center gap-2 px-1 pt-1 text-xs font-semibold text-muted hover:text-ink"
-        >
-          <PlusCircle className="h-3.5 w-3.5" />
-          Manual new product
-        </Link>
-      </div>
+          )}
+        </div>
+      )}
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         <p className="px-3 pb-1 pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
           Workspace
         </p>
-        {nav.map((item) => {
+        {visibleNav.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname, item.href);
           return (
@@ -175,34 +188,63 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </span>
           )}
         </Link>
-        <Link
-          href="/admin"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
-            pathname.startsWith("/admin")
-              ? "bg-ink text-accent shadow-sm"
-              : "text-ink/80 hover:bg-mist hover:text-ink"
-          )}
-        >
-          <Shield
-            className={cn("h-4 w-4", pathname.startsWith("/admin") ? "text-accent" : "text-muted")}
-          />
-          Admin
-        </Link>
-        <Link
-          href="/settings/connections"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
-            pathname.startsWith("/settings/connections")
-              ? "bg-accent text-ink shadow-sm"
-              : "text-ink/80 hover:bg-mist hover:text-ink"
-          )}
-        >
-          <Link2 className="h-4 w-4 text-muted" />
-          Connections
-        </Link>
+        {showMasterLog && (
+          <Link
+            href="/admin/audit"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+              pathname.startsWith("/admin/audit") || pathname.startsWith("/reports/events")
+                ? "bg-ink text-accent shadow-sm"
+                : "text-ink/80 hover:bg-mist hover:text-ink"
+            )}
+          >
+            <ScrollText
+              className={cn(
+                "h-4 w-4",
+                pathname.startsWith("/admin/audit") ? "text-accent" : "text-muted"
+              )}
+            />
+            Event log
+          </Link>
+        )}
+        {showAdmin && (
+          <Link
+            href="/admin"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+              pathname.startsWith("/admin") && !pathname.startsWith("/admin/audit")
+                ? "bg-ink text-accent shadow-sm"
+                : "text-ink/80 hover:bg-mist hover:text-ink"
+            )}
+          >
+            <Shield
+              className={cn(
+                "h-4 w-4",
+                pathname.startsWith("/admin") && !pathname.startsWith("/admin/audit")
+                  ? "text-accent"
+                  : "text-muted"
+              )}
+            />
+            Admin
+          </Link>
+        )}
+        {showConnections && (
+          <Link
+            href="/settings/connections"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+              pathname.startsWith("/settings/connections")
+                ? "bg-accent text-ink shadow-sm"
+                : "text-ink/80 hover:bg-mist hover:text-ink"
+            )}
+          >
+            <Link2 className="h-4 w-4 text-muted" />
+            Connections
+          </Link>
+        )}
         <Link
           href="/settings"
           onClick={onNavigate}
@@ -253,7 +295,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const unread = notifications.filter((n) => n.unread).length;
-  const { org } = useOrg();
+  const { org, session, isOps } = useOrg();
+  const showAutoListFab = canAccessNav("auto-list", session.role, isOps);
 
   if (pathname === "/login" || pathname.startsWith("/ops")) {
     return <>{children}</>;
@@ -309,13 +352,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      <Link
-        href="/products/auto-list"
-        className="fixed bottom-5 right-5 z-30 flex h-14 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-semibold text-accent shadow-float transition hover:scale-[1.02] lg:hidden"
-      >
-        <Zap className="h-4 w-4" />
-        Auto-List
-      </Link>
+      {showAutoListFab && (
+        <Link
+          href="/products/auto-list"
+          className="fixed bottom-5 right-5 z-30 flex h-14 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-semibold text-accent shadow-float transition hover:scale-[1.02] lg:hidden"
+        >
+          <Zap className="h-4 w-4" />
+          Auto-List
+        </Link>
+      )}
     </div>
   );
 }

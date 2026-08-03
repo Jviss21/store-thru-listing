@@ -57,7 +57,47 @@ export function buildSeedUsers(): SeedUser[] {
     })),
   };
 
-  return [...orgUsers, ops];
+  /** Extra Test Goodwill roles for demoing section vs master event-log visibility. */
+  const roleDemos: SeedUser[] = [
+    {
+      id: "user-admin-tg",
+      email: "morgan.hale@testgoodwill.example",
+      name: "Morgan Hale",
+      handle: "mhale",
+      isOps: false,
+      primaryOrgId: DEFAULT_ORG_ID,
+      memberships: [{ orgId: DEFAULT_ORG_ID, role: "Admin" }],
+    },
+    {
+      id: "user-lister-tg",
+      email: "jane.smith@testgoodwill.example",
+      name: "Jane Smith",
+      handle: "jsmith",
+      isOps: false,
+      primaryOrgId: DEFAULT_ORG_ID,
+      memberships: [{ orgId: DEFAULT_ORG_ID, role: "Lister" }],
+    },
+    {
+      id: "user-photo-tg",
+      email: "bob.wilson@testgoodwill.example",
+      name: "Bob Wilson",
+      handle: "bwilson",
+      isOps: false,
+      primaryOrgId: DEFAULT_ORG_ID,
+      memberships: [{ orgId: DEFAULT_ORG_ID, role: "Photographer" }],
+    },
+    {
+      id: "user-viewer-tg",
+      email: "chris.taylor@testgoodwill.example",
+      name: "Chris Taylor",
+      handle: "ctaylor",
+      isOps: false,
+      primaryOrgId: DEFAULT_ORG_ID,
+      memberships: [{ orgId: DEFAULT_ORG_ID, role: "Viewer" }],
+    },
+  ];
+
+  return [...orgUsers, ...roleDemos, ops];
 }
 
 export const SEED_USERS = buildSeedUsers();

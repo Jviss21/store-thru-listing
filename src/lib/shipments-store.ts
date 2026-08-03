@@ -2,6 +2,8 @@
 
 import { shipments as seedShipments, orders } from "@/lib/mock-data";
 import type { ListingChannel, Shipment, ShipmentStatus } from "@/lib/types";
+import { logEvent } from "@/lib/event-log";
+import { loadSession } from "@/lib/session";
 
 export const SHIPMENTS_STORAGE_KEY = "test-goodwill-demo-shipments";
 
@@ -86,6 +88,16 @@ export function saveCreatedShipment(input: NewShipmentInput): Shipment {
     status: input.status ?? "Label created",
   };
   writeCreated([row, ...created]);
+  const session = loadSession();
+  logEvent({
+    section: "shipments",
+    action: `Created ${row.carrier} label`,
+    resource: `Shipment ${row.shipmentNumber}`,
+    resourceHref: "/shipments",
+    user: input.createdBy || session.handle || undefined,
+    userName: session.name || undefined,
+    orgId: session.activeOrgId,
+  });
   return row;
 }
 

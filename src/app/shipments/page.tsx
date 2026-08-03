@@ -18,6 +18,9 @@ import { exportShipmentsCsv } from "@/lib/demo-actions";
 import { getAllShipments } from "@/lib/shipments-store";
 import type { ListingChannel, Shipment } from "@/lib/types";
 import { cn, formatCurrency } from "@/lib/utils";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { RoleGate } from "@/components/RoleGate";
+import { logEvent } from "@/lib/event-log";
 
 type SortKey = "date-desc" | "date-asc" | "cost-desc" | "cost-asc" | "carrier";
 
@@ -58,7 +61,7 @@ function formatShipDate(iso: string) {
   });
 }
 
-export default function ShipmentsPage() {
+function ShipmentsInner() {
   const [rows, setRows] = useState<Shipment[]>([]);
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
@@ -176,6 +179,12 @@ export default function ShipmentsPage() {
               variant="outline"
               onClick={() => {
                 exportShipmentsCsv();
+                logEvent({
+                  section: "shipments",
+                  action: "Exported shipments CSV",
+                  resource: "Shipments export",
+                  resourceHref: "/shipments",
+                });
                 flashMsg("Shipments CSV downloaded.");
               }}
             >
@@ -543,6 +552,16 @@ export default function ShipmentsPage() {
           onClose={() => setLabelShipment(null)}
         />
       )}
+
+      <SectionEventLog section="shipments" />
     </div>
+  );
+}
+
+export default function ShipmentsPage() {
+  return (
+    <RoleGate path="/shipments">
+      <ShipmentsInner />
+    </RoleGate>
   );
 }

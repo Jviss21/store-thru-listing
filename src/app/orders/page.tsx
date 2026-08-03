@@ -10,6 +10,9 @@ import {
   exportOrdersCsv,
   exportRefundsCsv,
 } from "@/lib/demo-actions";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { RoleGate } from "@/components/RoleGate";
+import { logEvent } from "@/lib/event-log";
 
 function OrdersInner() {
   const searchParams = useSearchParams();
@@ -31,17 +34,41 @@ function OrdersInner() {
         description="Paid and unpaid marketplace orders waiting on fulfillment."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => exportOrdersCsv()}>
+            <Button type="button" variant="outline" onClick={() => {
+                exportOrdersCsv();
+                logEvent({
+                  section: "orders",
+                  action: "Exported orders CSV",
+                  resource: "Orders export",
+                  resourceHref: "/orders",
+                });
+              }}>
               Export orders CSV
             </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={() => exportOrdersCsv({ paymentStatus: "Paid" })}
+              onClick={() => {
+                exportOrdersCsv({ paymentStatus: "Paid" });
+                logEvent({
+                  section: "orders",
+                  action: "Exported paid orders CSV",
+                  resource: "Paid orders export",
+                  resourceHref: "/orders",
+                });
+              }}
             >
               Export paid CSV
             </Button>
-            <Button type="button" variant="outline" onClick={() => exportRefundsCsv()}>
+            <Button type="button" variant="outline" onClick={() => {
+                exportRefundsCsv();
+                logEvent({
+                  section: "orders",
+                  action: "Exported refunds CSV",
+                  resource: "Refunds export",
+                  resourceHref: "/orders",
+                });
+              }}>
               Export refunds CSV
             </Button>
           </div>
@@ -137,14 +164,18 @@ function OrdersInner() {
         </table>
         )}
       </Card>
+
+      <SectionEventLog section="orders" />
     </div>
   );
 }
 
 export default function OrdersPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-muted">Loading orders…</div>}>
-      <OrdersInner />
-    </Suspense>
+    <RoleGate path="/orders">
+      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading…</div>}>
+        <OrdersInner />
+      </Suspense>
+    </RoleGate>
   );
 }

@@ -14,6 +14,9 @@ import type { SyncError } from "@/lib/api";
 import { canEditListing, type Listing, type ListingStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { exportListingsCsv } from "@/lib/demo-actions";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { RoleGate } from "@/components/RoleGate";
+import { logEvent } from "@/lib/event-log";
 
 const OPEN_STATUSES: ListingStatus[] = [
   "Queued", "Active", "Unpaid", "Sold", "Expired", "Delisted", "Recycled", "Additional QA Required",
@@ -82,7 +85,20 @@ function ChannelListings({ channel, fromPath }: { channel: "eBay" | "ShopGoodwil
         description="Click a row or Edit to open the full listing editor."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" type="button" onClick={() => exportListingsCsv(channel)}>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => {
+                exportListingsCsv(channel);
+                logEvent({
+                  section: "listings",
+                  action: `Exported ${channel} listings CSV`,
+                  resource: `${channel} listings`,
+                  resourceHref: fromPath,
+                });
+              }}
+            >
               <Download className="h-3.5 w-3.5" /> Export CSV
             </Button>
             <div className="flex gap-2 text-sm">
@@ -142,14 +158,24 @@ function ChannelListings({ channel, fromPath }: { channel: "eBay" | "ShopGoodwil
           </table>
         )}
       </Card>
+
+      <SectionEventLog section="listings" />
     </div>
   );
 }
 
 export function EbayListingsInner() {
-  return <ChannelListings channel="eBay" fromPath="/listings/ebay" />;
+  return (
+    <RoleGate path="/listings/ebay">
+      <ChannelListings channel="eBay" fromPath="/listings/ebay" />
+    </RoleGate>
+  );
 }
 
 export function SgwListingsInner() {
-  return <ChannelListings channel="ShopGoodwill" fromPath="/listings/shopgoodwill" />;
+  return (
+    <RoleGate path="/listings/shopgoodwill">
+      <ChannelListings channel="ShopGoodwill" fromPath="/listings/shopgoodwill" />
+    </RoleGate>
+  );
 }

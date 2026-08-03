@@ -12,6 +12,7 @@ import {
 import { rangeForPreset, type DatePresetId } from "@/lib/report-dates";
 import { downloadCsv, stamp } from "@/lib/download";
 import { ORG_NAME, ORG_SLUG } from "@/lib/mock-data";
+import { logEvent } from "@/lib/event-log";
 
 export function useReportRange(defaultPreset: DatePresetId = "mtd") {
   const initial = rangeForPreset(defaultPreset);
@@ -71,6 +72,12 @@ export function downloadReportRows(
   setFlash: (msg: string | null) => void
 ) {
   downloadCsv(`${ORG_SLUG}-${prefix}-${stamp()}.csv`, rows);
+  logEvent({
+    section: "reports",
+    action: `Downloaded ${prefix} CSV`,
+    resource: prefix,
+    resourceHref: "/reports",
+  });
   setFlash(`${prefix} CSV downloaded.`);
   setTimeout(() => setFlash(null), 2500);
 }

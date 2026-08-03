@@ -77,6 +77,14 @@ export default function ListingEditPage() {
     if (updateRes.ok) {
       setListing(updateRes.data);
       setForm(listingToFormState(updateRes.data));
+      const { logEvent } = await import("@/lib/event-log");
+      logEvent({
+        section: "listings",
+        action: "Saved listing",
+        resource: `Listing ${updateRes.data.sku} · ${updateRes.data.channel}`,
+        resourceHref:
+          updateRes.data.channel === "eBay" ? "/listings/ebay" : "/listings/shopgoodwill",
+      });
       announce("Listing saved successfully.");
     } else {
       announce(updateRes.error || "Save failed", { error: true });

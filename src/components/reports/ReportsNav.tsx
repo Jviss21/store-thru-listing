@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DOWNLOAD_REPORTS, IN_APP_REPORTS } from "@/lib/report-catalog";
 import { cn } from "@/lib/utils";
+import { useOrg } from "@/components/OrgProvider";
+import { canViewMasterEventLog } from "@/lib/roles";
 
 function NavGroup({
   title,
@@ -58,6 +60,11 @@ function NavGroup({
 
 export function ReportsNav({ className }: { className?: string }) {
   const pathname = usePathname();
+  const { session, isOps } = useOrg();
+  const showMaster = canViewMasterEventLog(session.role, isOps);
+  const inApp = IN_APP_REPORTS.filter(
+    (r) => showMaster || r.href !== "/reports/events"
+  );
 
   return (
     <nav
@@ -71,7 +78,7 @@ export function ReportsNav({ className }: { className?: string }) {
           All reports
         </Link>
       </div>
-      <NavGroup title="In-app reports" items={IN_APP_REPORTS} pathname={pathname} />
+      <NavGroup title="In-app reports" items={inApp} pathname={pathname} />
       <NavGroup title="Downloads" items={DOWNLOAD_REPORTS} pathname={pathname} />
     </nav>
   );

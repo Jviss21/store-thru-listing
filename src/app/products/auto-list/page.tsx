@@ -10,8 +10,19 @@ import { BRAND, ORG_SLUG, autoListQueue, getProduct, listings } from "@/lib/mock
 import { downloadCsv, stamp } from "@/lib/download";
 import { exportEbayListingPack, exportListingPacket } from "@/lib/demo-actions";
 import { formatCurrency } from "@/lib/utils";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { RoleGate } from "@/components/RoleGate";
+import { logEvent } from "@/lib/event-log";
 
 export default function AutoListPage() {
+  return (
+    <RoleGate path="/products/auto-list">
+      <AutoListInner />
+    </RoleGate>
+  );
+}
+
+function AutoListInner() {
   const [rows, setRows] = useState(autoListQueue);
   const [selected, setSelected] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -41,6 +52,12 @@ export default function AutoListPage() {
     });
     setRows((prev) => prev.filter((r) => !selected.includes(r.id)));
     setToast(`${BRAND.autoList} published ${chosen.length} item(s). Listing packets downloaded.`);
+    logEvent({
+      section: "auto-list",
+      action: `Published ${chosen.length} item(s)`,
+      resource: "Auto-List run",
+      resourceHref: "/products/auto-list",
+    });
     setSelected([]);
   }
 
@@ -105,6 +122,8 @@ export default function AutoListPage() {
           </tbody>
         </table>
       </Card>
+
+      <SectionEventLog section="auto-list" />
     </div>
   );
 }

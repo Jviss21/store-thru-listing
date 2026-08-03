@@ -9,6 +9,9 @@ import { CATEGORIES, manifests as seedManifests } from "@/lib/mock-data";
 import type { Manifest, ManifestStatus } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { exportManifestsCsv } from "@/lib/demo-actions";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { RoleGate } from "@/components/RoleGate";
+import { logEvent } from "@/lib/event-log";
 
 const STATUSES: ManifestStatus[] = [
   "Created",
@@ -20,7 +23,7 @@ const STATUSES: ManifestStatus[] = [
   "Missing",
 ];
 
-export default function ManifestsPage() {
+function ManifestsInner() {
   const [rows, setRows] = useState<Manifest[]>(seedManifests);
   const [lookup, setLookup] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -70,7 +73,15 @@ export default function ManifestsPage() {
             <Button
               variant="outline"
               type="button"
-              onClick={() => exportManifestsCsv()}
+              onClick={() => {
+                exportManifestsCsv();
+                logEvent({
+                  section: "manifests",
+                  action: "Exported manifests CSV",
+                  resource: "Manifests export",
+                  resourceHref: "/manifests",
+                });
+              }}
             >
               <Download className="h-4 w-4" /> Export CSV
             </Button>
@@ -306,6 +317,16 @@ export default function ManifestsPage() {
           </Card>
         </div>
       )}
+
+      <SectionEventLog section="manifests" />
     </div>
+  );
+}
+
+export default function ManifestsPage() {
+  return (
+    <RoleGate path="/manifests">
+      <ManifestsInner />
+    </RoleGate>
   );
 }

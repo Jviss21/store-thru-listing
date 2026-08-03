@@ -16,6 +16,9 @@ import {
   getCreatedProducts,
   getPhotoOverlay,
 } from "@/lib/demo-actions";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { RoleGate } from "@/components/RoleGate";
+import { logEvent } from "@/lib/event-log";
 
 const TABS: Array<ProductStatus | "All"> = ["All", "Active", "Draft", "Recycled"];
 
@@ -98,6 +101,12 @@ function ProductsInner() {
               type="button"
               onClick={() => {
                 exportProductsCsv();
+                logEvent({
+                  section: "products",
+                  action: "Exported products CSV",
+                  resource: "Products export",
+                  resourceHref: "/products",
+                });
                 notice("Products CSV downloaded.");
               }}
             >
@@ -264,14 +273,18 @@ function ProductsInner() {
         </table>
       </Card>
       )}
+
+      <SectionEventLog section="products" />
     </div>
   );
 }
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-muted">Loading products…</div>}>
-      <ProductsInner />
-    </Suspense>
+    <RoleGate path="/products">
+      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading…</div>}>
+        <ProductsInner />
+      </Suspense>
+    </RoleGate>
   );
 }
