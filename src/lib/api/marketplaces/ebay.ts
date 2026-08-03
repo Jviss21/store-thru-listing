@@ -132,9 +132,10 @@ export function createEbayClient(): MarketplaceClient {
       };
     },
 
-    async syncListings(_orgId) {
+    async syncListings(orgId) {
       if (missingEnv().length) return notConfigured();
-      // TODO: GET ${apiHost()}/sell/inventory/item
+      // TODO: GET ${apiHost()}/sell/inventory/item?orgId=
+      void orgId;
       return {
         ok: true,
         data: { syncedAt: new Date().toISOString(), count: 0 },

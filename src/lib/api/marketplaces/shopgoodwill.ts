@@ -109,8 +109,9 @@ export function createShopGoodwillClient(): MarketplaceClient {
       };
     },
 
-    async syncListings(_orgId) {
+    async syncListings(orgId) {
       if (missingEnv().length) return notConfigured();
+      void orgId;
       return {
         ok: true,
         data: { syncedAt: new Date().toISOString(), count: 0 },
