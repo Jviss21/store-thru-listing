@@ -269,15 +269,15 @@ export type EventLogReportRow = {
   ip: string;
 };
 
-const EVENT_TEMPLATES = [
-  (u: string, _r: string) => `${u} packed this order`,
-  (u: string, _r: string) => `${u} purged this product`,
-  (u: string) => `${u} failed to log in`,
-  (u: string, r: string) => `${u} picked product ${r}`,
-  (u: string) => `${u} accepted intake items`,
-  (u: string) => `${u} shipped this order`,
-  (_u: string) => `${BRAND.ai} Auto-Listed this product`,
-  (u: string) => `${u} updated listing price`,
+const EVENT_TEMPLATES: Array<(u: string, r: string) => string> = [
+  (u) => `${u} packed this order`,
+  (u) => `${u} purged this product`,
+  (u) => `${u} failed to log in`,
+  (u, r) => `${u} picked product ${r}`,
+  (u) => `${u} accepted intake items`,
+  (u) => `${u} shipped this order`,
+  () => `${BRAND.ai} Auto-Listed this product`,
+  (u) => `${u} updated listing price`,
 ];
 
 export function buildEventLogs(start: string, end: string): EventLogReportRow[] {
