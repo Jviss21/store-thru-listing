@@ -1,82 +1,144 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { Button, Card, PageHeader } from "@/components/ui";
-import { Sparkline } from "@/components/Sparkline";
-import { ORG_SLUG, operationalActivity } from "@/lib/mock-data";
-import { downloadCsv, stamp } from "@/lib/download";
+import { useMemo, useState } from "react";
+import { ReportPageFrame, DataTable, Th, Td, TotalsRow } from "@/components/reports/ReportChrome";
+import { MultiSeriesChart } from "@/components/reports/ReportCharts";
+import {
+  AnalyticalReportHeader,
+  downloadReportRows,
+  useFlash,
+  useReportRange,
+} from "@/components/reports/AnalyticalHelpers";
+import {
+  PRODUCTIVITY_METRICS,
+  REPORT_STAFF,
+  buildOperationalDays,
+  dashZero,
+  sumMetrics,
+} from "@/lib/report-mock-data";
+import { formatDisplayDate } from "@/lib/report-dates";
+import { formatNumber } from "@/lib/utils";
 
-export default function OperationalReportPage() {
-  const [flash, setFlash] = useState<string | null>(null);
+export default function OperationalProductivityPage() {
+  const { range, setRange } = useReportRange("last_30");
+  const { flash, setFlash } = useFlash();
+  const [groupBy, setGroupBy] = useState("day");
+  const [showing, setShowing] = useState("all");
+
+  const rows = useMemo(() => buildOperationalDays(range.start, range.end), [range]);
+  const totals = useMemo(() => sumMetrics(rows), [rows]);
+
+  const chartSeries = useMemo(
+    () =>
+      rows.map((r) => ({
+        date: r.date,
+        values: Object.fromEntries(PRODUCTIVITY_METRICS.map((m) => [m, r[m]])) as Record<
+          (typeof PRODUCTIVITY_METRICS)[number],
+          number
+        >,
+      })),
+    [rows]
+  );
 
   return (
-    <div className="space-y-5">
-      <div className="text-sm text-muted">
-        <Link href="/reports" className="text-primary hover:underline">
-          Reports
-        </Link>{" "}
-        &gt; Operational Activity
-      </div>
-      <PageHeader
-        title="Operational Activity"
-        description="30-day pipeline throughput including Infinity AI Auto-List."
-        actions={
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => {
-              downloadCsv(
-                `${ORG_SLUG}-operational-${stamp()}.csv`,
-                operationalActivity as unknown as Record<string, unknown>[]
-              );
-              setFlash("Operational CSV downloaded.");
-              setTimeout(() => setFlash(null), 2000);
-            }}
-          >
-            Download CSV
-          </Button>
+    <ReportPageFrame>
+      <AnalyticalReportHeader
+        title="Operational productivity"
+        description="Pipeline throughput grouped by day — chart plus daily detail table."
+        range={range}
+        setRange={setRange}
+        flash={flash}
+        onDownload={() =>
+          downloadReportRows(
+            "operational-productivity",
+            rows.map((r) => ({
+              date: r.date,
+              ...Object.fromEntries(PRODUCTIVITY_METRICS.map((m) => [m, r[m]])),
+            })),
+            setFlash
+          )
+        }
+        extraFilters={
+          <div className="flex flex-wrap gap-3">
+            <label className="block min-w-[140px]">
+              <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted">
+                Group by
+              </span>
+              <select
+                className="h-10 w-full rounded-xl border border-ink/10 bg-white/80 px-3 text-sm"
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value)}
+              >
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+              </select>
+            </label>
+            <label className="block min-w-[160px]">
+              <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted">
+                Showing
+              </span>
+              <select
+                className="h-10 w-full rounded-xl border border-ink/10 bg-white/80 px-3 text-sm"
+                value={showing}
+                onChange={(e) => setShowing(e.target.value)}
+              >
+                <option value="all">All users</option>
+                {REPORT_STAFF.filter((s) => s.active)
+                  .slice(0, 20)
+                  .map((s) => (
+                    <option key={s.handle} value={s.handle}>
+                      {s.handle}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
         }
       />
-      {flash && (
-        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
-          {flash}
-        </div>
-      )}
-      <Card className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
-            <tr>
-              <th className="px-4 py-2">Date</th>
-              <th className="px-3 py-2">Intake</th>
-              <th className="px-3 py-2">Photographed</th>
-              <th className="px-3 py-2">Posted</th>
-              <th className="px-3 py-2">Auto-List</th>
-              <th className="px-3 py-2">Sold</th>
-              <th className="px-3 py-2">Shipped</th>
-              <th className="px-3 py-2">Trend</th>
-            </tr>
-          </thead>
-          <tbody>
-            {operationalActivity.map((r) => (
-              <tr key={r.date} className="border-b">
-                <td className="px-4 py-3 font-medium">{r.date}</td>
-                <td className="px-3 py-3">{r.intake}</td>
-                <td className="px-3 py-3">{r.photographed}</td>
-                <td className="px-3 py-3">{r.posted}</td>
-                <td className="px-3 py-3">{r.autoListed}</td>
-                <td className="px-3 py-3">{r.sold}</td>
-                <td className="px-3 py-3">{r.shipped}</td>
-                <td className="px-3 py-3">
-                  <Sparkline
-                    values={[r.intake, r.autoListed, r.sold, r.shipped]}
-                  />
-                </td>
-              </tr>
+
+      <MultiSeriesChart series={chartSeries} />
+
+      <DataTable minWidth="1100px">
+        <thead>
+          <tr>
+            <Th>Timeframe</Th>
+            {PRODUCTIVITY_METRICS.map((m) => (
+              <Th key={m} align="right" className="capitalize">
+                {m}
+              </Th>
             ))}
-          </tbody>
-        </table>
-      </Card>
-    </div>
+          </tr>
+        </thead>
+        <tbody>
+          <TotalsRow>
+            <Td>Totals</Td>
+            {PRODUCTIVITY_METRICS.map((m) => (
+              <Td key={m} align="right">
+                {formatNumber(totals[m])}
+              </Td>
+            ))}
+          </TotalsRow>
+          {rows.map((r) => (
+            <tr key={r.date} className="hover:bg-mist/50">
+              <Td className="font-medium">{formatDisplayDate(r.date)}</Td>
+              {PRODUCTIVITY_METRICS.map((m) => {
+                const v = dashZero(r[m]);
+                return (
+                  <Td key={m} align="right">
+                    {v == null ? "—" : formatNumber(v)}
+                  </Td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
+      {groupBy === "week" && (
+        <p className="text-xs text-muted">Week grouping uses the same daily mock series in this demo.</p>
+      )}
+      {showing !== "all" && (
+        <p className="text-xs text-muted">Filtered to {showing} (demo scale applied evenly).</p>
+      )}
+    </ReportPageFrame>
   );
 }

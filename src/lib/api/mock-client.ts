@@ -341,21 +341,21 @@ export function createMockApiClient(): ApiClient {
         return ok([
           {
             id: "productivity",
-            name: "Lister productivity",
+            name: "User productivity",
             href: "/reports/productivity",
-            description: `Posts, lists, ${BRAND.autoList}, and sales by teammate.`,
+            description: "Accepted through shipped metrics by teammate.",
           },
           {
             id: "operational",
-            name: "Operational activity",
+            name: "Operational productivity",
             href: "/reports/operational",
             description: `Daily intake → ${BRAND.autoList} → sell → ship.`,
           },
           {
-            id: "auto-list",
-            name: BRAND.autoList,
-            href: "/products/auto-list",
-            description: `${BRAND.ai} channel publish queue.`,
+            id: "downloads",
+            name: "Downloads",
+            href: "/reports/downloads",
+            description: "Per-report CSV generation with email + past reports.",
           },
         ]);
       },

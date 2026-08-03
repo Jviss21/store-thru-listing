@@ -315,7 +315,7 @@ export default function HomePage() {
             {BRAND.autoList}
           </Button>
         </Link>
-        <Link href="/reports/generate">
+        <Link href="/reports/downloads">
           <Button variant="ghost" size="md" type="button">
             Download reports
           </Button>

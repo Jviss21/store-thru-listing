@@ -1,83 +1,75 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { Button, Card, PageHeader } from "@/components/ui";
-import { Sparkline } from "@/components/Sparkline";
-import { ORG_SLUG, supplierReportRows } from "@/lib/mock-data";
-import { downloadCsv, stamp } from "@/lib/download";
-import { formatCurrency } from "@/lib/utils";
+import { Card, PageHeader } from "@/components/ui";
+import {
+  AboutCard,
+  ReportBreadcrumb,
+  ReportPageFrame,
+} from "@/components/reports/ReportChrome";
+import { ArrowRight, ClipboardList, Store, Users } from "lucide-react";
 
-export default function SuppliersReportPage() {
-  const [flash, setFlash] = useState<string | null>(null);
+const LINKS = [
+  {
+    href: "/reports/suppliers/sales",
+    title: "Sales Overview",
+    description: "Weekly/period sales, listed, sold, and velocity by supplier.",
+    icon: Store,
+  },
+  {
+    href: "/reports/suppliers/intake",
+    title: "All intake items",
+    description: "Manifest / intake line items with status and acceptor.",
+    icon: ClipboardList,
+  },
+  {
+    href: "/reports/suppliers/activity",
+    title: "User activity",
+    description: "Actions by user against suppliers in the selected range.",
+    icon: Users,
+  },
+];
 
+export default function SuppliersHubPage() {
   return (
-    <div className="space-y-5">
-      <div className="text-sm text-muted">
-        <Link href="/reports" className="text-primary hover:underline">
-          Reports
-        </Link>{" "}
-        &gt; Suppliers
-      </div>
+    <ReportPageFrame>
+      <ReportBreadcrumb crumbs={[{ label: "Reports", href: "/reports" }, { label: "Suppliers" }]} />
       <PageHeader
         title="Suppliers"
-        description="Store/source performance for Test Goodwill."
-        actions={
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => {
-              downloadCsv(
-                `${ORG_SLUG}-suppliers-${stamp()}.csv`,
-                supplierReportRows.map((row) => ({
-                  name: row.name,
-                  amount: row.amount,
-                  itemsListed: row.itemsListed,
-                  itemsSold: row.itemsSold,
-                  avgDaysToSell: row.avgDaysToSell,
-                }))
-              );
-              setFlash("Suppliers CSV downloaded.");
-              setTimeout(() => setFlash(null), 2000);
-            }}
-          >
-            Download CSV
-          </Button>
-        }
+        description="Track inventory from intake through sales."
       />
-      {flash && (
-        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
-          {flash}
+      <AboutCard>
+        Choose a suppliers report below. Each child page has its own date range and CSV download.
+      </AboutCard>
+
+      <Card className="overflow-hidden">
+        <div className="border-b border-ink/8 bg-ink px-5 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent">Reports</p>
+          <h2 className="mt-1 font-display text-xl font-bold text-white">Suppliers</h2>
+          <p className="mt-1 text-sm text-white/70">
+            Track your inventory from start to finish and monitor your sales.
+          </p>
         </div>
-      )}
-      <Card className="overflow-x-auto">
-        <table className="w-full min-w-[800px] text-left text-sm">
-          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
-            <tr>
-              <th className="px-4 py-2">Supplier</th>
-              <th className="px-3 py-2">Sales (7d)</th>
-              <th className="px-3 py-2">Listed</th>
-              <th className="px-3 py-2">Sold</th>
-              <th className="px-3 py-2">Avg days to sell</th>
-              <th className="px-3 py-2">Trend</th>
-            </tr>
-          </thead>
-          <tbody>
-            {supplierReportRows.map((r) => (
-              <tr key={r.name} className="border-b">
-                <td className="px-4 py-3 font-medium">{r.name}</td>
-                <td className="px-3 py-3">{formatCurrency(r.amount)}</td>
-                <td className="px-3 py-3">{r.itemsListed}</td>
-                <td className="px-3 py-3">{r.itemsSold}</td>
-                <td className="px-3 py-3">{r.avgDaysToSell}</td>
-                <td className="px-3 py-3">
-                  <Sparkline values={r.spark} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="divide-y divide-ink/8">
+          {LINKS.map((l) => (
+            <li key={l.href}>
+              <Link
+                href={l.href}
+                className="flex items-start gap-3 px-5 py-4 transition hover:bg-mist/60"
+              >
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink text-accent">
+                  <l.icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 font-semibold text-ink">
+                    {l.title}
+                    <ArrowRight className="h-3.5 w-3.5 text-muted" />
+                  </span>
+                  <span className="mt-0.5 block text-sm text-muted">{l.description}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </Card>
-    </div>
+    </ReportPageFrame>
   );
 }

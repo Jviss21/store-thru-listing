@@ -1,74 +1,101 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { Button, Card, PageHeader } from "@/components/ui";
-import { BRAND, ORG_SLUG, listerProductivity } from "@/lib/mock-data";
-import { downloadCsv, stamp } from "@/lib/download";
-import { formatCurrency } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { ReportPageFrame, DataTable, Th, Td, TotalsRow } from "@/components/reports/ReportChrome";
+import {
+  AnalyticalReportHeader,
+  downloadReportRows,
+  useFlash,
+  useReportRange,
+} from "@/components/reports/AnalyticalHelpers";
+import {
+  PRODUCTIVITY_METRICS,
+  buildUserProductivity,
+  dashZero,
+  sumMetrics,
+} from "@/lib/report-mock-data";
+import { formatNumber } from "@/lib/utils";
 
-export default function ProductivityReportPage() {
-  const [flash, setFlash] = useState<string | null>(null);
+export default function UserProductivityPage() {
+  const { range, setRange } = useReportRange("mtd");
+  const { flash, setFlash } = useFlash();
+  const [hideInactive, setHideInactive] = useState(true);
+
+  const rows = useMemo(() => {
+    const all = buildUserProductivity(range.start, range.end);
+    return hideInactive ? all.filter((r) => r.active) : all;
+  }, [range, hideInactive]);
+
+  const totals = useMemo(() => sumMetrics(rows), [rows]);
 
   return (
-    <div className="space-y-5">
-      <div className="text-sm text-muted">
-        <Link href="/reports" className="text-primary hover:underline">
-          Reports
-        </Link>{" "}
-        &gt; Lister Productivity
-      </div>
-      <PageHeader
-        title="Lister Productivity"
-        description={`Manual posts plus ${BRAND.ai} ${BRAND.autoList} assists.`}
-        actions={
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => {
-              downloadCsv(
-                `${ORG_SLUG}-productivity-${stamp()}.csv`,
-                listerProductivity as unknown as Record<string, unknown>[]
-              );
-              setFlash("Productivity CSV downloaded.");
-              setTimeout(() => setFlash(null), 2000);
-            }}
-          >
-            Download CSV
-          </Button>
+    <ReportPageFrame>
+      <AnalyticalReportHeader
+        title="User productivity"
+        description="Accepted, rejected, photographed, posted, shelved, purged, picked, packed, and shipped by teammate."
+        range={range}
+        setRange={setRange}
+        flash={flash}
+        onDownload={() =>
+          downloadReportRows(
+            "user-productivity",
+            rows.map((r) => ({
+              user: r.user,
+              active: r.active,
+              ...Object.fromEntries(PRODUCTIVITY_METRICS.map((m) => [m, r[m]])),
+            })),
+            setFlash
+          )
+        }
+        extraFilters={
+          <label className="inline-flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-ink/20 accent-accent"
+              checked={hideInactive}
+              onChange={(e) => setHideInactive(e.target.checked)}
+            />
+            Hide inactive users
+            <span className="text-muted">({rows.length} shown)</span>
+          </label>
         }
       />
-      {flash && (
-        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
-          {flash}
-        </div>
-      )}
-      <Card className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-left text-sm">
-          <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
-            <tr>
-              <th className="px-4 py-2">User</th>
-              <th className="px-3 py-2">Posted</th>
-              <th className="px-3 py-2">Listed</th>
-              <th className="px-3 py-2">Auto-List</th>
-              <th className="px-3 py-2">Sold</th>
-              <th className="px-3 py-2">Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {listerProductivity.map((r) => (
-              <tr key={r.user} className="border-b">
-                <td className="px-4 py-3 font-medium">{r.user}</td>
-                <td className="px-3 py-3">{r.posted}</td>
-                <td className="px-3 py-3">{r.listed}</td>
-                <td className="px-3 py-3">{r.autoListed}</td>
-                <td className="px-3 py-3">{r.sold}</td>
-                <td className="px-3 py-3">{formatCurrency(r.revenue)}</td>
-              </tr>
+
+      <DataTable minWidth="1100px">
+        <thead>
+          <tr>
+            <Th>User</Th>
+            {PRODUCTIVITY_METRICS.map((m) => (
+              <Th key={m} align="right" className="capitalize">
+                {m}
+              </Th>
             ))}
-          </tbody>
-        </table>
-      </Card>
-    </div>
+          </tr>
+        </thead>
+        <tbody>
+          <TotalsRow>
+            <Td>Totals</Td>
+            {PRODUCTIVITY_METRICS.map((m) => (
+              <Td key={m} align="right">
+                {formatNumber(totals[m])}
+              </Td>
+            ))}
+          </TotalsRow>
+          {rows.map((r) => (
+            <tr key={r.user} className="hover:bg-mist/50">
+              <Td className="font-medium text-ink">{r.user}</Td>
+              {PRODUCTIVITY_METRICS.map((m) => {
+                const v = dashZero(r[m]);
+                return (
+                  <Td key={m} align="right" className="text-ink/80">
+                    {v == null ? "—" : formatNumber(v)}
+                  </Td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
+    </ReportPageFrame>
   );
 }
