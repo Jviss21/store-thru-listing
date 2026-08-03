@@ -15,7 +15,6 @@ import { Button, Card, Badge } from "@/components/ui";
 import { Sparkline } from "@/components/Sparkline";
 import {
   BRAND,
-  ORG_NAME,
   dashboardStats,
   infinityStats,
 } from "@/lib/mock-data";
@@ -26,11 +25,13 @@ import {
   type HomePeriod,
 } from "@/lib/home-metrics";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { useOrg } from "@/components/OrgProvider";
 
 export default function HomePage() {
   const [period, setPeriod] = useState<HomePeriod>(DEFAULT_HOME_PERIOD);
   const m = homeMetricsByPeriod[period];
   const s = dashboardStats;
+  const { org } = useOrg();
 
   return (
     <div className="space-y-6">
@@ -47,7 +48,7 @@ export default function HomePage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="font-display text-base font-semibold tracking-tight text-white">
-                {ORG_NAME}
+                {org.name}
               </p>
               <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/50">
                 Powered by {BRAND.product}

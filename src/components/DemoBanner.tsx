@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useOrg } from "@/components/OrgProvider";
 
 const KEY = "stl-demo-banner-dismissed";
 
 export default function DemoBanner() {
   const [visible, setVisible] = useState(false);
+  const { org } = useOrg();
 
   useEffect(() => {
     try {
@@ -22,7 +24,10 @@ export default function DemoBanner() {
     <div className="mb-4 flex items-start gap-3 rounded-xl border border-ink/10 bg-ink/[0.03] px-3.5 py-2.5 text-sm text-ink/80">
       <p className="flex-1 leading-snug">
         <span className="font-semibold text-ink">Demo environment</span>
-        <span className="text-muted"> — illustrative data for Test Goodwill. Not connected to live inventory or marketplaces.</span>
+        <span className="text-muted">
+          {" "}
+          — illustrative data for {org.name}. Not connected to live inventory or marketplaces.
+        </span>
       </p>
       <button
         type="button"

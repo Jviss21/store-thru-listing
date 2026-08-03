@@ -19,11 +19,14 @@ import {
   Truck,
   X,
   Zap,
+  Link2,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { BRAND, CURRENT_USER, ORG_NAME, notifications } from "@/lib/mock-data";
+import { BRAND, notifications } from "@/lib/mock-data";
 import DemoBanner from "@/components/DemoBanner";
+import { useOrg } from "@/components/OrgProvider";
+import { OrgSwitcher } from "@/components/OrgSwitcher";
 
 const floorActions = [
   {
@@ -54,12 +57,13 @@ function isActive(pathname: string, href: string) {
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const unread = notifications.filter((n) => n.unread).length;
+  const { org, session, isOps } = useOrg();
 
   return (
     <div className="flex h-full flex-col bg-white text-ink">
       <div className="border-b border-ink/10 px-5 pb-5 pt-6">
         <Link href="/" onClick={onNavigate} className="block">
-          <p className="font-display text-xl font-bold tracking-tight text-ink">{ORG_NAME}</p>
+          <p className="font-display text-xl font-bold tracking-tight text-ink">{org.name}</p>
           <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-muted">
             Powered by
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -73,6 +77,12 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             <span className="text-ink/70">{BRAND.product}</span>
           </p>
         </Link>
+        <div className="mt-3">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+            Active org
+          </p>
+          <OrgSwitcher />
+        </div>
       </div>
 
       <div className="space-y-2 border-b border-ink/10 p-4">
@@ -179,6 +189,19 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           Admin
         </Link>
         <Link
+          href="/settings/connections"
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+            pathname.startsWith("/settings/connections")
+              ? "bg-accent text-ink shadow-sm"
+              : "text-ink/80 hover:bg-mist hover:text-ink"
+          )}
+        >
+          <Link2 className="h-4 w-4 text-muted" />
+          Connections
+        </Link>
+        <Link
           href="/settings"
           onClick={onNavigate}
           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink/80 hover:bg-mist hover:text-ink"
@@ -186,13 +209,28 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Settings className="h-4 w-4 text-muted" />
           Settings
         </Link>
+        {isOps && (
+          <Link
+            href="/ops"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+              pathname.startsWith("/ops")
+                ? "bg-ink text-accent shadow-sm"
+                : "border border-dashed border-ink/20 text-ink/80 hover:bg-mist hover:text-ink"
+            )}
+          >
+            <Shield className="h-4 w-4 text-accent" />
+            Hammoq Ops
+          </Link>
+        )}
         <div className="mt-1 flex items-center gap-3 rounded-xl bg-mist/80 px-3 py-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-xs font-bold text-accent">
-            {CURRENT_USER.handle.slice(0, 2).toUpperCase()}
+            {session.handle.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-ink">{CURRENT_USER.name}</p>
-            <p className="truncate text-[11px] text-muted">{CURRENT_USER.role}</p>
+            <p className="truncate text-sm font-semibold text-ink">{session.name}</p>
+            <p className="truncate text-[11px] text-muted">{session.role}</p>
           </div>
         </div>
       </div>
@@ -204,8 +242,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const unread = notifications.filter((n) => n.unread).length;
+  const { org } = useOrg();
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname.startsWith("/ops")) {
     return <>{children}</>;
   }
 
@@ -223,7 +262,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <span className="font-display text-base font-bold text-ink">{ORG_NAME}</span>
+        <span className="font-display text-base font-bold text-ink">{org.name}</span>
         <Link href="/notifications" className="relative ml-auto rounded-xl p-2 text-ink hover:bg-mist">
           <Bell className="h-5 w-5" />
           {unread > 0 && (

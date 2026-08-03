@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Syne, Source_Sans_3, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import { OrgProvider } from "@/components/OrgProvider";
 
 const display = Syne({
   subsets: ["latin"],
@@ -46,7 +47,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}>
-        <AppShell>{children}</AppShell>
+        <OrgProvider>
+          <AppShell>{children}</AppShell>
+        </OrgProvider>
       </body>
     </html>
   );

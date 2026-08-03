@@ -1,27 +1,35 @@
 # Launch checklist — beyond this demo
 
-This app is a **customer-shareable pilot UI** with client-side mock data and a password gate. The items below are required for a real production deployment and are **not** implemented here (by design — no fake backends).
+This app is a **10-org pilot UI** with client-side mock data, an API adapter layer, and a password gate. See [PILOT.md](./PILOT.md) for Phase 0 (done) and Phase 1 next steps.
+
+## Phase 0 (shipped)
+
+- Org context + 10 pilot orgs
+- `MockApiClient` adapters ready to swap for HTTP
+- Marketplace Connect stubs + Ops console at `/ops`
+- Failure UX for Additional QA Required / sync errors
 
 ## Remaining production requirements
 
 ### Data & inventory
-- [ ] Real inventory / products / manifests database (Postgres or equivalent)
+- [ ] Real inventory / products / manifests database (Postgres or equivalent) — schema sketch in `src/lib/db/schema.ts`
 - [ ] Real orders, refunds, and shipment records with sync from channels
 - [ ] Durable file storage for product photos and listing assets
 
 ### Auth & tenancy
 - [ ] Real authentication (email/password or SSO)
 - [ ] Roles & permissions (ops lead, lister, photographer, admin)
-- [ ] Multi-org tenancy if serving more than Test Goodwill
+- [x] Multi-org tenancy scaffolding (pilot orgs + `activeOrgId`; DB wiring in Phase 1)
 
 ### Marketplace integrations
-- [ ] ShopGoodwill OAuth + listing create/update/end APIs
+- [ ] ShopGoodwill OAuth + listing create/update/end APIs (stub Connect UI exists)
 - [ ] eBay OAuth + Trading / Inventory / Fulfillment APIs
 - [ ] Webhooks or polling for sold / unpaid / cancelled events
 
 ### Infinity AI
 - [ ] Production Auto-List routing (channel rules, pricing floors, QA gates)
 - [ ] Audit log of AI suggestions vs human edits
+- [x] Auto-List only — no Auto-Draft
 
 ### Ops hardware
 - [ ] Carrier label APIs (USPS / UPS / FedEx as required)
@@ -44,6 +52,7 @@ This app is a **customer-shareable pilot UI** with client-side mock data and a p
 - End-to-end UI path: intake → draft → list → orders → reports
 - CSV/JSON report and listing packet downloads
 - Infinity AI Auto-List queue (simulated)
-- Org branding for Test Goodwill + hammoq palette
+- Org branding (Hammoq navy/gold) + org switcher across 10 pilots
+- Hammoq Ops console for staff health / impersonation / kill switches
 
-When the systems above are ready, replace mock modules under `src/lib/mock-data.ts` / `demo-actions.ts` with authenticated API clients — keep the existing route structure where possible.
+When backends are ready, replace `MockApiClient` via `createApiClient()` in `src/lib/api/` — keep the existing route structure where possible.

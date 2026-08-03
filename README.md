@@ -1,11 +1,12 @@
 # Hammoq — Store thru Listing
 
-Customer pilot UI for **Test Goodwill**: store intake → products → marketplace listings → orders, powered by **hammoq / Infinity AI**.
+Customer pilot UI for **10 orgs** (including **Test Goodwill**): store intake → products → marketplace listings → orders, powered by **hammoq / Infinity AI** (Auto-List only).
 
 **Live demo:** https://store-thru-listing.vercel.app  
-**Access password:** `testgoodwill` (override with `DEMO_PASSWORD` env)
+**Access password:** `testgoodwill` (override with `DEMO_PASSWORD` env)  
+**Ops:** `/ops` (unlock with demo password or email containing `hammoq`)
 
-All numbers and records are **illustrative demo data** — no live database or marketplace APIs yet. See [LAUNCH.md](./LAUNCH.md) for what remains before true production.
+All numbers and records are **illustrative demo data** — mock API adapters only. See [PILOT.md](./PILOT.md) and [LAUNCH.md](./LAUNCH.md).
 
 ## Run locally
 
@@ -29,24 +30,6 @@ npx vercel --prod --yes
 
 Project is already linked under Vercel as `store-thru-listing`.
 
-## GitHub (if not connected yet)
-
-`gh` may not be on PATH on every machine. From this folder:
-
-```powershell
-# Install GitHub CLI if needed, then:
-gh auth login
-gh repo create hammoq/store-thru-listing --private --source=. --remote=origin --push
-```
-
-Or without `gh`:
-
-```powershell
-# Create an empty private repo on GitHub, then:
-git remote add origin https://github.com/<org>/store-thru-listing.git
-git push -u origin master
-```
-
 ## What’s included
 
 | Area | Routes |
@@ -57,9 +40,11 @@ git push -u origin master
 | Listings | `/listings/shopgoodwill`, `/listings/ebay` |
 | Orders / Shipments | `/orders`, `/shipments` |
 | Reports | `/reports/*` (CSV/JSON downloads) |
-| Settings / Printer / Notifications | `/settings`, `/settings/printer`, `/notifications` |
+| Connections / Settings | `/settings/connections`, `/settings`, `/settings/printer` |
+| Customer Admin | `/admin/*` |
+| Hammoq Ops (staff) | `/ops` |
 
-Suggested walkthrough: **Home → Auto-List → Listings → Orders → Reports**.
+Suggested walkthrough: **Home → Auto-List → Listings → Connections → Ops**.
 
 ## Environment
 

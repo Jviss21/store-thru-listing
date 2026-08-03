@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
-import { BRAND, ORG_NAME } from "@/lib/mock-data";
+import { BRAND } from "@/lib/mock-data";
 import {
   DEFAULT_SETTINGS,
   loadDemoSettings,
   saveDemoSettings,
   type DemoSettings,
 } from "@/lib/demo-settings";
+import { useOrg } from "@/components/OrgProvider";
+import { isHammoqStaffEmail } from "@/lib/session";
 
 export default function SettingsPage() {
+  const { org, updateSession, isOps } = useOrg();
   const [settings, setSettings] = useState<DemoSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -28,10 +32,15 @@ export default function SettingsPage() {
   function persist() {
     const next = {
       ...settings,
-      org: settings.org.trim() || ORG_NAME,
+      org: settings.org.trim() || org.name,
     };
     saveDemoSettings(next);
     setSettings(next);
+    updateSession({
+      name: next.name,
+      email: next.email,
+      handle: next.handle,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2200);
   }
@@ -40,7 +49,15 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Settings"
-        description={`Account and ${BRAND.ai} preferences for ${ORG_NAME}.`}
+        description={`Account and ${BRAND.ai} preferences for ${org.name}.`}
+        actions={
+          <Link
+            href="/settings/connections"
+            className="text-sm font-semibold text-ink underline-offset-2 hover:underline"
+          >
+            Marketplace connections →
+          </Link>
+        }
       />
       <Card className="max-w-xl space-y-4 p-5">
         <div>
@@ -60,16 +77,27 @@ export default function SettingsPage() {
             onChange={(e) => update("email", e.target.value)}
             disabled={!hydrated}
           />
+          <p className="mt-1 text-xs text-muted">
+            Emails containing <span className="font-mono">hammoq</span> unlock the Hammoq Ops
+            nav link.
+            {isHammoqStaffEmail(settings.email) || isOps ? " Ops access active." : ""}
+          </p>
         </div>
         <div>
-          <label className="text-sm font-medium">Organization</label>
+          <label className="text-sm font-medium">Organization label</label>
           <Input
             className="mt-1"
             value={settings.org}
             onChange={(e) => update("org", e.target.value)}
             disabled={!hydrated}
           />
-          <p className="mt-1 text-xs text-muted">Default customer org: {ORG_NAME}</p>
+          <p className="mt-1 text-xs text-muted">
+            Active org (switcher): {org.name}. Use the sidebar org switcher or{" "}
+            <Link href="/ops" className="font-semibold underline-offset-2 hover:underline">
+              Hammoq Ops
+            </Link>{" "}
+            to change tenants.
+          </p>
         </div>
         <div>
           <label className="text-sm font-medium">Handle</label>
@@ -94,8 +122,9 @@ export default function SettingsPage() {
           <h2 className="font-display text-lg font-bold text-ink">{BRAND.ai}</h2>
         </div>
         <p className="text-sm text-muted">
-          Toggle which automation features run for this workspace. Powered quietly by {BRAND.product}.
-          Preferences persist in localStorage for this browser.
+          Toggle which automation features run for this workspace. Powered quietly by{" "}
+          {BRAND.product}. Preferences persist in localStorage for this browser. Auto-List only —
+          no Auto-Draft.
         </p>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>

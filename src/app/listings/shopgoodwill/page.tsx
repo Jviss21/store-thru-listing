@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Ban,
@@ -17,7 +17,10 @@ import {
 import { Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { ListingStatusBadge } from "@/components/StatusBadge";
 import { ProductImage } from "@/components/ProductImage";
+import { SyncErrorBanner, QaRequiredCallout } from "@/components/SyncErrorBanner";
+import { useOrg } from "@/components/OrgProvider";
 import { listings as seed } from "@/lib/mock-data";
+import type { SyncError } from "@/lib/api";
 import type { Listing, ListingStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { exportListingPacket, exportListingsCsv } from "@/lib/demo-actions";
@@ -36,6 +39,7 @@ function ShopGoodwillInner() {
   const searchParams = useSearchParams();
   const initialStatus = searchParams.get("status") as ListingStatus | null;
   const openId = searchParams.get("open");
+  const { org, api, hydrated } = useOrg();
 
   const [bucket, setBucket] = useState<"Open" | "All" | "Closed">("Open");
   const [status, setStatus] = useState<ListingStatus | "All">(initialStatus ?? "All");
@@ -45,6 +49,29 @@ function ShopGoodwillInner() {
     openId ? seed.find((l) => l.id === openId) ?? null : null
   );
   const [toast, setToast] = useState<string | null>(null);
+  const [syncErrors, setSyncErrors] = useState<SyncError[]>([]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void (async () => {
+      const [listRes, errRes] = await Promise.all([
+        api.listings.list(org.id, "ShopGoodwill"),
+        api.ops.recentErrors(org.id),
+      ]);
+      if (listRes.ok) {
+        setRows(listRes.data);
+        if (openId) {
+          setSelected(listRes.data.find((l) => l.id === openId) ?? null);
+        }
+      }
+      if (errRes.ok) setSyncErrors(errRes.data);
+    })();
+  }, [hydrated, org.id, api, openId]);
+
+  const qaCount = useMemo(
+    () => rows.filter((l) => l.status === "Additional QA Required").length,
+    [rows]
+  );
 
   const filtered = useMemo(() => {
     return rows.filter((l) => {
@@ -116,6 +143,12 @@ function ShopGoodwillInner() {
           {toast}
         </div>
       )}
+
+      <SyncErrorBanner errors={syncErrors} channel="ShopGoodwill" />
+      <QaRequiredCallout
+        count={qaCount}
+        href="/listings/shopgoodwill?status=Additional%20QA%20Required"
+      />
 
       <div className="flex flex-wrap gap-1 border-b">
         {(["Open", "All", "Closed"] as const).map((b) => (
