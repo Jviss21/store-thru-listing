@@ -16,20 +16,6 @@ export {
   listMarketplaceStatuses,
 } from "./marketplaces";
 
-export {
-  getEbayAspectsClient,
-  setEbayAspectsClient,
-  MockEbayAspectsClient,
-  reconcileItemSpecifics,
-  defaultEbayCategoryIdForProductCategory,
-} from "./ebay-aspects";
-export type {
-  EbayAspectsClient,
-  EbayAspect,
-  EbayCategoryAspects,
-  EbayCategoryOption,
-} from "./ebay-aspects";
-
 import { getMarketplaceMode } from "./config";
 import { createLiveApiClient } from "./live-client";
 import { createMockApiClient } from "./mock-client";
