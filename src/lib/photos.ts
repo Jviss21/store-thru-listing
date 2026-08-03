@@ -26,20 +26,40 @@ export function readFilesAsDataUrls(files: FileList | File[]): Promise<string[]>
   );
 }
 
-/** Fetch remote image and re-encode as data URL so canvas edits work (CORS-safe when allowed). */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Fetch remote image and re-encode as data URL so canvas edits work (CORS-safe). */
 export async function urlToDataUrl(url: string): Promise<string> {
   if (url.startsWith("data:")) return url;
+  if (url.startsWith("blob:")) {
+    const res = await fetch(url);
+    return blobToDataUrl(await res.blob());
+  }
+
+  // Prefer same-origin proxy — avoids browser CORS / tainted canvas.
+  try {
+    const proxy = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy);
+    if (res.ok) {
+      return blobToDataUrl(await res.blob());
+    }
+  } catch {
+    /* fall through */
+  }
+
   try {
     const res = await fetch(url, { mode: "cors" });
-    const blob = await res.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ""));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
+    if (!res.ok) throw new Error(`Fetch failed ${res.status}`);
+    return blobToDataUrl(await res.blob());
   } catch {
-    // Fallback: draw via crossOrigin image
+    // Last resort: draw via crossOrigin image (still may taint)
     const { loadImage } = await import("@/lib/image-edit");
     const img = await loadImage(url);
     const canvas = document.createElement("canvas");
@@ -48,6 +68,10 @@ export async function urlToDataUrl(url: string): Promise<string> {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas unsupported");
     ctx.drawImage(img, 0, 0);
-    return canvas.toDataURL("image/jpeg", 0.92);
+    try {
+      return canvas.toDataURL("image/jpeg", 0.92);
+    } catch {
+      throw new Error("CORS: image cannot be edited in the browser");
+    }
   }
 }

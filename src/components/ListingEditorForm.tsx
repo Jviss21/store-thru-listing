@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
+  GripVertical,
   ImagePlus,
   Package,
   Pencil,
@@ -15,6 +17,7 @@ import {
 import { Button, Card, Input, Textarea } from "@/components/ui";
 import { PhotoEditor } from "@/components/PhotoEditor";
 import { ProductImage } from "@/components/ProductImage";
+import { SaveToast, useSaveFeedback } from "@/components/SaveFeedback";
 import {
   defaultEbayCategoryIdForProductCategory,
   getEbayAspectsClient,
@@ -551,6 +554,9 @@ export function ListingEditorForm({
   const [editorIdx, setEditorIdx] = useState<number | null>(null);
   const [editorSrc, setEditorSrc] = useState<string | null>(null);
   const [rotatingIdx, setRotatingIdx] = useState<number | null>(null);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const { feedback: photoFeedback, announce: announcePhoto } = useSaveFeedback(4000);
   const [ebayCategories, setEbayCategories] = useState<EbayCategoryOption[]>([]);
   const [aspects, setAspects] = useState<EbayAspect[]>([]);
   const [sgwFields, setSgwFields] = useState<SgwCategoryField[]>([]);
@@ -698,7 +704,7 @@ export function ListingEditorForm({
   async function ensureEditableUrl(index: number): Promise<string | null> {
     const url = value.imageUrls[index];
     if (!url) return null;
-    if (url.startsWith("data:")) return url;
+    if (url.startsWith("data:") || url.startsWith("blob:")) return url;
     try {
       const dataUrl = await urlToDataUrl(url);
       const next = [...value.imageUrls];
@@ -706,7 +712,7 @@ export function ListingEditorForm({
       patch({ imageUrls: next });
       return dataUrl;
     } catch {
-      return url;
+      return null;
     }
   }
 
@@ -715,13 +721,18 @@ export function ListingEditorForm({
     setRotatingIdx(index);
     try {
       const url = await ensureEditableUrl(index);
-      if (!url) return;
+      if (!url) {
+        announcePhoto("Couldn’t rotate this image (CORS). Upload a local photo instead.", {
+          error: true,
+        });
+        return;
+      }
       const nextUrl = await rotateImage90Cw(url);
       const next = [...value.imageUrls];
       next[index] = nextUrl;
       patch({ imageUrls: next });
     } catch {
-      /* leave original */
+      announcePhoto("Couldn’t rotate this image. Try uploading a local copy.", { error: true });
     } finally {
       setRotatingIdx(null);
     }
@@ -731,7 +742,12 @@ export function ListingEditorForm({
     if (readOnly) return;
     setPreviewIdx(index);
     const url = await ensureEditableUrl(index);
-    if (!url) return;
+    if (!url) {
+      announcePhoto("Couldn’t open photo editor for this image (CORS). Upload a local photo instead.", {
+        error: true,
+      });
+      return;
+    }
     setEditorSrc(url);
     setEditorIdx(index);
   }
@@ -741,6 +757,47 @@ export function ListingEditorForm({
     next[index] = dataUrl;
     patch({ imageUrls: next });
     setEditorSrc(dataUrl);
+  }
+
+  /** Reorder strip; whatever lands at index 0 becomes Main Image. */
+  function reorderImages(from: number, to: number) {
+    if (readOnly || from === to || from < 0 || to < 0) return;
+    const next = [...value.imageUrls];
+    if (from >= next.length || to >= next.length) return;
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    let newPreview = previewIdx;
+    if (previewIdx === from) newPreview = to;
+    else if (from < previewIdx && to >= previewIdx) newPreview = previewIdx - 1;
+    else if (from > previewIdx && to <= previewIdx) newPreview = previewIdx + 1;
+    let newEditor = editorIdx;
+    if (editorIdx != null) {
+      if (editorIdx === from) newEditor = to;
+      else if (from < editorIdx && to >= editorIdx) newEditor = editorIdx - 1;
+      else if (from > editorIdx && to <= editorIdx) newEditor = editorIdx + 1;
+    }
+    patch({ imageUrls: next, mainImageIndex: 0 });
+    setPreviewIdx(newPreview);
+    if (newEditor !== editorIdx) setEditorIdx(newEditor);
+  }
+
+  /** Move selected photo to front and mark as main. */
+  function setAsMainImage(index: number) {
+    if (readOnly || index < 0 || index >= value.imageUrls.length) return;
+    if (index === 0) {
+      patch({ mainImageIndex: 0 });
+      setPreviewIdx(0);
+      return;
+    }
+    const next = [...value.imageUrls];
+    const [item] = next.splice(index, 1);
+    next.unshift(item);
+    let newEditor = editorIdx;
+    if (editorIdx === index) newEditor = 0;
+    else if (editorIdx != null && editorIdx < index) newEditor = editorIdx + 1;
+    patch({ imageUrls: next, mainImageIndex: 0 });
+    setPreviewIdx(0);
+    if (newEditor !== editorIdx) setEditorIdx(newEditor);
   }
 
   function addTag() {
@@ -807,56 +864,104 @@ export function ListingEditorForm({
         </div>
 
         {value.imageUrls.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {value.imageUrls.map((url, i) => (
-              <div
-                key={`${url.slice(0, 48)}-${i}`}
-                className={cn(
-                  "relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2",
-                  i === previewIdx ? "border-primary" : "border-ink/10"
-                )}
-              >
-                <button
-                  type="button"
-                  className="h-full w-full"
-                  onClick={() => setPreviewIdx(i)}
+          <div className="mt-3">
+            <p className="mb-1.5 text-[11px] text-muted">
+              Drag thumbnails to reorder — the first image is the Main Image.
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {value.imageUrls.map((url, i) => (
+                <div
+                  key={`${i}-${url.slice(0, 40)}`}
+                  draggable={!readOnly}
+                  onDragStart={(e) => {
+                    if (readOnly) return;
+                    setDragFrom(i);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", String(i));
+                  }}
+                  onDragEnd={() => {
+                    setDragFrom(null);
+                    setDragOver(null);
+                  }}
+                  onDragOver={(e) => {
+                    if (readOnly || dragFrom == null) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dragOver !== i) setDragOver(i);
+                  }}
+                  onDragLeave={() => {
+                    if (dragOver === i) setDragOver(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const from = dragFrom ?? Number(e.dataTransfer.getData("text/plain"));
+                    setDragFrom(null);
+                    setDragOver(null);
+                    if (Number.isFinite(from)) reorderImages(from, i);
+                  }}
+                  className={cn(
+                    "relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition",
+                    i === previewIdx ? "border-primary" : "border-ink/10",
+                    dragFrom === i && "opacity-50",
+                    dragOver === i && dragFrom !== i && "border-gold ring-2 ring-gold/40",
+                    !readOnly && "cursor-grab active:cursor-grabbing"
+                  )}
                 >
-                  <ProductImage src={url} seed={`img-${i}`} alt="" className="h-full w-full" />
-                </button>
-                {i === value.mainImageIndex && (
-                  <span className="pointer-events-none absolute left-0.5 top-0.5 rounded bg-primary px-1 py-0.5 text-[9px] font-semibold text-white">
-                    Main Image
-                  </span>
-                )}
-                {!readOnly && (
-                  <div className="absolute bottom-0.5 right-0.5 flex gap-0.5">
-                    <button
-                      type="button"
-                      title="Rotate 90°"
-                      disabled={rotatingIdx === i}
-                      className="rounded bg-ink/80 p-1 text-white hover:bg-ink disabled:opacity-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void rotateThumb(i);
-                      }}
+                  {!readOnly && (
+                    <span
+                      data-drag-handle
+                      className="pointer-events-none absolute bottom-0.5 left-0.5 z-10 rounded bg-ink/55 p-0.5 text-white"
+                      title="Drag to reorder"
+                      aria-hidden
                     >
-                      <RotateCw className={cn("h-3 w-3", rotatingIdx === i && "animate-spin")} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Edit photo"
-                      className="rounded bg-gold p-1 text-ink hover:brightness-95"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void openEditor(i);
-                      }}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="h-full w-full"
+                    onClick={() => setPreviewIdx(i)}
+                  >
+                    <ProductImage src={url} seed={`img-${i}`} alt="" className="h-full w-full" />
+                  </button>
+                  {i === value.mainImageIndex && (
+                    <span className="pointer-events-none absolute left-0.5 top-0.5 z-10 rounded bg-primary px-1 py-0.5 text-[9px] font-semibold text-white">
+                      Main Image
+                    </span>
+                  )}
+                  {!readOnly && (
+                    <div className="absolute bottom-0.5 right-0.5 z-10 flex gap-0.5">
+                      <button
+                        type="button"
+                        title="Rotate 90°"
+                        disabled={rotatingIdx === i}
+                        className="rounded bg-ink/80 p-1 text-white hover:bg-ink disabled:opacity-50"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void rotateThumb(i);
+                        }}
+                      >
+                        <RotateCw className={cn("h-3 w-3", rotatingIdx === i && "animate-spin")} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Edit photo"
+                        className="rounded bg-gold p-1 text-ink hover:brightness-95"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void openEditor(i);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -907,7 +1012,7 @@ export function ListingEditorForm({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      patch({ mainImageIndex: previewIdx });
+                      setAsMainImage(previewIdx);
                     }}
                   >
                     Set as Main Image
@@ -1791,6 +1896,15 @@ export function ListingEditorForm({
           }}
         />
       )}
+
+      {photoFeedback.show &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 left-1/2 z-[110] -translate-x-1/2">
+            <SaveToast feedback={photoFeedback} className="pointer-events-auto" />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   Check,
   FlipHorizontal2,
@@ -10,6 +18,7 @@ import {
   RotateCw,
   X,
 } from "lucide-react";
+import { PhotoEditorErrorBoundary } from "@/components/PhotoEditorErrorBoundary";
 import { Button, Input } from "@/components/ui";
 import {
   ASPECT_PRESETS,
@@ -34,7 +43,7 @@ type Props = {
 type TransformSub = "flip-rotate" | "crop-size";
 type MainTab = "transform" | "adjust";
 
-export function PhotoEditor({ src, open, onClose, onSave }: Props) {
+function PhotoEditorInner({ src, open, onClose, onSave }: Props) {
   const [edit, setEdit] = useState<ImageEditState>(DEFAULT_EDIT);
   const [mainTab, setMainTab] = useState<MainTab>("transform");
   const [subTab, setSubTab] = useState<TransformSub>("flip-rotate");
@@ -42,6 +51,7 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     startX: number;
@@ -51,16 +61,61 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
   } | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     setEdit({ ...DEFAULT_EDIT });
     setMainTab("transform");
     setSubTab("flip-rotate");
     setSavedFlash(false);
     setError(null);
+    let cancelled = false;
     void loadImage(src)
-      .then((img) => setImgSize({ w: img.naturalWidth, h: img.naturalHeight }))
-      .catch(() => setError("Could not load image for editing."));
+      .then((img) => {
+        if (!cancelled) setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg =
+          err instanceof Error && /cors|taint|security/i.test(err.message)
+            ? "This image can’t be edited in the browser (CORS). Try uploading a local photo."
+            : "Could not load image for editing.";
+        setError(msg);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, src]);
+
+  /** Lock page scroll while the viewport-fixed modal is open. */
+  useEffect(() => {
+    if (!open) return;
+    const body = document.body;
+    const html = document.documentElement;
+    const prevBody = body.style.overflow;
+    const prevHtml = html.style.overflow;
+    const prevPad = body.style.paddingRight;
+    const scrollbar = window.innerWidth - html.clientWidth;
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+    return () => {
+      body.style.overflow = prevBody;
+      html.style.overflow = prevHtml;
+      body.style.paddingRight = prevPad;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   const patch = useCallback((partial: Partial<ImageEditState>) => {
     setEdit((prev) => ({ ...prev, ...partial }));
@@ -148,29 +203,40 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
       onSave(dataUrl);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2800);
-    } catch {
-      setError("Could not save edited image. Try a different photo or refresh.");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error && /cors|taint|security/i.test(err.message)
+          ? "Could not export this image (browser security / CORS). Upload a local copy instead."
+          : "Could not save edited image. Try a different photo or refresh.";
+      setError(msg);
     } finally {
       setSaving(false);
     }
   }
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const filterStyle = {
     filter: `brightness(${edit.brightness}%) contrast(${edit.contrast}%) saturate(${edit.saturation}%)`,
     transform: `scaleX(${edit.flipH ? -1 : 1}) scaleY(${edit.flipV ? -1 : 1}) rotate(${edit.rotation}deg)`,
   };
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/70 p-3 backdrop-blur-sm sm:p-6">
+  const overlay = (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/70 p-3 sm:p-6"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Photo editor"
-        className="flex max-h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-float"
+        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-float"
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-ink/8 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-ink/8 px-4 py-3">
           <div className="flex items-center gap-2">
             <Pencil className="h-4 w-4 text-gold" />
             <h2 className="font-display text-lg font-bold text-ink">Edit photo</h2>
@@ -185,13 +251,15 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[1fr_320px]">
+        <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_320px]">
           {/* Preview */}
-          <div className="flex min-h-[280px] items-center justify-center bg-[#1a2438] p-4">
+          <div className="flex min-h-[200px] items-center justify-center overflow-hidden bg-[#1a2438] p-4 lg:min-h-0">
             <div
               ref={stageRef}
-              className="relative max-h-[62vh] w-full max-w-xl overflow-hidden rounded-lg bg-black/40"
-              style={{ aspectRatio: imgSize.w && imgSize.h ? `${imgSize.w} / ${imgSize.h}` : "1" }}
+              className="relative max-h-[min(52vh,420px)] w-full max-w-xl overflow-hidden rounded-lg bg-black/40"
+              style={{
+                aspectRatio: imgSize.w && imgSize.h ? `${imgSize.w} / ${imgSize.h}` : "1",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -201,8 +269,7 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
                 style={filterStyle}
                 draggable={false}
               />
-              {/* Dim outside crop */}
-              <div className="pointer-events-none absolute inset-0">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div
                   className="absolute border-2 border-gold shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
                   style={{
@@ -212,7 +279,6 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
                     height: `${edit.cropH * 100}%`,
                   }}
                 >
-                  {/* Rule of thirds */}
                   <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
                     {Array.from({ length: 9 }).map((_, i) => (
                       <div key={i} className="border border-white/25" />
@@ -220,7 +286,6 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
                   </div>
                 </div>
               </div>
-              {/* Drag handle layer */}
               <div
                 className="absolute cursor-move touch-none"
                 style={{
@@ -237,9 +302,9 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex max-h-[70vh] flex-col overflow-y-auto border-t border-ink/8 bg-mist/30 lg:max-h-none lg:border-l lg:border-t-0">
-            <div className="flex border-b border-ink/8">
+          {/* Controls — internal scroll only */}
+          <div className="flex min-h-0 flex-col overflow-hidden border-t border-ink/8 bg-mist/30 lg:border-l lg:border-t-0">
+            <div className="flex shrink-0 border-b border-ink/8">
               {(["transform", "adjust"] as MainTab[]).map((tab) => (
                 <button
                   key={tab}
@@ -257,7 +322,7 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
               ))}
             </div>
 
-            <div className="flex-1 space-y-4 p-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               {mainTab === "transform" && (
                 <>
                   <div className="flex rounded-lg border border-ink/10 bg-white p-0.5">
@@ -380,7 +445,8 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
                         </div>
                       </div>
                       <p className="text-[11px] text-muted">
-                        Drag the gold frame on the preview to reposition. Grid shows rule of thirds.
+                        Drag the gold frame on the preview to reposition. Grid shows rule of
+                        thirds.
                       </p>
                     </div>
                   )}
@@ -453,7 +519,7 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 border-t border-ink/8 bg-white p-4">
+            <div className="flex shrink-0 flex-wrap gap-2 border-t border-ink/8 bg-white p-4">
               <Button type="button" variant="outline" size="sm" onClick={reset}>
                 Reset
               </Button>
@@ -464,7 +530,7 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
                   "flex-1",
                   savedFlash && "animate-save-pulse bg-save-ok text-white hover:bg-save-ok/90"
                 )}
-                disabled={saving}
+                disabled={saving || Boolean(error && !imgSize.w)}
                 onClick={() => void handleSave()}
               >
                 {savedFlash ? (
@@ -485,5 +551,16 @@ export function PhotoEditor({ src, open, onClose, onSave }: Props) {
         </div>
       </div>
     </div>
+  );
+
+  return createPortal(overlay, document.body);
+}
+
+export function PhotoEditor(props: Props) {
+  if (!props.open) return null;
+  return (
+    <PhotoEditorErrorBoundary onClose={props.onClose}>
+      <PhotoEditorInner {...props} />
+    </PhotoEditorErrorBoundary>
   );
 }

@@ -44,11 +44,23 @@ export const DEFAULT_EDIT: ImageEditState = {
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    // Data/blob URLs don't need CORS; remote URLs do for canvas export.
+    if (!src.startsWith("data:") && !src.startsWith("blob:")) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Failed to load image"));
     img.src = src;
   });
+}
+
+function safeToDataUrl(canvas: HTMLCanvasElement, type = "image/jpeg", quality = 0.92): string {
+  try {
+    return canvas.toDataURL(type, quality);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`CORS/security: cannot export canvas (${msg})`);
+  }
 }
 
 /** Quick 90° clockwise rotate → data URL (JPEG). */
@@ -62,7 +74,7 @@ export async function rotateImage90Cw(src: string): Promise<string> {
   ctx.translate(canvas.width, 0);
   ctx.rotate(Math.PI / 2);
   ctx.drawImage(img, 0, 0);
-  return canvas.toDataURL("image/jpeg", 0.92);
+  return safeToDataUrl(canvas);
 }
 
 function cssFilter(edit: Pick<ImageEditState, "brightness" | "contrast" | "saturation">): string {
@@ -123,7 +135,7 @@ export async function applyImageEdit(src: string, edit: ImageEditState): Promise
   const ctx = out.getContext("2d");
   if (!ctx) throw new Error("Canvas unsupported");
   ctx.drawImage(transformed, sx, sy, sw, sh, 0, 0, sw, sh);
-  return out.toDataURL("image/jpeg", 0.92);
+  return safeToDataUrl(out);
 }
 
 export function aspectRatio(preset: AspectPreset): number | null {
