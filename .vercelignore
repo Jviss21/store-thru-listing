@@ -1,4 +1,2 @@
 .wip-parallel
 .wip-parallel/**
-src/components/ListingEditorForm.tsx
-src/lib/api/ebay-aspects.ts
