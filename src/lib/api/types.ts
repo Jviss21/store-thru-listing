@@ -78,6 +78,11 @@ export type ProductsApi = {
 export type ListingsApi = {
   list(orgId: string, channel?: ListingChannel): Promise<ApiResult<Listing[]>>;
   get(orgId: string, id: string): Promise<ApiResult<Listing | null>>;
+  update(
+    orgId: string,
+    id: string,
+    patch: Partial<Listing>
+  ): Promise<ApiResult<Listing>>;
 };
 
 export type AutoListApi = {

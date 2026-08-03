@@ -30,6 +30,7 @@ import type { Listing, Product } from "@/lib/types";
 
 const CONNECTIONS_KEY = "stl-connections-v1";
 const OPS_STATE_KEY = "stl-ops-state-v1";
+const LISTING_OVERRIDES_KEY = "stl-listing-overrides-v1";
 
 type OpsPersisted = {
   byOrg: Record<
@@ -99,40 +100,47 @@ function scopeProducts(orgId: string): Product[] {
   }).filter(Boolean) as Product[];
 }
 
+function loadListingOverrides(): Record<string, Partial<Listing>> {
+  return readJson<Record<string, Partial<Listing>>>(LISTING_OVERRIDES_KEY, {});
+}
+function saveListingOverride(id: string, patch: Partial<Listing>) {
+  const all = loadListingOverrides();
+  all[id] = { ...all[id], ...patch, id };
+  writeJson(LISTING_OVERRIDES_KEY, all);
+}
 function scopeListings(orgId: string): Listing[] {
   const products = scopeProducts(orgId);
   const productIds = new Set(products.map((p) => p.id));
   const org = getOrgById(orgId);
   const idx = orgIndex(orgId);
   const prefix = skuPrefix(orgId);
-
+  const overrides = loadListingOverrides();
   const rows = baseListings
     .map((l) => {
       const scopedProductId = `${orgId}-${l.productId}`;
       if (!productIds.has(scopedProductId)) return null;
-
       const numericId = parseInt(l.id.slice(1), 10) || 0;
       const forceQa =
         numericId % (17 + idx) === 0 ||
         numericId === 3 + idx ||
         numericId === 11 + idx;
       const status = forceQa ? ("Additional QA Required" as const) : l.status;
-
+      const scopedId = `${orgId}-${l.id}`;
+      const override = overrides[scopedId];
       return {
         ...l,
-        id: `${orgId}-${l.id}`,
-        productId: scopedProductId,
         sku: `${prefix}${l.sku.replace(/^[A-Z]+/, "")}`,
         status,
         tags: [...l.tags, `org:${orgId}`],
         itemLocation: `${org?.name ?? "Org"} · Anonymized Demo Facility, USA`,
         description: l.description.replace(/Test Goodwill/g, org?.name ?? "Org"),
         privateDescription: `${prefix}-${l.privateDescription}`,
+        ...override,
+        id: scopedId,
+        productId: scopedProductId,
       } satisfies Listing;
     })
     .filter(Boolean) as Listing[];
-
-  // Guarantee at least 3 QA-required listings per org
   let qaCount = rows.filter((r) => r.status === "Additional QA Required").length;
   for (let i = 0; i < rows.length && qaCount < 3; i++) {
     if (rows[i]!.status !== "Additional QA Required") {
@@ -268,7 +276,22 @@ export function createMockApiClient(): ApiClient {
       },
       async get(orgId, id) {
         const all = scopeListings(orgId);
-        return ok(all.find((l) => l.id === id) ?? null);
+        const found =
+          all.find((l) => l.id === id) ??
+          all.find((l) => l.id.endsWith(`-${id}`)) ??
+          all.find((l) => l.id === `${orgId}-${id}`);
+        return ok(found ?? null);
+      },
+      async update(orgId, id, patch) {
+        const all = scopeListings(orgId);
+        const current =
+          all.find((l) => l.id === id) ??
+          all.find((l) => l.id.endsWith(`-${id}`)) ??
+          all.find((l) => l.id === `${orgId}-${id}`);
+        if (!current) return fail("Listing not found", "NOT_FOUND");
+        const next: Listing = { ...current, ...patch, id: current.id, productId: current.productId };
+        saveListingOverride(current.id, next);
+        return ok(next);
       },
     },
     autoList: {

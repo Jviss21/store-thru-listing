@@ -87,3 +87,15 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 ## Constraint reminder
 
 Infinity AI ships **Auto-List only** — do not reintroduce Auto-Draft in product or schema.
+
+
+## eBay item specifics (category-driven)
+
+| Layer | Location |
+|-------|----------|
+| Interface | `EbayAspectsClient.getEbayCategoryAspects(categoryId)` in `src/lib/api/ebay-aspects.ts` |
+| Mock | `MockEbayAspectsClient` (Suits, Headphones, Jewelry, Shoes, Collectibles) |
+| UI | `ListingEditorForm` re-renders Required/Optional Specifics on category change |
+| Storage | `listing.itemSpecifics: Record<string, string>` |
+
+Replace mock with eBay Commerce Taxonomy **getItemAspectsForCategory** when API keys exist.

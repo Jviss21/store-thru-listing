@@ -31,6 +31,14 @@ export const STRATEGIES = [
 
 export const CARRIERS = ["FedEx", "UPS", "USPS", "OnTrac"];
 
+export const BOX_PADDINGS = ["None", "1 inch", "2 inches", "3 inches", "4 inches"];
+export const SHIPPING_BOXES = ["Select", "Small Flat Rate", "Medium Box", "Large Box", "Poly Mailer", "Custom"];
+export const LISTING_DURATIONS = ["1 Day", "3 Days", "5 Days", "7 Days", "10 Days", "GTC"];
+export const START_TIMES = ["Immediately", "Schedule for later"];
+export const SHIPPING_PROFILES = ["FedEx Free Shipping", "Calculated - FedEx Ground", "Flat $9.99", "Local pickup only"];
+export const RETURNS_PROFILES = ["No returns accepted", "30-day returns - Buyer pays return shipping", "30-day returns - Seller pays return shipping"];
+export const PAYMENT_PROFILES = ["ebay Managed Payments", "Managed payments (eBay / marketplace default)"];
+
 export const CONDITIONS = [
   "Used - Good",
   "Used - Very Good",

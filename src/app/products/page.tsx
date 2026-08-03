@@ -200,6 +200,7 @@ function ProductsInner() {
               <th className="px-3 py-2">Location</th>
               <th className="px-3 py-2">Supplier</th>
               <th className="px-3 py-2">Listings</th>
+              <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -209,13 +210,15 @@ function ProductsInner() {
                   <input type="checkbox" />
                 </td>
                 <td className="px-3 py-3">
-                  <ProductImage
-                    src={"imageUrls" in p ? p.imageUrls?.[0] : undefined}
-                    seed={p.id}
-                    alt={p.title}
-                    className="h-10 w-10"
-                    fallbackColor={p.imageColor}
-                  />
+                  <Link href={`/products/${p.id}`}>
+                    <ProductImage
+                      src={"imageUrls" in p ? p.imageUrls?.[0] : undefined}
+                      seed={p.id}
+                      alt={p.title}
+                      className="h-10 w-10"
+                      fallbackColor={p.imageColor}
+                    />
+                  </Link>
                 </td>
                 <td className="px-3 py-3">
                   <Link href={`/products/${p.id}`} className="font-medium text-primary hover:underline">
@@ -227,7 +230,9 @@ function ProductsInner() {
                     <ProductStatusBadge status={p.status} />
                   </div>
                 </td>
-                <td className="px-3 py-3 font-mono text-xs">{p.sku}</td>
+                <td className="px-3 py-3 font-mono text-xs">
+                  <Link href={`/products/${p.id}`} className="hover:underline">{p.sku}</Link>
+                </td>
                 <td className="px-3 py-3">{p.location}</td>
                 <td className="px-3 py-3">{p.supplier}</td>
                 <td className="px-3 py-3">
@@ -247,6 +252,11 @@ function ProductsInner() {
                     </Link>
                   )}
                   <div className="mt-1 text-xs text-muted">{formatCurrency(p.price)}</div>
+                </td>
+                <td className="px-3 py-3">
+                  <Link href={`/products/${p.id}`}>
+                    <Button size="sm" variant="outline" type="button">Edit</Button>
+                  </Link>
                 </td>
               </tr>
             ))}
