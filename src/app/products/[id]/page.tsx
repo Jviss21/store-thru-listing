@@ -7,6 +7,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import {
   ListingEditorForm,
   productToFormState,
+  validateListingForm,
   type ListingFormState,
 } from "@/components/ListingEditorForm";
 import { ProductStatusBadge } from "@/components/StatusBadge";
@@ -20,6 +21,7 @@ import {
   setPhotoOverlay,
   type CreatedProduct,
 } from "@/lib/demo-actions";
+import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { getProduct, listings } from "@/lib/mock-data";
 import type { Product } from "@/lib/types";
 
@@ -92,8 +94,19 @@ export default function ProductDetailPage() {
 
   const productListings = listings.filter((l) => l.productId === product.id);
 
-  function save() {
+  async function save() {
     if (!product || !form) return;
+    let aspects: import("@/lib/api/ebay-aspects").EbayAspect[] = [];
+    if (form.channels.includes("eBay") && form.ebayCategoryId) {
+      const aspectsRes = await getEbayAspectsClient().getEbayCategoryAspects(form.ebayCategoryId);
+      if (aspectsRes.ok) aspects = aspectsRes.data.aspects;
+    }
+    const err = validateListingForm(form, aspects);
+    if (err) {
+      setFlash(err);
+      setTimeout(() => setFlash(null), 3500);
+      return;
+    }
     setPhotoOverlay(product.id, form.imageUrls);
     saveCreatedProduct({
       id: product.id,
@@ -132,6 +145,13 @@ export default function ProductDetailPage() {
       description: form.description,
       mainImageIndex: form.mainImageIndex,
       itemSpecifics: form.itemSpecifics,
+      strategy: form.strategy,
+      brand: form.brand || form.itemSpecifics.Brand,
+      condition: form.condition,
+      weightLbs: Number(form.weightLbs) || undefined,
+      lengthIn: Number(form.lengthIn) || undefined,
+      widthIn: Number(form.widthIn) || undefined,
+      heightIn: Number(form.heightIn) || undefined,
     });
     setFlash("Product saved.");
     setTimeout(() => setFlash(null), 2500);
@@ -160,7 +180,7 @@ export default function ProductDetailPage() {
             <Download className="h-4 w-4" /> eBay pack
           </Button>
           <Button variant="outline" type="button" onClick={() => router.push("/products")}>Cancel</Button>
-          <Button type="button" onClick={save}>Save</Button>
+          <Button type="button" onClick={() => void save()}>Save</Button>
         </div>
       </div>
       {flash && <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm">{flash}</div>}

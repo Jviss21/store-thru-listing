@@ -339,7 +339,7 @@ export type ListingDefaults = {
 };
 
 export const DEFAULT_LISTING_DEFAULTS: ListingDefaults = {
-  defaultStrategy: STRATEGIES[2] ?? "HardGoods $14.99",
+  defaultStrategy: "HardGoods $14.99",
   defaultCarrier: CARRIERS[0] ?? "FedEx",
   shippingPolicy: "Calculated shipping · Domestic ground",
   returnsPolicy: "30-day returns · Buyer pays return shipping",

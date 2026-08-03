@@ -13,11 +13,21 @@ import {
 import { Button, Card, Input, Textarea } from "@/components/ui";
 import { ProductImage } from "@/components/ProductImage";
 import {
+  defaultEbayCategoryIdForProductCategory,
   getEbayAspectsClient,
+  getSgwFieldsForPath,
+  missingRequiredSpecifics,
   reconcileItemSpecifics,
+  seedSpecificsFromTitle,
+  SGW_CATEGORY_PATHS,
   type EbayAspect,
   type EbayCategoryOption,
+  type SgwCategoryField,
 } from "@/lib/api/ebay-aspects";
+import {
+  getStrategyByName,
+  strategyToFormDefaults,
+} from "@/lib/listing-strategies";
 import { readFilesAsDataUrls } from "@/lib/photos";
 import {
   BOX_PADDINGS,
@@ -92,6 +102,13 @@ export type ListingFormState = {
   sgwCategoryPath: string;
   price: string;
   carrier: string;
+  bidIncrement: string;
+  handlingPrice: string;
+  shippingPrice: string;
+  stockQuantity: string;
+  noCombineShipping: boolean;
+  featuredItem: boolean;
+  sgwSpecifics: Record<string, string>;
 };
 
 const STOCK_FALLBACKS = [
@@ -103,7 +120,18 @@ const STOCK_FALLBACKS = [
 
 export function listingToFormState(listing: Listing): ListingFormState {
   const leaf = listing.categoryPath.split(" > ").pop() ?? listing.categoryPath;
-  return {
+  const strategy = getStrategyByName(listing.strategy);
+  const seeded = seedSpecificsFromTitle(
+    listing.title,
+    { ...listing.itemSpecifics },
+    [],
+    listing.description
+  );
+  const brand = listing.brand || seeded.brand || "";
+  const specifics = { ...seeded.specifics };
+  if (brand && !specifics.Brand) specifics.Brand = brand;
+
+  const base: ListingFormState = {
     title: listing.title,
     sku: listing.sku,
     category: leaf,
@@ -126,15 +154,15 @@ export function listingToFormState(listing: Listing): ListingFormState {
     description: listing.description,
     privateDescription: listing.privateDescription,
     productNotes: listing.productNotes ?? "",
-    condition: listing.condition,
+    condition: listing.condition || seeded.condition || CONDITIONS[0]!,
     conditionDescription: listing.conditionDescription ?? "",
-    brand: listing.brand,
+    brand,
     upc: listing.upc ?? "Does Not Apply",
     mpn: listing.mpn ?? "",
     imageUrls: [...listing.imageUrls],
     mainImageIndex: listing.mainImageIndex ?? 0,
     channels: [listing.channel],
-    ebayCategoryId: listing.ebayCategoryId ?? "3001",
+    ebayCategoryId: listing.ebayCategoryId ?? defaultEbayCategoryIdForProductCategory(leaf),
     ebayCategoryPath: listing.channel === "eBay" ? listing.categoryPath : "",
     listingType: listing.listingType ?? "Auction",
     listingDuration: listing.listingDuration ?? "7 Days",
@@ -151,23 +179,49 @@ export function listingToFormState(listing: Listing): ListingFormState {
     returnsPolicy: listing.returnsPolicy,
     paymentPolicy: listing.paymentPolicy,
     storeCategory: listing.storeCategory ?? "Default",
-    itemSpecifics: { ...listing.itemSpecifics },
+    itemSpecifics: specifics,
     sgwCategoryPath: listing.channel === "ShopGoodwill" ? listing.categoryPath : "",
     price: String(listing.price),
     carrier: listing.carrier,
+    bidIncrement: strategy ? String(strategy.bidIncrement ?? 1) : "1",
+    handlingPrice: strategy ? String(strategy.handlingPrice ?? 0) : "0",
+    shippingPrice: strategy ? String(strategy.shippingPrice ?? 0) : "0",
+    stockQuantity: String(Math.max(1, listing.quantity || 1)),
+    noCombineShipping: false,
+    featuredItem: false,
+    sgwSpecifics: {},
   };
+
+  const weightNum = Number(base.weightLbs);
+  if (strategy && (!base.weightLbs || weightNum === 0)) {
+    return { ...base, ...strategyToFormDefaults(strategy), strategy: strategy.name, stockQuantity: base.stockQuantity };
+  }
+  return base;
 }
 
 export function productToFormState(
   product: Product,
   defaultChannel: ListingChannel = "ShopGoodwill"
 ): ListingFormState {
-  return {
+  const ebayId =
+    product.ebayCategoryId ?? defaultEbayCategoryIdForProductCategory(product.category);
+  const strategy = getStrategyByName(product.strategy ?? "") ?? getStrategyByName(STRATEGIES[0]!);
+  const seeded = seedSpecificsFromTitle(
+    product.title,
+    { ...(product.itemSpecifics ?? {}) },
+    [],
+    product.description
+  );
+  const brand = product.brand || seeded.brand || "";
+  const specifics = { ...seeded.specifics };
+  if (brand && !specifics.Brand) specifics.Brand = brand;
+
+  const base: ListingFormState = {
     title: product.title,
     sku: product.sku,
     category: product.category,
     categoryPath: product.categoryPath,
-    strategy: product.strategy ?? STRATEGIES[0],
+    strategy: product.strategy ?? STRATEGIES[0]!,
     supplier: product.supplier,
     location: product.location,
     weightLbs: String(product.weightLbs ?? ""),
@@ -185,15 +239,15 @@ export function productToFormState(
     description: product.description ?? "",
     privateDescription: product.privateDescription ?? "",
     productNotes: product.productNotes ?? "",
-    condition: product.condition ?? CONDITIONS[0],
+    condition: product.condition || seeded.condition || CONDITIONS[0]!,
     conditionDescription: product.conditionDescription ?? "",
-    brand: product.brand ?? "",
+    brand,
     upc: product.upc ?? "",
     mpn: product.mpn ?? "",
     imageUrls: [...product.imageUrls],
     mainImageIndex: product.mainImageIndex ?? 0,
     channels: product.listedOn.length ? [...product.listedOn] : [defaultChannel],
-    ebayCategoryId: product.ebayCategoryId ?? "3001",
+    ebayCategoryId: ebayId,
     ebayCategoryPath: product.categoryPath,
     listingType: product.listingType ?? "Auction",
     listingDuration: product.listingDuration ?? "7 Days",
@@ -206,38 +260,55 @@ export function productToFormState(
     allowBestOffer: product.allowBestOffer ?? false,
     autoDeclinePrice: "",
     autoAcceptPrice: "",
-    shippingPolicy: product.shippingPolicy ?? SHIPPING_PROFILES[0],
-    returnsPolicy: product.returnsPolicy ?? RETURNS_PROFILES[0],
-    paymentPolicy: product.paymentPolicy ?? PAYMENT_PROFILES[0],
+    shippingPolicy: product.shippingPolicy ?? SHIPPING_PROFILES[0]!,
+    returnsPolicy: product.returnsPolicy ?? RETURNS_PROFILES[0]!,
+    paymentPolicy: product.paymentPolicy ?? PAYMENT_PROFILES[0]!,
     storeCategory: product.storeCategory ?? "Default",
-    itemSpecifics: { ...(product.itemSpecifics ?? {}) },
-    sgwCategoryPath: product.categoryPath,
+    itemSpecifics: specifics,
+    sgwCategoryPath:
+      SGW_CATEGORY_PATHS[product.category] ?? product.categoryPath,
     price: String(product.price),
     carrier: product.carrier ?? "FedEx",
+    bidIncrement: "1",
+    handlingPrice: "0",
+    shippingPrice: "0",
+    stockQuantity: "1",
+    noCombineShipping: false,
+    featuredItem: false,
+    sgwSpecifics: {},
   };
+
+  // If weight/dims are missing (0/blank) and a strategy is set, apply strategy defaults.
+  const weightNum = Number(base.weightLbs);
+  if (strategy && (!base.weightLbs || weightNum === 0)) {
+    return { ...base, ...strategyToFormDefaults(strategy), strategy: strategy.name };
+  }
+  return base;
 }
 
 export function emptyFormState(): ListingFormState {
+  const strategy = getStrategyByName("Travel - Luggage & Backpacks") ?? getStrategyByName(STRATEGIES[0]!);
+  const defaults = strategy ? strategyToFormDefaults(strategy) : null;
   return {
     title: "",
     sku: `SKU-${Date.now().toString().slice(-6)}`,
-    category: CATEGORIES[4],
-    categoryPath: CATEGORY_PATHS[CATEGORIES[4]!] ?? CATEGORIES[4]!,
-    strategy: STRATEGIES[6] ?? STRATEGIES[0]!,
+    category: "Travel",
+    categoryPath: CATEGORY_PATHS.Travel ?? "Travel/Luggage > Backpacks",
+    strategy: defaults?.strategy ?? STRATEGIES[0]!,
     supplier: SUPPLIERS[0]!,
     location: "Cart - 1",
-    weightLbs: "",
+    weightLbs: defaults?.weightLbs ?? "2",
     weightUnit: "LBS",
-    lengthIn: "",
-    widthIn: "",
-    heightIn: "",
+    lengthIn: defaults?.lengthIn ?? "16",
+    widthIn: defaults?.widthIn ?? "12",
+    heightIn: defaults?.heightIn ?? "6",
     dimUnit: "IN",
-    boxPadding: "3 inches",
+    boxPadding: defaults?.boxPadding ?? "1 inch",
     tags: [],
     tagInput: "",
-    shippingMethod: "FedEx",
-    shippingBox: "Select",
-    shippingWeightLbs: "",
+    shippingMethod: defaults?.shippingMethod ?? "FedEx",
+    shippingBox: defaults?.shippingBox ?? "Medium Box",
+    shippingWeightLbs: defaults?.shippingWeightLbs ?? "2.5",
     description: "",
     privateDescription: "",
     productNotes: "",
@@ -249,27 +320,34 @@ export function emptyFormState(): ListingFormState {
     imageUrls: [],
     mainImageIndex: 0,
     channels: [],
-    ebayCategoryId: "3001",
-    ebayCategoryPath: "",
-    listingType: "Auction",
-    listingDuration: "7 Days",
-    startTime: "Immediately",
-    listImmediately: true,
-    startingPrice: "9.99",
-    buyItNowPrice: "",
-    reservePrice: "",
-    handlingTimeDays: "2",
-    allowBestOffer: false,
+    ebayCategoryId: "181379",
+    ebayCategoryPath: "Travel > Luggage > Backpacks",
+    listingType: defaults?.listingType ?? "Auction",
+    listingDuration: defaults?.listingDuration ?? "5 Days",
+    startTime: defaults?.startTime ?? "Immediately",
+    listImmediately: defaults?.listImmediately ?? true,
+    startingPrice: defaults?.startingPrice ?? "9.99",
+    buyItNowPrice: defaults?.buyItNowPrice ?? "",
+    reservePrice: defaults?.reservePrice ?? "",
+    handlingTimeDays: defaults?.handlingTimeDays ?? "5",
+    allowBestOffer: defaults?.allowBestOffer ?? false,
     autoDeclinePrice: "",
     autoAcceptPrice: "",
-    shippingPolicy: SHIPPING_PROFILES[0]!,
-    returnsPolicy: RETURNS_PROFILES[0]!,
-    paymentPolicy: PAYMENT_PROFILES[0]!,
-    storeCategory: "Default",
+    shippingPolicy: defaults?.shippingPolicy ?? SHIPPING_PROFILES[0]!,
+    returnsPolicy: defaults?.returnsPolicy ?? RETURNS_PROFILES[0]!,
+    paymentPolicy: defaults?.paymentPolicy ?? PAYMENT_PROFILES[0]!,
+    storeCategory: defaults?.storeCategory ?? "Travel",
     itemSpecifics: {},
-    sgwCategoryPath: CATEGORY_PATHS[CATEGORIES[4]!] ?? "",
-    price: "24.99",
-    carrier: "FedEx",
+    sgwCategoryPath: SGW_CATEGORY_PATHS.Travel ?? "Travel/Luggage > Backpacks",
+    price: defaults?.price ?? "9.99",
+    carrier: defaults?.carrier ?? "FedEx",
+    bidIncrement: defaults?.bidIncrement ?? "2",
+    handlingPrice: defaults?.handlingPrice ?? "2.99",
+    shippingPrice: defaults?.shippingPrice ?? "0",
+    stockQuantity: defaults?.stockQuantity ?? "1",
+    noCombineShipping: false,
+    featuredItem: false,
+    sgwSpecifics: {},
   };
 }
 
@@ -330,7 +408,29 @@ export function applyFormToListing(
     autoAcceptPrice: form.autoAcceptPrice ? Number(form.autoAcceptPrice) : undefined,
     storeCategory: form.storeCategory,
     price: listing.channel === "eBay" ? starting : price,
+    quantity: Math.max(1, Number(form.stockQuantity) || 1),
   };
+}
+
+/** Validate required eBay specifics (and condition) before save/list. */
+export function validateListingForm(
+  form: ListingFormState,
+  aspects: EbayAspect[]
+): string | null {
+  if (!form.title.trim()) return "Title is required.";
+  if (!form.sku.trim()) return "SKU is required.";
+  if (!form.condition?.trim()) return "Condition is required.";
+  if (form.channels.includes("eBay") && aspects.length) {
+    const missing = missingRequiredSpecifics(form.itemSpecifics, aspects);
+    if (missing.length) {
+      return `Required specifics missing: ${missing.join(", ")}`;
+    }
+  }
+  if (form.channels.includes("ShopGoodwill")) {
+    const qty = Number(form.stockQuantity);
+    if (!qty || qty < 1) return "ShopGoodwill stock quantity must be at least 1.";
+  }
+  return null;
 }
 
 type Props = {
@@ -446,8 +546,10 @@ export function ListingEditorForm({
   const [previewIdx, setPreviewIdx] = useState(value.mainImageIndex);
   const [ebayCategories, setEbayCategories] = useState<EbayCategoryOption[]>([]);
   const [aspects, setAspects] = useState<EbayAspect[]>([]);
+  const [sgwFields, setSgwFields] = useState<SgwCategoryField[]>([]);
   const [showOptional, setShowOptional] = useState(true);
   const [addChannelOpen, setAddChannelOpen] = useState(false);
+  const [aspectsKey, setAspectsKey] = useState(0);
 
   const patch = useCallback(
     (partial: Partial<ListingFormState>) => {
@@ -456,6 +558,34 @@ export function ListingEditorForm({
     },
     [onChange, readOnly, value]
   );
+
+  function applyStrategy(name: string) {
+    if (readOnly) return;
+    const s = getStrategyByName(name);
+    if (!s) {
+      patch({ strategy: name });
+      return;
+    }
+    onChange({ ...value, ...strategyToFormDefaults(s) });
+  }
+
+  function onProductCategoryChange(category: string) {
+    if (readOnly) return;
+    const ebayId = defaultEbayCategoryIdForProductCategory(category);
+    const ebayCat = ebayCategories.find((c) => c.id === ebayId);
+    const sgwPath = SGW_CATEGORY_PATHS[category] ?? CATEGORY_PATHS[category] ?? category;
+    onChange({
+      ...value,
+      category,
+      categoryPath: CATEGORY_PATHS[category] ?? category,
+      sgwCategoryPath: sgwPath,
+      ebayCategoryId: ebayId,
+      ebayCategoryPath: ebayCat?.path ?? value.ebayCategoryPath,
+      itemSpecifics: {},
+      sgwSpecifics: {},
+    });
+    setAspectsKey((k) => k + 1);
+  }
 
   const showEbay = value.channels.includes("eBay");
   const showSgw = value.channels.includes("ShopGoodwill");
@@ -479,17 +609,30 @@ export function ListingEditorForm({
       .then((res) => {
         if (cancelled || !res.ok) return;
         setAspects(res.data.aspects);
+        setAspectsKey((k) => k + 1);
         const reconciled = reconcileItemSpecifics(value.itemSpecifics, res.data.aspects);
+        const seeded = seedSpecificsFromTitle(
+          value.title,
+          reconciled,
+          res.data.aspects,
+          value.description
+        );
         const pathChanged = value.ebayCategoryPath !== res.data.categoryPath;
         const keysChanged =
-          Object.keys(reconciled).sort().join("|") !==
+          Object.keys(seeded.specifics).sort().join("|") !==
           Object.keys(value.itemSpecifics).sort().join("|");
-        if (pathChanged || keysChanged) {
+        const brandChanged = seeded.brand && !value.brand;
+        const conditionChanged =
+          seeded.condition &&
+          (!value.condition || value.condition === CONDITIONS[0]);
+        if (pathChanged || keysChanged || brandChanged || conditionChanged) {
           onChange({
             ...value,
             ebayCategoryPath: res.data.categoryPath,
-            categoryPath: res.data.categoryPath,
-            itemSpecifics: reconciled,
+            categoryPath: showSgw ? value.sgwCategoryPath || value.categoryPath : res.data.categoryPath,
+            itemSpecifics: seeded.specifics,
+            brand: value.brand || seeded.brand || "",
+            condition: conditionChanged && seeded.condition ? seeded.condition : value.condition,
           });
         }
       });
@@ -499,6 +642,16 @@ export function ListingEditorForm({
     // Only re-fetch when category id / channel visibility changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.ebayCategoryId, showEbay]);
+
+  useEffect(() => {
+    if (!showSgw) {
+      setSgwFields([]);
+      return;
+    }
+    const path = value.sgwCategoryPath || value.categoryPath;
+    const fields = getSgwFieldsForPath(path).fields;
+    setSgwFields(fields);
+  }, [showSgw, value.sgwCategoryPath, value.categoryPath]);
 
   const requiredAspects = useMemo(() => aspects.filter((a) => a.required), [aspects]);
   const optionalAspects = useMemo(() => aspects.filter((a) => !a.required), [aspects]);
@@ -694,19 +847,13 @@ export function ListingEditorForm({
               onChange={(e) => patch({ title: e.target.value })}
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <FieldLabel>Category</FieldLabel>
             <SelectField
               disabled={readOnly}
               value={value.category}
               options={CATEGORIES}
-              onChange={(category) =>
-                patch({
-                  category,
-                  categoryPath: CATEGORY_PATHS[category] ?? category,
-                  sgwCategoryPath: CATEGORY_PATHS[category] ?? category,
-                })
-              }
+              onChange={onProductCategoryChange}
             />
             <p className="mt-1 text-xs text-muted">{value.categoryPath}</p>
           </div>
@@ -716,8 +863,11 @@ export function ListingEditorForm({
               disabled={readOnly}
               value={value.strategy}
               options={STRATEGIES}
-              onChange={(strategy) => patch({ strategy })}
+              onChange={applyStrategy}
             />
+            <p className="mt-1 text-xs text-muted">
+              Auto-fills weight, dims, shipping, pricing. Auto-List uses this for channel payload.
+            </p>
           </div>
           <div>
             <FieldLabel>SKU</FieldLabel>
@@ -764,6 +914,29 @@ export function ListingEditorForm({
               disabled={readOnly}
               value={value.location}
               onChange={(e) => patch({ location: e.target.value })}
+            />
+          </div>
+          <div>
+            <FieldLabel required>Condition</FieldLabel>
+            <SelectField
+              disabled={readOnly}
+              value={value.condition}
+              options={CONDITIONS}
+              onChange={(condition) => patch({ condition })}
+            />
+          </div>
+          <div>
+            <FieldLabel>Brand</FieldLabel>
+            <Input
+              disabled={readOnly}
+              value={value.brand}
+              onChange={(e) =>
+                patch({
+                  brand: e.target.value,
+                  itemSpecifics: { ...value.itemSpecifics, Brand: e.target.value },
+                })
+              }
+              placeholder="From title when empty"
             />
           </div>
           <div className="md:col-span-2 grid grid-cols-3 gap-3">
@@ -990,7 +1163,9 @@ export function ListingEditorForm({
                     patch({
                       ebayCategoryId: id,
                       ebayCategoryPath: cat?.path ?? value.ebayCategoryPath,
+                      itemSpecifics: {},
                     });
+                    setAspectsKey((k) => k + 1);
                   }}
                 >
                   {ebayCategories.map((c) => (
@@ -1161,17 +1336,11 @@ export function ListingEditorForm({
                   onChange={(paymentPolicy) => patch({ paymentPolicy })}
                 />
               </div>
-              <div>
-                <FieldLabel required>Condition</FieldLabel>
-                <SelectField
-                  disabled={readOnly}
-                  value={value.condition}
-                  options={CONDITIONS}
-                  onChange={(condition) => patch({ condition })}
-                />
-              </div>
               <div className="md:col-span-2">
                 <FieldLabel>Condition description</FieldLabel>
+                <p className="mb-1 text-[10px] text-muted">
+                  Condition is set under Product details ({value.condition || "—"}).
+                </p>
                 <Textarea
                   disabled={readOnly}
                   rows={2}
@@ -1181,8 +1350,8 @@ export function ListingEditorForm({
               </div>
             </div>
 
-            {/* Category-driven specifics */}
-            <div className="mt-6 border-t pt-4">
+            {/* Category-driven specifics — remount on category change */}
+            <div key={`ebay-aspects-${value.ebayCategoryId}-${aspectsKey}`} className="mt-6 border-t pt-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h4 className="font-semibold">Required Specifics</h4>
                 <div className="flex gap-3 text-xs">
@@ -1276,42 +1445,41 @@ export function ListingEditorForm({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
                 <FieldLabel>Category</FieldLabel>
+                <select
+                  disabled={readOnly}
+                  className="h-10 w-full rounded-xl border border-ink/10 bg-white px-3 text-sm"
+                  value={value.sgwCategoryPath}
+                  onChange={(e) => {
+                    const path = e.target.value;
+                    patch({ sgwCategoryPath: path, sgwSpecifics: {} });
+                  }}
+                >
+                  {Object.values(SGW_CATEGORY_PATHS).map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                  {!Object.values(SGW_CATEGORY_PATHS).includes(value.sgwCategoryPath) &&
+                    value.sgwCategoryPath && (
+                      <option value={value.sgwCategoryPath}>{value.sgwCategoryPath}</option>
+                    )}
+                </select>
+                <p className="mt-1 text-[10px] text-muted">
+                  Separate from eBay taxonomy (e.g. Travel/Luggage &gt; Backpacks).
+                </p>
+              </div>
+              <div>
+                <FieldLabel>Seller private description</FieldLabel>
                 <Input
                   disabled={readOnly}
-                  value={value.sgwCategoryPath || value.categoryPath}
-                  onChange={(e) => patch({ sgwCategoryPath: e.target.value })}
+                  value={value.privateDescription || value.sku}
+                  onChange={(e) => patch({ privateDescription: e.target.value })}
+                  placeholder="Same as product SKU"
                 />
+                <p className="mt-0.5 text-[10px] text-muted">Same as product SKU by default</p>
               </div>
               <div>
-                <FieldLabel>Strategy / pricing</FieldLabel>
-                <SelectField
-                  disabled={readOnly}
-                  value={value.strategy}
-                  options={STRATEGIES}
-                  onChange={(strategy) => patch({ strategy })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Starting / list price</FieldLabel>
-                <Input
-                  disabled={readOnly}
-                  type="number"
-                  step="0.01"
-                  value={value.price}
-                  onChange={(e) => patch({ price: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Duration</FieldLabel>
-                <SelectField
-                  disabled={readOnly}
-                  value={value.listingDuration}
-                  options={LISTING_DURATIONS.filter((d) => d !== "GTC")}
-                  onChange={(listingDuration) => patch({ listingDuration })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Start time</FieldLabel>
+                <FieldLabel>Auction start</FieldLabel>
                 <SelectField
                   disabled={readOnly}
                   value={value.startTime}
@@ -1320,12 +1488,82 @@ export function ListingEditorForm({
                 />
               </div>
               <div>
-                <FieldLabel>Condition</FieldLabel>
+                <FieldLabel>Auction duration</FieldLabel>
                 <SelectField
                   disabled={readOnly}
-                  value={value.condition}
-                  options={CONDITIONS}
-                  onChange={(condition) => patch({ condition })}
+                  value={value.listingDuration}
+                  options={LISTING_DURATIONS.filter((d) => d !== "GTC")}
+                  onChange={(listingDuration) => patch({ listingDuration })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Starting bid</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  step="0.01"
+                  value={value.price}
+                  onChange={(e) => patch({ price: e.target.value, startingPrice: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Bid increment</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  step="0.01"
+                  value={value.bidIncrement}
+                  onChange={(e) => patch({ bidIncrement: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Reserve price</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  step="0.01"
+                  value={value.reservePrice}
+                  onChange={(e) => patch({ reservePrice: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Buy now price</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  step="0.01"
+                  value={value.buyItNowPrice}
+                  onChange={(e) => patch({ buyItNowPrice: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel required>Stock quantity</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  min={1}
+                  value={value.stockQuantity}
+                  onChange={(e) => patch({ stockQuantity: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Handling price</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  step="0.01"
+                  value={value.handlingPrice}
+                  onChange={(e) => patch({ handlingPrice: e.target.value })}
+                />
+              </div>
+              <div>
+                <FieldLabel>Shipping price</FieldLabel>
+                <Input
+                  disabled={readOnly}
+                  type="number"
+                  step="0.01"
+                  value={value.shippingPrice}
+                  onChange={(e) => patch({ shippingPrice: e.target.value })}
                 />
               </div>
               <div>
@@ -1339,16 +1577,68 @@ export function ListingEditorForm({
                   }
                 />
               </div>
-              <div className="md:col-span-2">
-                <FieldLabel>Private description</FieldLabel>
-                <Input
-                  disabled={readOnly}
-                  value={value.privateDescription}
-                  onChange={(e) => patch({ privateDescription: e.target.value })}
-                  placeholder="Internal / secondary SKU"
-                />
+              <div className="md:col-span-2 flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    disabled={readOnly}
+                    checked={value.noCombineShipping}
+                    onChange={(e) => patch({ noCombineShipping: e.target.checked })}
+                  />
+                  No Combine Shipping
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    disabled={readOnly}
+                    checked={value.featuredItem}
+                    onChange={(e) => patch({ featuredItem: e.target.checked })}
+                  />
+                  Featured Item (additional cost: $6.95)
+                </label>
               </div>
             </div>
+
+            {sgwFields.length > 0 && (
+              <div className="mt-6 border-t pt-4">
+                <h4 className="mb-3 font-semibold">Category attributes</h4>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {sgwFields.map((f) => (
+                    <div key={f.name}>
+                      <FieldLabel required={f.required}>{f.name}</FieldLabel>
+                      {f.values?.length ? (
+                        <SelectField
+                          disabled={readOnly}
+                          value={value.sgwSpecifics[f.name] || "Select..."}
+                          options={["Select...", ...f.values]}
+                          onChange={(v) =>
+                            patch({
+                              sgwSpecifics: {
+                                ...value.sgwSpecifics,
+                                [f.name]: v === "Select..." ? "" : v,
+                              },
+                            })
+                          }
+                        />
+                      ) : (
+                        <Input
+                          disabled={readOnly}
+                          value={value.sgwSpecifics[f.name] ?? ""}
+                          onChange={(e) =>
+                            patch({
+                              sgwSpecifics: {
+                                ...value.sgwSpecifics,
+                                [f.name]: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Card>

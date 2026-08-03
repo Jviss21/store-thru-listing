@@ -94,8 +94,40 @@ Infinity AI ships **Auto-List only** — do not reintroduce Auto-Draft in produc
 | Layer | Location |
 |-------|----------|
 | Interface | `EbayAspectsClient.getEbayCategoryAspects(categoryId)` in `src/lib/api/ebay-aspects.ts` |
-| Mock | `MockEbayAspectsClient` (Suits, Headphones, Jewelry, Shoes, Collectibles) |
-| UI | `ListingEditorForm` re-renders Required/Optional Specifics on category change |
+| Mock | `MockEbayAspectsClient` (Suits, Handbags, Headphones, Jewelry, Shoes, Collectibles, Travel/Luggage, Backpacks) |
+| SGW fields | `getSgwCategoryFields` / `getSgwFieldsForPath` — separate SGW paths (e.g. Travel/Luggage > Backpacks) |
+| UI | `ListingEditorForm` remounts Required/Optional Specifics on category change |
 | Storage | `listing.itemSpecifics: Record<string, string>` |
 
 Replace mock with eBay Commerce Taxonomy **getItemAspectsForCategory** when API keys exist.
+
+## Listing strategies (Auto-List defaults)
+
+| Layer | Location |
+|-------|----------|
+| Model | `ListingStrategy` in `src/lib/listing-strategies.ts` |
+| Seeds | Clothing/Shoes/Purses, Travel - Luggage & Backpacks, HardGoods $14.99, Lots $19.99, Electronics Fixed $29.99, Books $4.99, Collectibles Auction, eBay Auction Import |
+| Admin | `/admin/listing-defaults` — edit strategy weight/dims/shipping/pricing/profiles |
+| Form | Strategy select auto-fills form; user can override |
+| Auto-List | Pack builders apply strategy when product weight/dims are blank or zero |
+
+## Screenshot field inventory (Upright Labs reference — 2026-08-03)
+
+User intent: **fields change by category/subcategory**; **listing strategy** auto-fills weight, measurements, pricing, shipping carrier, etc. for auto-upload.
+
+### Screen 1 — Product details
+Images · Title · Category + Strategy (side-by-side) · SKU · Item Weight · Supplier · Inventory Location · Dimensions · Box Padding · Brand · Condition
+
+### Screen 2 — Shipping + ShopGoodwill + eBay start
+Shipping Method · Shipping Box (+ Calculate) · Shipping Weight · SGW Category · Private description · Auction start/duration · Starting bid · Bid increment · Reserve · Buy Now · Stock qty · Handling/Shipping price · Featured / No Combine · eBay category / store / type / duration / start
+
+### Screen 3 — eBay channel options + Required Specifics
+Store category · Listing type/duration/start · Starting / BIN / Reserve · Handling time · Best Offer · Shipping/Returns/Payment profiles · Condition description · Required + Optional Specifics · UPC · Description
+
+### Gaps addressed (2026-08-03)
+
+1. Strategy auto-fill for weight, dims, box, shipping weight, carrier, pricing
+2. Category change remounts Required Specifics (+ SGW category attributes)
+3. SGW stock quantity defaults to ≥ 1
+4. Brand/Condition inferred from title when empty
+5. Separate eBay vs SGW category trees; single Condition under Product details; required specifics validated on save

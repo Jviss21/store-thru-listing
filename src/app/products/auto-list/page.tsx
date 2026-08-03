@@ -48,7 +48,7 @@ export default function AutoListPage() {
     <div className="space-y-5">
       <PageHeader
         title={BRAND.autoList}
-        description={`${BRAND.ai} pushes ready products to marketplaces with pricing and channel routing.`}
+        description={`${BRAND.ai} pushes ready products using each product’s Listing Strategy for weight, dims, shipping, pricing, and channel payload defaults.`}
         actions={
           <>
             <InfinityBadge />
@@ -62,6 +62,10 @@ export default function AutoListPage() {
         }
       />
       {toast && <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm">{toast}</div>}
+      <Card className="border-ink/10 bg-mist/40 p-4 text-sm text-muted">
+        Auto-List applies the product’s <span className="font-medium text-ink">Strategy</span> (Admin → Listing defaults)
+        when building eBay / ShopGoodwill packets — carrier, box, weight, duration, and start/BIN pricing.
+      </Card>
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[1000px] text-left text-sm">
           <thead className="border-b bg-mist/60 text-xs uppercase text-muted">

@@ -7,11 +7,13 @@ import { Download, Upload } from "lucide-react";
 import {
   ListingEditorForm,
   emptyFormState,
+  validateListingForm,
   type ListingFormState,
 } from "@/components/ListingEditorForm";
 import { Button, Card } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
+import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { BRAND, CATEGORY_PATHS } from "@/lib/mock-data";
 
 function NewProductInner() {
@@ -24,7 +26,7 @@ function NewProductInner() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function buildAndSave(status: "Draft" | "Active") {
+  async function buildAndSave(status: "Draft" | "Active") {
     if (!form.title.trim() || !form.sku.trim()) {
       setError("Title and SKU are required.");
       return null;
@@ -32,6 +34,21 @@ function NewProductInner() {
     if (status === "Active" && form.channels.length === 0) {
       setError("Add at least one channel before creating a listing.");
       return null;
+    }
+    if (status === "Active" && form.channels.includes("eBay")) {
+      const aspectsRes = await getEbayAspectsClient().getEbayCategoryAspects(form.ebayCategoryId);
+      const aspects = aspectsRes.ok ? aspectsRes.data.aspects : [];
+      const err = validateListingForm(form, aspects);
+      if (err) {
+        setError(err);
+        return null;
+      }
+    } else if (status === "Active") {
+      const err = validateListingForm(form, []);
+      if (err) {
+        setError(err);
+        return null;
+      }
     }
     setError(null);
     return saveCreatedProduct({
@@ -64,8 +81,8 @@ function NewProductInner() {
     });
   }
 
-  function saveDraft() {
-    const product = buildAndSave("Draft");
+  async function saveDraft() {
+    const product = await buildAndSave("Draft");
     if (!product) return;
     setMessage("Draft saved.");
     exportListingPacket({
@@ -80,8 +97,8 @@ function NewProductInner() {
     });
   }
 
-  function saveAndList() {
-    const product = buildAndSave("Active");
+  async function saveAndList() {
+    const product = await buildAndSave("Active");
     if (!product) return;
     const channel = form.channels[0]!;
     saveCreatedListing({
@@ -118,8 +135,8 @@ function NewProductInner() {
           <p className="text-sm text-muted">Full product + channel form with photos and specifics.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" type="button" onClick={saveDraft}><Download className="h-4 w-4" /> Save draft</Button>
-          <Button variant="accent" type="button" onClick={saveAndList}><Upload className="h-4 w-4" /> Create listing</Button>
+          <Button variant="outline" type="button" onClick={() => void saveDraft()}><Download className="h-4 w-4" /> Save draft</Button>
+          <Button variant="accent" type="button" onClick={() => void saveAndList()}><Upload className="h-4 w-4" /> Create listing</Button>
         </div>
       </div>
       {message && <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-3 text-sm">{message}</div>}

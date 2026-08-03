@@ -14,6 +14,7 @@ import {
   ROLE_PERMISSIONS,
   type PermissionKey,
 } from "@/lib/admin-data";
+import { cloneStrategies, type ListingStrategy } from "@/lib/listing-strategies";
 
 const KEY = "test-goodwill-admin";
 
@@ -25,6 +26,8 @@ export type AdminPersistedState = {
   connections: MarketplaceConnection[];
   ai: AiAdminSettings;
   listingDefaults: ListingDefaults;
+  /** Editable listing strategies (Auto-List defaults). */
+  strategies: ListingStrategy[];
   stations: StationDevice[];
   users: AdminUser[];
   /** Demo permission overrides keyed by role → permission → enabled */
@@ -40,6 +43,7 @@ export const DEFAULT_ADMIN_STATE: AdminPersistedState = {
   connections: DEFAULT_CONNECTIONS.map((c) => ({ ...c })),
   ai: { ...DEFAULT_AI_SETTINGS, categoryRouting: DEFAULT_AI_SETTINGS.categoryRouting.map((r) => ({ ...r })) },
   listingDefaults: { ...DEFAULT_LISTING_DEFAULTS },
+  strategies: cloneStrategies(),
   stations: DEFAULT_STATIONS.map((s) => ({ ...s })),
   users: ADMIN_USERS.map((u) => ({ ...u })),
   permissionOverrides: {},
@@ -67,6 +71,9 @@ export function loadAdminState(): AdminPersistedState {
             : DEFAULT_AI_SETTINGS.categoryRouting.map((r) => ({ ...r })),
       },
       listingDefaults: { ...DEFAULT_LISTING_DEFAULTS, ...parsed.listingDefaults },
+      strategies: parsed.strategies?.length
+        ? parsed.strategies
+        : cloneStrategies(),
       stations: parsed.stations?.length
         ? parsed.stations
         : structuredClone(DEFAULT_ADMIN_STATE.stations),

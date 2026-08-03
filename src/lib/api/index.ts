@@ -22,12 +22,19 @@ export {
   MockEbayAspectsClient,
   reconcileItemSpecifics,
   defaultEbayCategoryIdForProductCategory,
+  getSgwFieldsForPath,
+  SGW_CATEGORY_PATHS,
+  seedSpecificsFromTitle,
+  missingRequiredSpecifics,
+  inferBrandFromTitle,
 } from "./ebay-aspects";
 export type {
   EbayAspectsClient,
   EbayAspect,
   EbayCategoryAspects,
   EbayCategoryOption,
+  SgwCategoryField,
+  SgwCategoryFields,
 } from "./ebay-aspects";
 
 import { getMarketplaceMode } from "./config";

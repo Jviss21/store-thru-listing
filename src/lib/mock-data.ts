@@ -10,6 +10,7 @@ import type {
   Shipment,
 } from "./types";
 import { productPhotoUrls } from "./photos";
+import { STRATEGY_NAMES } from "./listing-strategies";
 
 /** Single front-end customer for this demo. */
 export const ORG_NAME = "Test Goodwill";
@@ -20,14 +21,8 @@ export const BRAND = {
   autoList: "Auto-List",
 };
 
-export const STRATEGIES = [
-  "Clothing/Shoes/Purses",
-  "Lots $19.99",
-  "HardGoods $14.99",
-  "Electronics Fixed $29.99",
-  "Books $4.99",
-  "Collectibles Auction",
-];
+/** Strategy names — definitions live in `listing-strategies.ts`. */
+export const STRATEGIES = STRATEGY_NAMES;
 
 export const CARRIERS = ["FedEx", "UPS", "USPS", "OnTrac"];
 
@@ -35,9 +30,24 @@ export const BOX_PADDINGS = ["None", "1 inch", "2 inches", "3 inches", "4 inches
 export const SHIPPING_BOXES = ["Select", "Small Flat Rate", "Medium Box", "Large Box", "Poly Mailer", "Custom"];
 export const LISTING_DURATIONS = ["1 Day", "3 Days", "5 Days", "7 Days", "10 Days", "GTC"];
 export const START_TIMES = ["Immediately", "Schedule for later"];
-export const SHIPPING_PROFILES = ["FedEx Free Shipping", "Calculated - FedEx Ground", "Flat $9.99", "Local pickup only"];
-export const RETURNS_PROFILES = ["No returns accepted", "30-day returns - Buyer pays return shipping", "30-day returns - Seller pays return shipping"];
-export const PAYMENT_PROFILES = ["ebay Managed Payments", "Managed payments (eBay / marketplace default)"];
+export const SHIPPING_PROFILES = [
+  "Shipping Default",
+  "FedEx Free Shipping",
+  "Calculated - FedEx Ground",
+  "Flat $9.99",
+  "Local pickup only",
+];
+export const RETURNS_PROFILES = [
+  "Return Default",
+  "No returns accepted",
+  "30-day returns - Buyer pays return shipping",
+  "30-day returns - Seller pays return shipping",
+];
+export const PAYMENT_PROFILES = [
+  "Auction Items",
+  "ebay Managed Payments",
+  "Managed payments (eBay / marketplace default)",
+];
 
 export const CONDITIONS = [
   "Used - Good",
@@ -58,6 +68,8 @@ export const CATEGORY_PATHS: Record<string, string> = {
   "Jewelry & Accessories": "Jewelry & Watches > Fashion Jewelry",
   "Tools & Hardware": "Business & Industrial > Hand Tools",
   Collectibles: "Collectibles > Decorative Collectibles",
+  Travel: "Travel/Luggage > Backpacks",
+  "Handbags & Bags": "Clothing & Accessories > Handbags",
 };
 
 const SAMPLE_TITLES = [
@@ -98,6 +110,8 @@ export const CATEGORIES = [
   "Jewelry & Accessories",
   "Tools & Hardware",
   "Collectibles",
+  "Travel",
+  "Handbags & Bags",
 ];
 
 export const REJECT_REASONS = [

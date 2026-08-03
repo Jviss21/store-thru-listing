@@ -20,6 +20,7 @@ import {
   top50Sales,
 } from "@/lib/mock-data";
 import { downloadCsv, downloadJson, stamp } from "@/lib/download";
+import { getStrategyByName } from "@/lib/listing-strategies";
 import { productPhotoUrls } from "@/lib/photos";
 import type { EbayListingInputPack, Listing } from "@/lib/types";
 
@@ -484,6 +485,16 @@ function buildEbayPackFromPartial(input: {
   };
   if (product?.mpn) specifics.MPN = product.mpn;
   if (product?.upc) specifics.UPC = product.upc;
+  // Auto-List: strategy fills channel payload defaults when product fields are blank/zero.
+  const strategy = getStrategyByName(product?.strategy ?? "");
+  const weightLbs =
+    product?.weightLbs && product.weightLbs > 0
+      ? product.weightLbs
+      : strategy?.defaultWeightLbs ?? 1;
+  const shippingWeight =
+    product?.shippingWeightLbs && product.shippingWeightLbs > 0
+      ? product.shippingWeightLbs
+      : strategy?.shippingWeightLbs ?? weightLbs;
   return {
     organization: ORG_NAME,
     channel: "eBay",
@@ -495,14 +506,14 @@ function buildEbayPackFromPartial(input: {
     category: input.category || product?.category || "",
     categoryPath: product?.categoryPath || input.category || "",
     ebayCategoryId: product?.ebayCategoryId ?? "",
-    listingType: product?.listingType ?? "Fixed Price",
-    listingDuration: product?.listingDuration ?? "GTC",
-    startTime: product?.startTime ?? "Immediately",
-    startingPrice: product?.startingPrice ?? input.price,
-    buyItNowPrice: product?.buyItNowPrice ?? 0,
-    reservePrice: product?.reservePrice ?? 0,
-    handlingTimeDays: product?.handlingTimeDays ?? 2,
-    allowBestOffer: product?.allowBestOffer ?? false,
+    listingType: product?.listingType ?? strategy?.listingType ?? "Fixed Price",
+    listingDuration: product?.listingDuration ?? strategy?.listingDuration ?? "GTC",
+    startTime: product?.startTime ?? strategy?.startTime ?? "Immediately",
+    startingPrice: product?.startingPrice ?? strategy?.startingPrice ?? input.price,
+    buyItNowPrice: product?.buyItNowPrice ?? strategy?.buyItNowPrice ?? 0,
+    reservePrice: product?.reservePrice ?? strategy?.reservePrice ?? 0,
+    handlingTimeDays: product?.handlingTimeDays ?? strategy?.handlingTimeDays ?? 2,
+    allowBestOffer: product?.allowBestOffer ?? strategy?.allowBestOffer ?? false,
     itemSpecifics: Object.entries(specifics)
       .map(([k, v]) => `${k}=${v}`)
       .join("; "),
@@ -510,29 +521,32 @@ function buildEbayPackFromPartial(input: {
     mpn: product?.mpn ?? "",
     upc: product?.upc ?? "",
     price: input.price,
-    quantity: 1,
+    quantity: Math.max(1, strategy?.stockQuantity ?? 1),
     sku: input.sku,
     photoUrls: photos.join("; "),
     mainImageIndex: product?.mainImageIndex ?? 0,
-    shippingPolicy: product?.shippingPolicy ?? `${product?.carrier ?? "FedEx"} Ground · Calculated`,
-    shippingMethod: product?.shippingMethod ?? product?.carrier ?? "FedEx",
-    shippingBox: product?.shippingBox ?? "",
-    shippingWeightLbs: product?.shippingWeightLbs ?? product?.weightLbs ?? 1,
-    weightLbs: product?.weightLbs ?? 1,
-    lengthIn: product?.lengthIn ?? 10,
-    widthIn: product?.widthIn ?? 8,
-    heightIn: product?.heightIn ?? 4,
-    dimUnit: product?.dimUnit ?? "IN",
-    boxPadding: product?.boxPadding ?? "",
-    returnsPolicy: product?.returnsPolicy ?? "30-day returns · Buyer pays return shipping",
-    paymentPolicy: product?.paymentPolicy ?? "Managed payments (eBay / marketplace default)",
+    shippingPolicy:
+      product?.shippingPolicy ?? strategy?.shippingPolicy ?? `${product?.carrier ?? "FedEx"} Ground · Calculated`,
+    shippingMethod: product?.shippingMethod ?? product?.carrier ?? strategy?.shippingMethod ?? "FedEx",
+    shippingBox: product?.shippingBox || strategy?.shippingBox || "Medium Box",
+    shippingWeightLbs: shippingWeight,
+    weightLbs,
+    lengthIn: product?.lengthIn && product.lengthIn > 0 ? product.lengthIn : strategy?.lengthIn ?? 10,
+    widthIn: product?.widthIn && product.widthIn > 0 ? product.widthIn : strategy?.widthIn ?? 8,
+    heightIn: product?.heightIn && product.heightIn > 0 ? product.heightIn : strategy?.heightIn ?? 4,
+    dimUnit: product?.dimUnit ?? strategy?.dimUnit ?? "IN",
+    boxPadding: product?.boxPadding || strategy?.boxPadding || "1 inch",
+    returnsPolicy:
+      product?.returnsPolicy ?? strategy?.returnsPolicy ?? "30-day returns · Buyer pays return shipping",
+    paymentPolicy:
+      product?.paymentPolicy ?? strategy?.paymentPolicy ?? "Managed payments (eBay / marketplace default)",
     itemLocation: "Test Goodwill · Anonymized Demo Facility, USA",
     privateDescription: product?.privateDescription ?? input.sku,
     productNotes: product?.productNotes ?? "",
     inventoryLocation: product?.location ?? "",
     supplier: product?.supplier ?? "",
-    carrier: product?.carrier ?? "FedEx",
-    strategy: product?.strategy ?? input.category ?? "",
+    carrier: product?.carrier ?? strategy?.carrier ?? "FedEx",
+    strategy: product?.strategy ?? strategy?.name ?? input.category ?? "",
     tags: (product?.tags ?? []).join("; "),
     uprightProductId: product?.uprightProductId ?? "",
     externalId: "",

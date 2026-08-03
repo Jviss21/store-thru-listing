@@ -8,11 +8,13 @@ import {
   ListingEditorForm,
   applyFormToListing,
   listingToFormState,
+  validateListingForm,
   type ListingFormState,
 } from "@/components/ListingEditorForm";
 import { ListingStatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
+import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { canEditListing, type Listing } from "@/lib/types";
 import { getListing } from "@/lib/mock-data";
 
@@ -53,13 +55,25 @@ export default function ListingEditPage() {
   async function save() {
     if (!listing || !form || !editable) return;
     setSaving(true);
+    let aspects: import("@/lib/api/ebay-aspects").EbayAspect[] = [];
+    if (listing.channel === "eBay" && form.ebayCategoryId) {
+      const aspectsRes = await getEbayAspectsClient().getEbayCategoryAspects(form.ebayCategoryId);
+      if (aspectsRes.ok) aspects = aspectsRes.data.aspects;
+    }
+    const err = validateListingForm(form, aspects);
+    if (err) {
+      setToast(err);
+      setSaving(false);
+      setTimeout(() => setToast(null), 3500);
+      return;
+    }
     const next = applyFormToListing(listing, form);
-    const res = await api.listings.update(org.id, listing.id, next);
-    if (res.ok) {
-      setListing(res.data);
-      setForm(listingToFormState(res.data));
+    const updateRes = await api.listings.update(org.id, listing.id, next);
+    if (updateRes.ok) {
+      setListing(updateRes.data);
+      setForm(listingToFormState(updateRes.data));
       setToast("Listing saved.");
-    } else setToast(res.error || "Save failed");
+    } else setToast(updateRes.error || "Save failed");
     setTimeout(() => setToast(null), 2500);
     setSaving(false);
   }
