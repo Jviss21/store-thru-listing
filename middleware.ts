@@ -1,33 +1,43 @@
-import { NextRequest, NextResponse } from "next/server";
-import { DEMO_COOKIE, demoSessionToken, resolvedDemoPassword } from "@/lib/demo-auth";
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export default withAuth(
+  function middleware(req) {
+    const token = req.nextauth.token;
+    const { pathname } = req.nextUrl;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
-    pathname === "/login" ||
-    pathname === "/favicon.ico" ||
-    pathname === "/favicon.svg" ||
-    pathname === "/hammoq-logo.png" ||
-    /\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt|xml)$/i.test(pathname)
-  ) {
+    // Ops console: Hammoq staff only
+    if (pathname.startsWith("/ops") && !token?.isOps) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", "/ops");
+      url.searchParams.set("ops", "1");
+      return NextResponse.redirect(url);
+    }
+
     return NextResponse.next();
+  },
+  {
+    pages: { signIn: "/login" },
+    callbacks: {
+      authorized: ({ token, req }) => {
+        const { pathname } = req.nextUrl;
+        if (
+          pathname.startsWith("/_next") ||
+          pathname.startsWith("/api/auth") ||
+          pathname === "/login" ||
+          pathname === "/favicon.ico" ||
+          pathname === "/favicon.svg" ||
+          pathname === "/hammoq-logo.png" ||
+          /\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt|xml)$/i.test(pathname)
+        ) {
+          return true;
+        }
+        return Boolean(token);
+      },
+    },
   }
-
-  const expected = await demoSessionToken(resolvedDemoPassword());
-  const cookie = request.cookies.get(DEMO_COOKIE)?.value;
-
-  if (cookie === expected) {
-    return NextResponse.next();
-  }
-
-  const loginUrl = request.nextUrl.clone();
-  loginUrl.pathname = "/login";
-  loginUrl.searchParams.set("next", pathname);
-  return NextResponse.redirect(loginUrl);
-}
+);
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"],

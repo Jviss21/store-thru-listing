@@ -1,0 +1,222 @@
+// Multi-tenant pilot schema.
+// Local/demo: SQLite via DATABASE_URL="file:./dev.db"
+// Production: set DATABASE_URL to Postgres and change provider to "postgresql"
+//   (or keep SQLite for local only — Vercel uses seed-module auth when DB is unavailable).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id
+  name      String
+  slug      String   @unique
+  region    String?
+  type      String   // goodwill | resale | other
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  products    Product[]
+  listings    Listing[]
+  orders      Order[]
+  shipments   Shipment[]
+  connections MarketplaceConnection[]
+  autoListJobs AutoListJob[]
+  auditEvents AuditEvent[]
+  featureFlags FeatureFlags?
+  photos      Photo[]
+  syncErrors  SyncError[]
+}
+
+model User {
+  id           String   @id
+  email        String   @unique
+  name         String
+  passwordHash String
+  isOps        Boolean  @default(false) // Hammoq staff
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+  auditEvents AuditEvent[]
+}
+
+model Membership {
+  id     String @id @default(cuid())
+  orgId  String
+  userId String
+  role   String // Admin | Ops Lead | Lister | Photographer | Viewer
+  status String @default("Active") // Active | Invited | Deactivated
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
+}
+
+model FeatureFlags {
+  orgId         String  @id
+  autoList      Boolean @default(true)
+  shopgoodwill  Boolean @default(true)
+  ebay          Boolean @default(true)
+  killSwitchOff Boolean @default(true) // false = kill switch engaged
+  updatedAt     DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model MarketplaceConnection {
+  id                   String    @id @default(cuid())
+  orgId                String
+  channel              String // ShopGoodwill | eBay
+  accountId            String?
+  accountName          String?
+  status               String    @default("Not connected") // Connected | Not connected | Needs attention
+  oauthRefreshTokenEnc String?
+  lastSyncAt           DateTime?
+  syncEnabled          Boolean   @default(false)
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, channel])
+  @@index([orgId])
+}
+
+model Product {
+  id         String   @id @default(cuid())
+  orgId      String
+  sku        String
+  title      String
+  status     String   @default("Draft") // Active | Draft | Recycled
+  priceCents Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  listings Listing[]
+  photos   Photo[]
+  autoListJobs AutoListJob[]
+
+  @@unique([orgId, sku])
+  @@index([orgId])
+}
+
+model Listing {
+  id            String  @id @default(cuid())
+  orgId         String
+  productId     String
+  channel       String // ShopGoodwill | eBay
+  status        String
+  externalId    String?
+  priceCents    Int     @default(0)
+  lastSyncError String?
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([productId])
+}
+
+model AutoListJob {
+  id        String   @id @default(cuid())
+  orgId     String
+  productId String
+  channel   String // ShopGoodwill | eBay
+  readiness Int      @default(0)
+  status    String   @default("Queued") // Queued | Published | Failed | HeldQA
+  createdAt DateTime @default(now())
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model Order {
+  id                 String   @id @default(cuid())
+  orgId              String
+  orderNumber        String
+  channel            String
+  totalCents         Int      @default(0)
+  paymentStatus      String
+  fulfillmentStatus  String
+  createdAt          DateTime @default(now())
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  shipments Shipment[]
+
+  @@unique([orgId, orderNumber])
+  @@index([orgId])
+}
+
+model Shipment {
+  id              String    @id @default(cuid())
+  orgId           String
+  orderId         String
+  carrier         String
+  trackingNumber  String
+  status          String
+  shippedAt       DateTime?
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  order Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orderId])
+}
+
+model Photo {
+  id         String @id @default(cuid())
+  orgId      String
+  productId  String
+  storageKey String
+  sortOrder  Int    @default(0)
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([productId])
+}
+
+model SyncError {
+  id        String   @id @default(cuid())
+  orgId     String
+  channel   String
+  listingId String?
+  sku       String?
+  message   String
+  severity  String   @default("error") // error | warning
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  orgId     String?
+  userId    String?
+  action    String
+  metaJson  String? // JSON string (SQLite-friendly)
+  createdAt DateTime @default(now())
+
+  org  Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  user User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId])
+  @@index([userId])
+}

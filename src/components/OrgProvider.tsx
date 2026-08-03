@@ -9,17 +9,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import { DEFAULT_ORG_ID, PILOT_ORGS, getOrgById, type Org } from "@/lib/orgs";
 import {
   canAccessOps,
   DEFAULT_SESSION,
-  loadSession,
   saveSession,
-  setActiveOrgId as persistActiveOrgId,
-  unlockOps as persistUnlockOps,
   type DemoSession,
 } from "@/lib/session";
-import { loadDemoSettings } from "@/lib/demo-settings";
 import { getApiClient } from "@/lib/api";
 
 type OrgContextValue = {
@@ -36,27 +33,77 @@ type OrgContextValue = {
 
 const OrgContext = createContext<OrgContextValue | null>(null);
 
+function toDemoSession(
+  auth: {
+    id: string;
+    email: string;
+    name: string;
+    handle: string;
+    orgId: string;
+    role: string;
+    isOps: boolean;
+    membershipOrgIds: string[];
+  } | null | undefined
+): DemoSession {
+  if (!auth) return { ...DEFAULT_SESSION };
+  return {
+    userId: auth.id,
+    email: auth.email,
+    name: auth.name,
+    handle: auth.handle || auth.email.split("@")[0] || "user",
+    role: auth.role,
+    activeOrgId: auth.orgId || DEFAULT_ORG_ID,
+    isOps: auth.isOps,
+    membershipOrgIds: auth.membershipOrgIds?.length
+      ? auth.membershipOrgIds
+      : auth.isOps
+        ? PILOT_ORGS.map((o) => o.id)
+        : [auth.orgId || DEFAULT_ORG_ID],
+    opsUnlocked: auth.isOps,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const [hydrated, setHydrated] = useState(false);
+  const { data: authSession, status, update } = useSession();
   const [session, setSession] = useState<DemoSession>(DEFAULT_SESSION);
+  const hydrated = status !== "loading";
 
   useEffect(() => {
-    const base = loadSession();
-    const settings = loadDemoSettings();
-    const merged = saveSession({
-      ...base,
-      name: settings.name || base.name,
-      email: settings.email || base.email,
-      handle: settings.handle || base.handle,
-    });
-    setSession(merged);
-    setHydrated(true);
-  }, []);
-
-  const setActiveOrgId = useCallback((orgId: string) => {
-    const next = persistActiveOrgId(orgId);
+    if (status !== "authenticated" || !authSession?.user) return;
+    const next = toDemoSession(authSession.user);
     setSession(next);
-  }, []);
+    if (typeof window !== "undefined") {
+      saveSession(next);
+    }
+  }, [authSession, status]);
+
+  const setActiveOrgId = useCallback(
+    (orgId: string) => {
+      const org = getOrgById(orgId);
+      if (!org) return;
+      setSession((prev) => {
+        const allowed =
+          prev.isOps ||
+          prev.membershipOrgIds.includes(orgId) ||
+          prev.membershipOrgIds.length === 0;
+        if (!allowed) return prev;
+        const next = saveSession({
+          ...prev,
+          activeOrgId: org.id,
+          role: prev.isOps ? prev.role : prev.role,
+        });
+        void update({ orgId: org.id });
+        void fetch("/api/org/switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orgId: org.id }),
+        });
+        return next;
+      });
+    },
+    [update]
+  );
 
   const updateSession = useCallback((patch: Partial<DemoSession>) => {
     setSession((prev) => {
@@ -66,7 +113,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const unlockOps = useCallback(() => {
-    setSession(persistUnlockOps());
+    setSession((prev) => saveSession({ ...prev, opsUnlocked: true }));
   }, []);
 
   const org = useMemo(
@@ -74,19 +121,26 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     [session.activeOrgId]
   );
 
+  const orgs = useMemo(() => {
+    if (session.isOps) return PILOT_ORGS;
+    const ids = new Set(session.membershipOrgIds);
+    const filtered = PILOT_ORGS.filter((o) => ids.has(o.id));
+    return filtered.length > 0 ? filtered : PILOT_ORGS.filter((o) => o.id === DEFAULT_ORG_ID);
+  }, [session.isOps, session.membershipOrgIds]);
+
   const value = useMemo<OrgContextValue>(
     () => ({
       hydrated,
       session,
       org,
-      orgs: PILOT_ORGS,
+      orgs,
       isOps: canAccessOps(session),
       setActiveOrgId,
       updateSession,
       unlockOps,
       api: getApiClient(),
     }),
-    [hydrated, session, org, setActiveOrgId, updateSession, unlockOps]
+    [hydrated, session, org, orgs, setActiveOrgId, updateSession, unlockOps]
   );
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;

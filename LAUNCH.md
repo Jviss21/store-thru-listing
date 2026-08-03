@@ -1,28 +1,30 @@
 # Launch checklist — beyond this demo
 
-This app is a **10-org pilot UI** with client-side mock data, an API adapter layer, and a password gate. See [PILOT.md](./PILOT.md) for Phase 0 (done) and Phase 1 next steps.
+This app is a **10-org pilot** with **Phase 1 auth** (NextAuth credentials) and a Prisma multi-tenant schema. Product/listing data still uses mock adapters. See [PILOT.md](./PILOT.md).
 
-## Phase 0 (shipped)
+## Phase 0–1 (shipped)
 
-- Org context + 10 pilot orgs
+- Org context + 10 pilot orgs + membership-aware switcher
+- NextAuth email/password (shared pilot password)
+- Prisma schema + seed (`npm run db:push` / `db:seed`)
+- Ops console with impersonation (`ops@hammoq.example`)
 - `MockApiClient` adapters ready to swap for HTTP
-- Marketplace Connect stubs + Ops console at `/ops`
-- Failure UX for Additional QA Required / sync errors
 
 ## Remaining production requirements
 
 ### Data & inventory
-- [ ] Real inventory / products / manifests database (Postgres or equivalent) — schema sketch in `src/lib/db/schema.ts`
+- [ ] Persist products / manifests / listings in Postgres (schema ready)
 - [ ] Real orders, refunds, and shipment records with sync from channels
 - [ ] Durable file storage for product photos and listing assets
 
 ### Auth & tenancy
-- [ ] Real authentication (email/password or SSO)
-- [ ] Roles & permissions (ops lead, lister, photographer, admin)
-- [x] Multi-org tenancy scaffolding (pilot orgs + `activeOrgId`; DB wiring in Phase 1)
+- [x] Real authentication (email/password credentials)
+- [x] Roles on Membership + session `isOps`
+- [x] Multi-org tenancy scaffolding + JWT orgId
+- [ ] Optional SSO / invite flows
 
-### Marketplace integrations
-- [ ] ShopGoodwill OAuth + listing create/update/end APIs (stub Connect UI exists)
+### Marketplace integrations (Phase 2)
+- [ ] ShopGoodwill OAuth + listing create/update/end APIs
 - [ ] eBay OAuth + Trading / Inventory / Fulfillment APIs
 - [ ] Webhooks or polling for sold / unpaid / cancelled events
 
@@ -33,26 +35,19 @@ This app is a **10-org pilot UI** with client-side mock data, an API adapter lay
 
 ### Ops hardware
 - [ ] Carrier label APIs (USPS / UPS / FedEx as required)
-- [ ] Label printer integration (Zebra / Brother / browser print profiles)
+- [ ] Label printer integration
 - [ ] Barcode scanner workflows wired to live SKUs
 
-### Legal & compliance
-- [ ] Terms of Service and Privacy Policy if user accounts exist
-- [ ] Data processing agreement with the customer org
-- [ ] Marketplace seller policy compliance review
+### Legal & reliability
+- [ ] ToS / Privacy / DPA as needed
+- [ ] Staging, observability, backups
 
-### Reliability
-- [ ] Staging environment with synthetic or scrubbed data
-- [ ] Observability (error tracking, uptime, API latency)
-- [ ] Backup / restore and incident runbooks
+## What this pilot already covers
 
-## What this demo already covers for a walkthrough
-
-- Password-gated public URL for safe customer sharing
-- End-to-end UI path: intake → draft → list → orders → reports
-- CSV/JSON report and listing packet downloads
+- Credential login with documented seed users
+- Org-scoped session + Ops impersonation
+- End-to-end UI path with mock inventory
 - Infinity AI Auto-List queue (simulated)
-- Org branding (Hammoq navy/gold) + org switcher across 10 pilots
-- Hammoq Ops console for staff health / impersonation / kill switches
+- Connections stubs for ShopGoodwill / eBay
 
-When backends are ready, replace `MockApiClient` via `createApiClient()` in `src/lib/api/` — keep the existing route structure where possible.
+When marketplace backends are ready, replace `MockApiClient` via `createApiClient()` — keep routes and `orgId` scoping.

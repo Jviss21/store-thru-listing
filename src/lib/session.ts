@@ -1,7 +1,5 @@
 /**
- * Org-aware demo session shape.
- * Password gate remains; this tracks who is signed in + which org is active.
- * Persisted in localStorage (client). Cookie still gates HTTP access.
+ * Client session shape — hydrated from NextAuth, with local mirrors for org cookie.
  */
 
 import { DEFAULT_ORG_ID, getOrgById, type Org } from "./orgs";
@@ -11,34 +9,39 @@ export const ACTIVE_ORG_STORAGE_KEY = "stl-active-org-id";
 export const OPS_UNLOCK_STORAGE_KEY = "stl-ops-unlocked";
 
 export type DemoSession = {
+  userId: string;
   email: string;
   name: string;
   handle: string;
   role: string;
-  /** Active customer org for floor / admin UX */
   activeOrgId: string;
-  /** Explicit Ops unlock via demo password on /ops */
+  isOps: boolean;
+  membershipOrgIds: string[];
+  /** @deprecated Phase 0 unlock; ops now comes from auth isOps */
   opsUnlocked: boolean;
   updatedAt: string;
 };
 
 export const DEFAULT_SESSION: DemoSession = {
-  email: "john.doe@testgoodwill.example",
-  name: "John Doe",
-  handle: "jdoe",
-  role: "Ops Lead",
+  userId: "",
+  email: "",
+  name: "",
+  handle: "",
+  role: "Viewer",
   activeOrgId: DEFAULT_ORG_ID,
+  isOps: false,
+  membershipOrgIds: [DEFAULT_ORG_ID],
   opsUnlocked: false,
   updatedAt: new Date(0).toISOString(),
 };
 
-/** Hammoq staff if email contains "hammoq" (case-insensitive). */
+/** Hammoq staff if email contains "hammoq" (case-insensitive) — legacy helper. */
 export function isHammoqStaffEmail(email: string): boolean {
   return email.toLowerCase().includes("hammoq");
 }
 
 export function canAccessOps(session: DemoSession): boolean {
-  return isHammoqStaffEmail(session.email) || session.opsUnlocked;
+  return session.isOps || isHammoqStaffEmail(session.email) || session.opsUnlocked;
 }
 
 export function loadSession(): DemoSession {
@@ -58,6 +61,8 @@ export function loadSession(): DemoSession {
       ...parsed,
       activeOrgId: org ? org.id : DEFAULT_ORG_ID,
       opsUnlocked: opsRaw === "1" || parsed.opsUnlocked === true,
+      membershipOrgIds: parsed.membershipOrgIds ?? DEFAULT_SESSION.membershipOrgIds,
+      isOps: parsed.isOps ?? false,
     };
   } catch {
     return { ...DEFAULT_SESSION };
@@ -68,8 +73,7 @@ export function saveSession(session: DemoSession): DemoSession {
   const next = { ...session, updatedAt: new Date().toISOString() };
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(next));
   localStorage.setItem(ACTIVE_ORG_STORAGE_KEY, next.activeOrgId);
-  localStorage.setItem(OPS_UNLOCK_STORAGE_KEY, next.opsUnlocked ? "1" : "0");
-  // Mirror cookie for SSR-friendly reads (non-httpOnly)
+  localStorage.setItem(OPS_UNLOCK_STORAGE_KEY, next.opsUnlocked || next.isOps ? "1" : "0");
   document.cookie = `stl_active_org=${encodeURIComponent(next.activeOrgId)}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
   return next;
 }
@@ -77,9 +81,14 @@ export function saveSession(session: DemoSession): DemoSession {
 export function setActiveOrgId(orgId: string): DemoSession {
   const session = loadSession();
   const org = getOrgById(orgId);
+  const allowed =
+    session.isOps ||
+    session.membershipOrgIds.includes(orgId) ||
+    session.membershipOrgIds.length === 0;
+  if (!allowed || !org) return session;
   return saveSession({
     ...session,
-    activeOrgId: org ? org.id : DEFAULT_ORG_ID,
+    activeOrgId: org.id,
   });
 }
 

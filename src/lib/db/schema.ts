@@ -1,9 +1,6 @@
 /**
- * Phase 1 scaffold — multi-tenant data model (not wired to a live DB yet).
- * Prefer Prisma later (`prisma/schema.prisma`); this TypeScript sketch documents
- * the intended tables with orgId on every tenant-scoped row.
- *
- * Phase 0 deploys without Postgres. When auth/DB lands, map these shapes 1:1.
+ * Phase 1 TypeScript sketch — kept in sync with prisma/schema.prisma.
+ * Prefer Prisma models for persistence; these types document the tenant shape.
  */
 
 export type DbOrg = {
@@ -20,12 +17,11 @@ export type DbUser = {
   id: string;
   email: string;
   name: string;
-  /** Global Hammoq staff flag */
-  isHammoqStaff: boolean;
+  /** Global Hammoq staff flag (session.isOps) */
+  isOps: boolean;
   createdAt: string;
 };
 
-/** Membership of a user in an org (roles are org-scoped). */
 export type DbOrgMembership = {
   id: string;
   orgId: string;
@@ -39,7 +35,6 @@ export type DbFeatureFlags = {
   autoList: boolean;
   shopgoodwill: boolean;
   ebay: boolean;
-  /** false = kill switch engaged */
   killSwitchOff: boolean;
   updatedAt: string;
 };
@@ -126,17 +121,22 @@ export type DbSyncError = {
   createdAt: string;
 };
 
-/**
- * Suggested Prisma models (copy into prisma/schema.prisma when ready):
- *
- * model Org { id String @id ... products Product[] ... }
- * model Product { id String @id; orgId String; org Org @relation(...); @@index([orgId]) }
- * — every tenant table: orgId + @@index([orgId])
- */
+export type DbAuditEvent = {
+  id: string;
+  orgId: string | null;
+  userId: string | null;
+  action: string;
+  metaJson: string | null;
+  createdAt: string;
+};
+
 export const SCHEMA_NOTES = {
   phase: 1,
   multiTenant: true,
   orgIdOnEveryTenantTable: true,
-  auth: "Replace demo password with real auth; keep org memberships.",
+  prisma: "prisma/schema.prisma",
+  auth: "NextAuth credentials; session carries userId, orgId, role, isOps",
   infinityAi: "Auto-List only — no Auto-Draft jobs table.",
+  vercel:
+    "SQLite file: URLs are skipped on Vercel; use Postgres DATABASE_URL or seed-module auth fallback.",
 } as const;

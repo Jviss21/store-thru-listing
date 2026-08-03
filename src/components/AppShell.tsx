@@ -7,7 +7,9 @@ import {
   ClipboardList,
   FileBarChart,
   Home,
+  Link2,
   List,
+  LogOut,
   Menu,
   Package,
   PlusCircle,
@@ -19,9 +21,9 @@ import {
   Truck,
   X,
   Zap,
-  Link2,
 } from "lucide-react";
 import { useState } from "react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { BRAND, notifications } from "@/lib/mock-data";
 import DemoBanner from "@/components/DemoBanner";
@@ -226,12 +228,21 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
         <div className="mt-1 flex items-center gap-3 rounded-xl bg-mist/80 px-3 py-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-xs font-bold text-accent">
-            {session.handle.slice(0, 2).toUpperCase()}
+            {(session.handle || session.email || "??").slice(0, 2).toUpperCase()}
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-ink">{session.name}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-ink">{session.name || "Signed in"}</p>
             <p className="truncate text-[11px] text-muted">{session.role}</p>
           </div>
+          <button
+            type="button"
+            className="rounded-lg p-1.5 text-muted hover:bg-white hover:text-ink"
+            title="Sign out"
+            aria-label="Sign out"
+            onClick={() => void signOut({ callbackUrl: "/login" })}
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>

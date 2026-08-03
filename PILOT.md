@@ -2,46 +2,66 @@
 
 Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold brand.
 
-## Phase 0 — DONE (this deploy)
+## Phase 0 — DONE
 
 | Item | Status |
 |------|--------|
-| Org context (`OrgProvider`, `activeOrgId` in localStorage + cookie) | Done |
-| 10 pilot orgs seeded (Test Goodwill + 9 anonymized) | Done |
-| API adapter layer `src/lib/api/` with `MockApiClient` + `createApiClient()` | Done |
-| Connection UI `/settings/connections` + Admin marketplaces Connect stubs | Done |
-| Failure UX — Additional QA Required + sync error banners on listings | Done |
-| Hammoq Ops `/ops` — health, impersonate, flags, force sync, errors | Done |
-| Docs | This file + `LAUNCH.md` |
+| Org context, 10 pilot orgs, MockApiClient adapters | Done |
+| Connections stubs, Ops `/ops`, failure UX | Done |
 
-### How to switch orgs
+## Phase 1 — DONE (this deploy)
 
-1. **Sidebar** — “Active org” dropdown (all 10 pilots).
-2. **Hammoq Ops** — Open / Impersonate sets `activeOrgId` and routes home.
-3. Persisted as `stl-active-org-id` (localStorage) and `stl_active_org` cookie.
+| Item | Status |
+|------|--------|
+| Prisma schema (`prisma/schema.prisma`) — Org, User, Membership, Product, Listing, Order, Shipment, MarketplaceConnection, AutoListJob, AuditEvent, … all with `orgId` | Done |
+| NextAuth credentials (email + shared pilot password) | Done |
+| Seed catalog: 10 org admins + `ops@hammoq.example` | Done |
+| Session JWT: `userId`, `orgId`, `role`, `isOps`, memberships | Done |
+| Middleware protects app; org switcher filters memberships (ops sees all) | Done |
+| `/api/orgs`, `/api/org/switch`, `/api/ops/impersonate`, `/api/me` | Done |
+| Vercel-safe auth without Postgres (seed-module fallback) | Done |
 
-### Ops access
+### Login
 
-- URL: `/ops` (not customer `/admin`)
-- Unlock: same demo password on the Ops gate, **or** set Settings email to contain `hammoq` and Save
-- Nav link “Hammoq Ops” appears when unlocked / staff email
+- URL: `/login` (also https://store-thru-listing.vercel.app/login)
+- **Shared password for all seeded users:** `testgoodwill` (override with `DEMO_PASSWORD`)
+- Default customer: `john.doe@testgoodwill.example`
+- Ops: `ops@hammoq.example`
+- Other orgs: `admin@{org-slug}.example` (e.g. `admin@cascade-valley-gw.example`)
 
-### Adapters (`src/lib/api/`)
+### Database
 
-`products`, `listings`, `autoList`, `orders`, `shipments`, `reports`, `photos`, `connections`, `ops`, `orgs` — all on `MockApiClient` today. Swap via `createApiClient()` when HTTP backends exist.
+| Environment | Behavior |
+|-------------|----------|
+| Local | `DATABASE_URL="file:./dev.db"` → `npm run db:push` → `npm run db:seed` |
+| Vercel (no Postgres) | Auth uses in-code seed users; product/listing APIs stay on `MockApiClient` |
+| Vercel + Postgres | Set `DATABASE_URL` to `postgres://…`, change Prisma `provider` to `postgresql`, `db push` + seed |
 
-### Phase 1 scaffold
+### Env vars
 
-- Multi-tenant table sketch: `src/lib/db/schema.ts` (`orgId` on tenant rows)
-- No Postgres required for Phase 0 / Vercel demo
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `NEXTAUTH_SECRET` | Prod | Random string for JWT signing |
+| `NEXTAUTH_URL` | Prod | Canonical site URL |
+| `DEMO_PASSWORD` | Recommended | Pilot password (default `testgoodwill`) |
+| `DATABASE_URL` | Optional | SQLite file locally; Postgres for prod persistence |
 
-## Phase 1 — NEXT (auth / DB)
+### What’s real vs mock
 
-- [ ] Real auth (replace password gate; keep org-aware session shape)
-- [ ] Postgres + Prisma (or equivalent) from `src/lib/db/schema.ts`
-- [ ] Wire `createApiClient()` to HTTP / server actions scoped by `orgId`
-- [ ] Real ShopGoodwill / eBay OAuth (replace stubs)
+| Layer | Status |
+|-------|--------|
+| Auth / session / org memberships | **Real** (NextAuth + seed or Prisma) |
+| Org switch + Ops impersonation | **Real** (JWT + cookies; audit when DB ready) |
+| Products, listings, orders, Auto-List queue | **Still mock** (`MockApiClient`) |
+| Marketplace OAuth / sync | **Stub** UI only |
+
+### Phase 2 — NEXT (marketplace APIs)
+
+- [ ] ShopGoodwill OAuth + listing create/update/end
+- [ ] eBay OAuth + Inventory / Trading / Fulfillment
+- [ ] Wire `createApiClient()` HTTP client scoped by `session.orgId`
 - [ ] Durable photo storage
+- [ ] Persist products/listings/orders in Prisma (replace mock datasets)
 
 ## Phase 3 (later)
 

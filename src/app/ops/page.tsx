@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   AlertTriangle,
   Building2,
@@ -11,10 +12,11 @@ import {
   Shield,
   ToggleLeft,
 } from "lucide-react";
-import { Badge, Button, Card, Input } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
 import type { OrgHealth, SyncError } from "@/lib/api";
 import { getOrgById, type OrgSyncStatus } from "@/lib/orgs";
+import { OPS_EMAIL } from "@/lib/db/seed-data";
 import { cn, relativeTime } from "@/lib/utils";
 
 function statusTone(s: OrgSyncStatus): "green" | "orange" | "red" | "neutral" {
@@ -26,14 +28,13 @@ function statusTone(s: OrgSyncStatus): "green" | "orange" | "red" | "neutral" {
 
 export default function OpsConsolePage() {
   const router = useRouter();
-  const { hydrated, session, isOps, unlockOps, setActiveOrgId, api, org } = useOrg();
+  const { update } = useSession();
+  const { hydrated, session, isOps, setActiveOrgId, api, org } = useOrg();
   const [health, setHealth] = useState<OrgHealth[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [errors, setErrors] = useState<SyncError[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
-  const [password, setPassword] = useState("");
-  const [unlockError, setUnlockError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [dbMode, setDbMode] = useState<string>("");
 
   const reload = useCallback(async () => {
     const res = await api.ops.listOrgHealth();
@@ -43,6 +44,12 @@ export default function OpsConsolePage() {
   useEffect(() => {
     if (!hydrated || !isOps) return;
     void reload();
+    void fetch("/api/me")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.dbMode) setDbMode(j.dbMode);
+      })
+      .catch(() => undefined);
   }, [hydrated, isOps, reload]);
 
   useEffect(() => {
@@ -55,33 +62,14 @@ export default function OpsConsolePage() {
     });
   }, [selectedId, isOps, api]);
 
-  async function onUnlock(e: FormEvent) {
-    e.preventDefault();
-    setUnlockError(null);
-    setBusy(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      if (!res.ok) {
-        setUnlockError("Incorrect demo password.");
-        setBusy(false);
-        return;
-      }
-      unlockOps();
-      setPassword("");
-      setFlash("Ops access unlocked for this browser.");
-      setTimeout(() => setFlash(null), 2500);
-    } catch {
-      setUnlockError("Something went wrong.");
-    }
-    setBusy(false);
-  }
-
-  function impersonate(orgId: string) {
+  async function impersonate(orgId: string) {
     setActiveOrgId(orgId);
+    await update({ orgId });
+    await fetch("/api/ops/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orgId }),
+    });
     const name = getOrgById(orgId)?.name ?? "org";
     setFlash(`Impersonating ${name} — routing to home.`);
     setTimeout(() => router.push("/"), 400);
@@ -126,28 +114,15 @@ export default function OpsConsolePage() {
             <h1 className="font-display text-xl font-bold text-ink">Hammoq Ops</h1>
           </div>
           <p className="text-sm text-muted">
-            Staff console for the 10-org pilot. Unlock with the same demo password, or sign
-            in with an email containing <span className="font-mono text-xs">hammoq</span>{" "}
-            in Settings.
+            Staff console for the 10-org pilot. Sign in as{" "}
+            <span className="font-mono text-xs text-ink">{OPS_EMAIL}</span> to continue.
           </p>
           <p className="text-xs text-muted">
             Current session: {session.email || "—"} · active org {org.name}
           </p>
-          <form onSubmit={onUnlock} className="space-y-3">
-            <Input
-              type="password"
-              placeholder="Demo password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-            />
-            {unlockError && (
-              <p className="text-sm text-coral">{unlockError}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={busy || !password}>
-              {busy ? "Checking…" : "Unlock Ops"}
-            </Button>
-          </form>
+          <Link href={`/login?next=${encodeURIComponent("/ops")}&ops=1`}>
+            <Button className="w-full">Sign in as Ops</Button>
+          </Link>
           <Link href="/" className="block text-center text-sm font-semibold text-muted hover:text-ink">
             ← Back to customer app
           </Link>
@@ -168,10 +143,12 @@ export default function OpsConsolePage() {
             <p className="font-display text-lg font-bold tracking-tight">Hammoq Ops</p>
             <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">
               Pilot console · not customer Admin
+              {dbMode ? ` · db: ${dbMode}` : ""}
             </p>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Badge tone="yellow">Staff</Badge>
+            <span className="text-xs text-white/60">{session.email}</span>
             <Link
               href="/"
               className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"
@@ -192,8 +169,8 @@ export default function OpsConsolePage() {
         <div>
           <h2 className="font-display text-2xl font-bold text-ink">10 pilot organizations</h2>
           <p className="mt-1 text-sm text-muted">
-            Health, Auto-List volume, kill switches, and impersonation. Mock state persists in
-            localStorage.
+            Health, Auto-List volume, kill switches, and impersonation. Org list from auth
+            memberships; product/listing data still mock until marketplace APIs land.
           </p>
         </div>
 
@@ -262,7 +239,7 @@ export default function OpsConsolePage() {
                           type="button"
                           size="sm"
                           variant="accent"
-                          onClick={() => impersonate(h.orgId)}
+                          onClick={() => void impersonate(h.orgId)}
                         >
                           <Crosshair className="h-3 w-3" /> Open
                         </Button>
@@ -270,7 +247,7 @@ export default function OpsConsolePage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => forceSync(h.orgId)}
+                          onClick={() => void forceSync(h.orgId)}
                         >
                           <RefreshCw className="h-3 w-3" /> Sync
                         </Button>
@@ -308,7 +285,7 @@ export default function OpsConsolePage() {
                   <input
                     type="checkbox"
                     checked={Boolean(selected.flags[key])}
-                    onChange={(e) => toggleFlag(selected.orgId, key, e.target.checked)}
+                    onChange={(e) => void toggleFlag(selected.orgId, key, e.target.checked)}
                   />
                 </label>
               ))}
@@ -322,7 +299,7 @@ export default function OpsConsolePage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => impersonate(selected.orgId)}
+                onClick={() => void impersonate(selected.orgId)}
               >
                 <Building2 className="h-3.5 w-3.5" />
                 Impersonate & go home
