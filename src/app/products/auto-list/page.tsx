@@ -63,12 +63,27 @@ function AutoListInner() {
 
   return (
     <div className="space-y-5">
+      <div className="text-sm text-muted">
+        <Link href="/manifests" className="text-primary hover:underline">
+          Item Creation
+        </Link>{" "}
+        &gt; {BRAND.autoList}
+        <span className="mx-2 text-ink/20">·</span>
+        <Link href="/manifests/new" className="text-primary hover:underline">
+          Manual create
+        </Link>
+      </div>
       <PageHeader
         title={BRAND.autoList}
-        description={`${BRAND.ai} pushes ready products using each product’s Listing Strategy for weight, dims, shipping, pricing, and channel payload defaults.`}
+        description={`Primary Item Creation path — ${BRAND.ai} pushes ready products using each product’s Listing Strategy for weight, dims, shipping, pricing, and channel payload defaults.`}
         actions={
           <>
             <InfinityBadge />
+            <Link href="/manifests/new">
+              <Button variant="outline" type="button">
+                Manual create
+              </Button>
+            </Link>
             <Button variant="outline" type="button" onClick={() => downloadCsv(`${ORG_SLUG}-auto-list-queue-${stamp()}.csv`, rows.map((r) => ({ sku: r.sku, title: r.title, channel: r.channel, price: r.price, readiness: r.readiness, generatedAt: r.generatedAt })))}>
               <Download className="h-4 w-4" /> Export queue
             </Button>

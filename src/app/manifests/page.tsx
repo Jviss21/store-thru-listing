@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Download, Eye, Trash2 } from "lucide-react";
+import { ClipboardList, Download, Eye, Rocket, Trash2 } from "lucide-react";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { ManifestStatusBadge } from "@/components/StatusBadge";
-import { CATEGORIES, manifests as seedManifests } from "@/lib/mock-data";
+import { InfinityBadge } from "@/components/Brand";
+import { useOrg } from "@/components/OrgProvider";
+import { BRAND, CATEGORIES, manifests as seedManifests } from "@/lib/mock-data";
 import type { Manifest, ManifestStatus } from "@/lib/types";
-import { formatNumber } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { exportManifestsCsv } from "@/lib/demo-actions";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import { RoleGate } from "@/components/RoleGate";
 import { logEvent } from "@/lib/event-log";
+import { canAccessNav } from "@/lib/roles";
 
 const STATUSES: ManifestStatus[] = [
   "Created",
@@ -24,6 +27,8 @@ const STATUSES: ManifestStatus[] = [
 ];
 
 function ManifestsInner() {
+  const { session, isOps } = useOrg();
+  const canAutoList = canAccessNav("auto-list", session.role, isOps);
   const [rows, setRows] = useState<Manifest[]>(seedManifests);
   const [lookup, setLookup] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -67,32 +72,88 @@ function ManifestsInner() {
     <div className="space-y-5">
       <PageHeader
         title="Item Creation"
-        description="Intake batches from store floor to reviewed products — create, receive, accept, list."
+        description={`${BRAND.autoList} is the main path to list online. Manual create is available when you need full photos and channel details by hand.`}
         actions={
-          <>
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => {
-                exportManifestsCsv();
-                logEvent({
-                  section: "manifests",
-                  action: "Exported manifests CSV",
-                  resource: "Manifests export",
-                  resourceHref: "/manifests",
-                });
-              }}
-            >
-              <Download className="h-4 w-4" /> Export CSV
-            </Button>
-            <Link href="/manifests/new">
-              <Button variant="accent" type="button">
-                Create Item
-              </Button>
-            </Link>
-          </>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => {
+              exportManifestsCsv();
+              logEvent({
+                section: "manifests",
+                action: "Exported manifests CSV",
+                resource: "Manifests export",
+                resourceHref: "/manifests",
+              });
+            }}
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
         }
       />
+
+      <div className={cn("grid gap-4", canAutoList ? "lg:grid-cols-[1.4fr_1fr]" : "lg:grid-cols-1")}>
+        {canAutoList && (
+          <Link
+            href="/products/auto-list"
+            className="group block rounded-2xl bg-ink p-5 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-ink/95"
+            onClick={() =>
+              logEvent({
+                section: "manifests",
+                action: "Opened Auto-List from Item Creation",
+                resource: BRAND.autoList,
+                resourceHref: "/products/auto-list",
+              })
+            }
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-ink">
+                <Rocket className="h-5 w-5" />
+              </div>
+              <InfinityBadge />
+            </div>
+            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+              Primary · recommended
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">{BRAND.autoList}</h2>
+            <p className="mt-2 max-w-md text-sm text-white/70">
+              Push ready products to eBay and ShopGoodwill using each item&apos;s listing strategy —
+              weight, dims, shipping, and channel defaults.
+            </p>
+            <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent group-hover:underline">
+              Open {BRAND.autoList} →
+            </span>
+          </Link>
+        )}
+
+        <Link
+          href="/manifests/new"
+          className="group block rounded-2xl border border-ink/10 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-ink/20"
+          onClick={() =>
+            logEvent({
+              section: "manifests",
+              action: "Opened Manual create from Item Creation",
+              resource: "Manual create",
+              resourceHref: "/manifests/new",
+            })
+          }
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mist text-ink">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
+            Secondary · full form
+          </p>
+          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">Manual create</h2>
+          <p className="mt-2 max-w-md text-sm text-muted">
+            Enter photos, title, description, category, condition, brand, price, quantity, and shipping —
+            then list to eBay or ShopGoodwill.
+          </p>
+          <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
+            Manual create →
+          </span>
+        </Link>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
@@ -109,7 +170,7 @@ function ManifestsInner() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-4">
-          <h2 className="text-sm font-semibold">Search</h2>
+          <h2 className="text-sm font-semibold">Search batches</h2>
           <label className="mt-3 block text-xs text-muted">Lookup item batch</label>
           <div className="mt-1 flex gap-2">
             <Input
@@ -127,9 +188,6 @@ function ManifestsInner() {
               Go
             </Button>
           </div>
-          <Link href="/manifests" className="mt-2 inline-block text-sm text-primary hover:underline">
-            Search intake items
-          </Link>
         </Card>
 
         <Card className="p-4">
@@ -175,7 +233,7 @@ function ManifestsInner() {
               </Button>
             </>
           ) : (
-            <span className="text-sm text-muted">{formatNumber(filtered.length)} results</span>
+            <span className="text-sm text-muted">{formatNumber(filtered.length)} intake batches</span>
           )}
         </div>
 

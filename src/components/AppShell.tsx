@@ -135,14 +135,14 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               </Link>
             );
           })}
-          {canAccessNav("products", role, isOps) && (
+          {canAccessNav("manifests", role, isOps) && (
             <Link
-              href="/products/new"
+              href="/manifests/new"
               onClick={onNavigate}
               className="flex items-center gap-2 px-1 pt-1 text-xs font-semibold text-muted hover:text-ink"
             >
               <PlusCircle className="h-3.5 w-3.5" />
-              Manual new product
+              Manual create
             </Link>
           )}
         </div>

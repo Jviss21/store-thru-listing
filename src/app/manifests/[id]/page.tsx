@@ -288,7 +288,7 @@ export default function ManifestDetailPage() {
                     <Printer className="h-4 w-4" />
                   </button>
                   <Link
-                    href={`/products/new?title=${encodeURIComponent(item.title)}&sku=${encodeURIComponent(item.sku)}`}
+                    href={`/manifests/new?title=${encodeURIComponent(item.title)}&sku=${encodeURIComponent(item.sku)}`}
                     className="ml-1 text-xs text-primary hover:underline"
                   >
                     Create product

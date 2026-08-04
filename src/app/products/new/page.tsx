@@ -153,10 +153,26 @@ function NewProductInner() {
 
   return (
     <div className="space-y-4 pb-12">
+      <div className="text-sm text-muted">
+        <Link href="/manifests" className="text-primary hover:underline">
+          Item Creation
+        </Link>{" "}
+        &gt;{" "}
+        <Link href="/manifests/new" className="text-primary hover:underline">
+          Manual create
+        </Link>{" "}
+        &gt; New product
+      </div>
       <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b bg-white/95 py-3 backdrop-blur">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">New Product</h1>
-          <p className="text-sm text-muted">Full product + channel form with photos and specifics.</p>
+          <p className="text-sm text-muted">
+            Full product + channel form — secondary to {BRAND.autoList}. Prefer{" "}
+            <Link href="/manifests/new" className="font-semibold text-brand-orange hover:underline">
+              Manual create
+            </Link>{" "}
+            from Item Creation.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <SaveButton
