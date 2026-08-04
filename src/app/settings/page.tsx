@@ -49,17 +49,39 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Settings"
-        description={`Account and ${BRAND.ai} preferences for ${org.name}.`}
+        description={`Workspace preferences for ${org.name}.`}
         actions={
-          <Link
-            href="/settings/connections"
-            className="text-sm font-semibold text-ink underline-offset-2 hover:underline"
-          >
-            Marketplace connections →
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/settings/account"
+              className="text-sm font-semibold text-ink underline-offset-2 hover:underline"
+            >
+              Edit Account →
+            </Link>
+            <Link
+              href="/settings/connections"
+              className="text-sm font-semibold text-muted underline-offset-2 hover:underline"
+            >
+              Marketplace connections →
+            </Link>
+          </div>
         }
       />
+
+      <Card className="max-w-xl space-y-3 border-accent/30 bg-accent/10 p-5">
+        <p className="font-display text-lg font-bold text-ink">Edit Account</p>
+        <p className="text-sm text-muted">
+          Full name, username, email/password, role, supplier, ShopGoodwill login, and MFA reset.
+        </p>
+        <Link href="/settings/account">
+          <Button type="button" variant="accent">
+            Open account settings
+          </Button>
+        </Link>
+      </Card>
+
       <Card className="max-w-xl space-y-4 p-5">
+        <p className="text-sm font-semibold text-ink">Quick profile (legacy)</p>
         <div>
           <label className="text-sm font-medium">Name</label>
           <Input

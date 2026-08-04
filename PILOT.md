@@ -131,3 +131,55 @@ Store category · Listing type/duration/start · Starting / BIN / Reserve · Han
 3. SGW stock quantity defaults to ≥ 1
 4. Brand/Condition inferred from title when empty
 5. Separate eBay vs SGW category trees; single Condition under Product details; required specifics validated on save
+
+## Customer Admin IMS settings (2026-08-03)
+
+Grouped sidebar under `/admin`. Settings persist per org in `localStorage` key `stl-admin-ims:<orgId>`.
+Add new pages by appending to `ADMIN_NAV_GROUPS` in `src/lib/admin-nav.ts` and creating `src/app/admin/<route>/page.tsx`.
+
+### Admin URL map
+
+| Group | Route | Notes |
+|-------|-------|-------|
+| Overview | `/admin` | Org health |
+| Overview | `/admin/organization` | Legacy org profile |
+| Overview | `/admin/audit` | Master event log (Admin/Ops) |
+| Overview | `/admin/data` | Demo exports / clear storage |
+| Overview | `/admin/infinity-ai` | Auto-List AI settings |
+| General | `/admin/settings` | Company / timezone |
+| General | `/admin/notifications` | Digest frequency + preview |
+| General | `/admin/suppliers` | Supplier abbreviations |
+| Manifests | `/admin/item-authentication` | Luxury hold rules |
+| Manifests | `/admin/manifests` | Rejection responses |
+| Products | `/admin/categories` | Category tree |
+| Products | `/admin/images` | Watermark / crop defaults |
+| Products | `/admin/listing-strategies` | Alias of listing-defaults |
+| Products | `/admin/listing-defaults` | Strategy editor (kept) |
+| Products | `/admin/products` | SKU, required fields, tags, Connect |
+| Products | `/admin/templates` | Builder/Static list |
+| Products | `/admin/templates/[id]` | Input → Output `{{vars}}` |
+| Inventory | `/admin/inventory-locations` | Locations + barcodes |
+| Inventory | `/admin/shipping` | EasyPost + toggles |
+| Inventory | `/admin/shipping-boxes` | Box dimensions |
+| Inventory | `/admin/orders` | Packing slip / pick profiles |
+| Inventory | `/admin/print-settings` | Lister Connect / PDF·Dymo |
+| Inventory | `/admin/stations` | Printers & stations (kept) |
+| Team | `/admin/teammates` | Active/inactive roster |
+| Team | `/admin/teammates/[id]` | Edit Account form |
+| Team | `/admin/roles` | Default + custom role cards |
+| Team | `/admin/users` | Redirect → teammates |
+| Channels | `/admin/channels/ebay` | Accounts + defaults |
+| Channels | `/admin/channels/shopgoodwill` | SGW defaults form |
+| Channels | `/admin/channels/shopify` | Stub |
+| Channels | `/admin/channels/goodwillfinds` | Stub |
+| Channels | `/admin/marketplaces` | All connections (kept) |
+| Advanced | `/admin/developer` | API tokens table |
+| Advanced | `/admin/embedded-listings` | Activate stub |
+
+### Account settings
+
+| Route | Purpose |
+|-------|---------|
+| `/settings/account` | Self-edit (Edit Account form) |
+| `/settings` | Workspace prefs + link to account |
+| `/admin/teammates/[id]` | Admin edit same form |

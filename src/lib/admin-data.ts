@@ -543,6 +543,7 @@ export const DEMO_LOCAL_STORAGE_KEYS = [
   "test-goodwill-demo-photos",
   "test-goodwill-demo-shipments",
   "test-goodwill-admin",
+  "stl-admin-ims:",
 ] as const;
 
 /** Event logs are org-keyed (`stl-event-log:<orgId>`); clear via clearEventLog(). */

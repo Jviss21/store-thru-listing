@@ -17,12 +17,14 @@ import { CURRENT_USER } from "@/lib/mock-data";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 const quickLinks = [
-  { href: "/admin/users", label: "Users & roles" },
-  { href: "/admin/marketplaces", label: "Marketplace connections" },
+  { href: "/admin/teammates", label: "Teammates" },
+  { href: "/admin/roles", label: "Roles" },
+  { href: "/admin/products", label: "Product settings" },
+  { href: "/admin/templates", label: "Templates" },
+  { href: "/admin/shipping", label: "Shipping" },
+  { href: "/admin/channels/shopgoodwill", label: "ShopGoodwill" },
+  { href: "/admin/audit", label: "Master event log" },
   { href: "/admin/infinity-ai", label: BRAND.ai },
-  { href: "/admin/stations", label: "Printers & stations" },
-  { href: "/admin/audit", label: "Audit log" },
-  { href: "/admin/data", label: "Data & exports" },
 ];
 
 export default function AdminOverviewPage() {

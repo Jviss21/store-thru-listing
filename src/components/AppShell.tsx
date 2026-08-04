@@ -246,11 +246,16 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </Link>
         )}
         <Link
-          href="/settings"
+          href="/settings/account"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink/80 hover:bg-mist hover:text-ink"
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+            pathname.startsWith("/settings") && !pathname.startsWith("/settings/connections")
+              ? "bg-accent text-ink shadow-sm"
+              : "text-ink/80 hover:bg-mist hover:text-ink"
+          )}
         >
-          <Settings className="h-4 w-4 text-muted" />
+          <Settings className={cn("h-4 w-4", pathname.startsWith("/settings") && !pathname.startsWith("/settings/connections") ? "text-ink" : "text-muted")} />
           Settings
         </Link>
         {isOps && (

@@ -100,6 +100,11 @@ export function clearAdminLocalStorage() {
   ]) {
     localStorage.removeItem(k);
   }
+  // Org-scoped IMS settings keys
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("stl-admin-ims:")) localStorage.removeItem(k);
+  }
 }
 
 export function effectivePermissions(

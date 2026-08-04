@@ -2,54 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Building2,
-  Cable,
-  Database,
-  Home,
-  LayoutDashboard,
-  ListChecks,
-  Printer,
-  ScrollText,
-  Shield,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { Home, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND, ORG_NAME } from "@/lib/mock-data";
 import { Badge } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
 import { canViewMasterEventLog } from "@/lib/roles";
 import { RoleGate } from "@/components/RoleGate";
-
-const adminNav: Array<{
-  href: string;
-  label: string;
-  icon: typeof LayoutDashboard;
-  exact?: boolean;
-  masterOnly?: boolean;
-}> = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/admin/organization", label: "Organization", icon: Building2 },
-  { href: "/admin/users", label: "Users & roles", icon: Users },
-  { href: "/admin/marketplaces", label: "Marketplaces", icon: Cable },
-  { href: "/admin/infinity-ai", label: BRAND.ai, icon: Sparkles },
-  { href: "/admin/listing-defaults", label: "Listing defaults", icon: ListChecks },
-  { href: "/admin/stations", label: "Printers & stations", icon: Printer },
-  { href: "/admin/audit", label: "Master event log", icon: ScrollText, masterOnly: true },
-  { href: "/admin/data", label: "Data & exports", icon: Database },
-];
-
-function isAdminActive(pathname: string, href: string, exact?: boolean) {
-  if (exact || href === "/admin") return pathname === "/admin";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+import { ADMIN_NAV_GROUPS, isAdminNavActive } from "@/lib/admin-nav";
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { session, isOps } = useOrg();
   const showMaster = canViewMasterEventLog(session.role, isOps);
-  const items = adminNav.filter((i) => !i.masterOnly || showMaster);
 
   return (
     <RoleGate path="/admin">
@@ -72,11 +37,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl">Admin</h1>
                   <Badge tone="yellow" className="border border-accent/30 bg-accent/20 text-accent-ink">
-                    Ops console
+                    IMS settings
                   </Badge>
                 </div>
                 <p className="mt-1 text-sm text-white/65">
-                  {ORG_NAME} · store-thru-listing backend · powered by {BRAND.product}
+                  {ORG_NAME} · operational settings · powered by {BRAND.product}
                 </p>
               </div>
             </div>
@@ -92,26 +57,44 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         <div className="flex flex-col gap-5 lg:flex-row">
           <nav
-            className="flex shrink-0 gap-1 overflow-x-auto pb-1 lg:w-52 lg:flex-col lg:overflow-visible lg:pb-0"
+            className="flex shrink-0 flex-col gap-4 overflow-x-auto pb-1 lg:w-56 lg:overflow-visible lg:pb-0"
             aria-label="Admin sections"
           >
-            {items.map((item) => {
-              const Icon = item.icon;
-              const active = isAdminActive(pathname, item.href, item.exact);
+            {ADMIN_NAV_GROUPS.map((group) => {
+              const items = group.items.filter((i) => !i.masterOnly || showMaster);
+              if (!items.length) return null;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
-                    active
-                      ? "bg-accent text-ink shadow-sm"
-                      : "text-ink/75 hover:bg-mist hover:text-ink"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4", active ? "text-ink" : "text-muted")} />
-                  {item.label}
-                </Link>
+                <div key={group.id}>
+                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+                    {group.label}
+                  </p>
+                  <div className="flex gap-1 lg:flex-col">
+                    {items.map((item) => {
+                      const Icon = item.icon;
+                      const active = isAdminNavActive(pathname, item.href, item.exact);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
+                            active
+                              ? "bg-accent text-ink shadow-sm"
+                              : "text-ink/75 hover:bg-mist hover:text-ink"
+                          )}
+                        >
+                          <Icon className={cn("h-4 w-4", active ? "text-ink" : "text-muted")} />
+                          <span className="truncate">{item.label}</span>
+                          {item.stub ? (
+                            <span className="ml-auto hidden text-[9px] font-bold uppercase tracking-wide text-muted lg:inline">
+                              Stub
+                            </span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </nav>
