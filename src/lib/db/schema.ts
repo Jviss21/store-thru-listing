@@ -138,5 +138,5 @@ export const SCHEMA_NOTES = {
   auth: "NextAuth credentials; session carries userId, orgId, role, isOps",
   infinityAi: "Auto-List only — no Auto-Draft jobs table.",
   vercel:
-    "SQLite file: URLs are skipped on Vercel; use Postgres DATABASE_URL or seed-module auth fallback.",
+    "Use Postgres DATABASE_URL (Neon) for Prisma; otherwise seed-module auth fallback. file: SQLite is skipped on Vercel.",
 } as const;

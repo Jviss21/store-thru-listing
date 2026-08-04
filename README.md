@@ -28,13 +28,15 @@ Open http://localhost:3000/login — e.g. `john.doe@testgoodwill.example` / `tes
 npx vercel env add NEXTAUTH_SECRET production
 npx vercel env add NEXTAUTH_URL production   # https://store-thru-listing.vercel.app
 npx vercel env add DEMO_PASSWORD production  # optional; defaults to testgoodwill
-# Optional Postgres later:
-# npx vercel env add DATABASE_URL production
 
-npx vercel --prod --yes
+# Postgres (Neon Marketplace) — accept terms once, then:
+# npx vercel integration add neon --name store-thru-listing-db --plan free_v3 -m region=iad1 -m auth=false -e production -e preview --no-env-pull
+# npx vercel env pull .env.local
+# npm run db:push && npm run db:seed
+# npx vercel --prod --yes
 ```
 
-Auth works on Vercel **without** `DATABASE_URL` via the seeded user module. Add Postgres when you want durable org/user rows.
+Auth works on Vercel **without** `DATABASE_URL` via the seeded user module. Neon attaches `DATABASE_URL` + `DATABASE_URL_UNPOOLED` for durable Prisma auth.
 
 ## Seeded users
 
@@ -67,12 +69,13 @@ Password for all: `testgoodwill` (or `DEMO_PASSWORD`).
 | `NEXTAUTH_SECRET` | Prod | JWT signing secret |
 | `NEXTAUTH_URL` | Prod | Public site URL |
 | `DEMO_PASSWORD` | Recommended | Shared pilot password |
-| `DATABASE_URL` | Local / optional prod | `file:./dev.db` or Postgres URL |
+| `DATABASE_URL` | Optional prod | Postgres pooled URL (Neon sets this) |
+| `DATABASE_URL_UNPOOLED` | With Neon | Direct URL for `db push` / migrate |
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `npm run db:push` | Apply Prisma schema (SQLite/Postgres) |
+| `npm run db:push` | Apply Prisma schema (Postgres) |
 | `npm run db:seed` | Seed 10 orgs + users |
 | `npm run db:studio` | Prisma Studio |

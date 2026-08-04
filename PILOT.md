@@ -33,9 +33,9 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 
 | Environment | Behavior |
 |-------------|----------|
-| Local | `DATABASE_URL="file:./dev.db"` → `npm run db:push` → `npm run db:seed` |
+| Local | Postgres via `DATABASE_URL` (+ `DATABASE_URL_UNPOOLED`) → `npm run db:push` → `npm run db:seed` |
 | Vercel (no Postgres) | Auth uses in-code seed users; product/listing APIs stay on `MockApiClient` |
-| Vercel + Postgres | Set `DATABASE_URL` to `postgres://…`, change Prisma `provider` to `postgresql`, `db push` + seed |
+| Vercel + Neon/Postgres | Marketplace Neon sets `DATABASE_URL` / `DATABASE_URL_UNPOOLED`; then `db push` + seed |
 
 ### Env vars
 
@@ -44,7 +44,8 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 | `NEXTAUTH_SECRET` | Prod | Random string for JWT signing |
 | `NEXTAUTH_URL` | Prod | Canonical site URL |
 | `DEMO_PASSWORD` | Recommended | Pilot password (default `testgoodwill`) |
-| `DATABASE_URL` | Optional | SQLite file locally; Postgres for prod persistence |
+| `DATABASE_URL` | Optional | Postgres (pooled) for Prisma; omit → seed-module auth |
+| `DATABASE_URL_UNPOOLED` | With Neon | Direct Postgres URL for `db push` / migrate |
 
 ### What’s real vs mock
 

@@ -1,15 +1,17 @@
-// Multi-tenant pilot schema.
-// Local/demo: SQLite via DATABASE_URL="file:./dev.db"
-// Production: set DATABASE_URL to Postgres and change provider to "postgresql"
-//   (or keep SQLite for local only — Vercel uses seed-module auth when DB is unavailable).
+// Multi-tenant pilot schema (PostgreSQL).
+// Local: use Neon/Postgres DATABASE_URL (vercel env pull), or temporarily
+//   provider = "sqlite" + DATABASE_URL="file:./dev.db" for offline demos.
+// Vercel without DATABASE_URL still falls back to seed-module auth.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon pooled URL for queries; unpooled for migrate/db push
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Organization {
