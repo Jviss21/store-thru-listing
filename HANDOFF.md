@@ -1,7 +1,7 @@
 # Handoff — store-thru-listing (Test Goodwill demo IMS)
 
 **Audience:** Head of Product (+ eng follow-up)  
-**Prepared:** 2026-08-03  
+**Prepared:** 2026-08-03 (Postgres status updated 2026-08-04)  
 **Status:** **Demo-ready.** Not production-ready for onboarding ~20 real listers.
 
 This document is the single starting point. Deeper phase notes live in [PILOT.md](./PILOT.md) and [LAUNCH.md](./LAUNCH.md). Repo overview: [README.md](./README.md).
@@ -66,9 +66,9 @@ Three product surfaces share one Next.js 14 app:
 
 ### Supporting stack
 
-- **Auth:** NextAuth credentials (email + shared pilot password); JWT carries `userId`, `orgId`, `role`, `isOps`, memberships
-- **Schema:** Prisma multi-tenant models (`Org`, `User`, `Membership`, `Product`, `Listing`, `Order`, …) in `prisma/schema.prisma`
-- **Domain data today:** mostly **`MockApiClient`** + **browser `localStorage`** for Admin IMS settings — not durable org data in Postgres yet
+- **Auth / DB (production):** **Prisma + Neon Postgres** — Vercel Production + Preview have `DATABASE_URL` / `DATABASE_URL_UNPOOLED` for Neon project `store-thru-listing-db`. Schema push + seed completed; prod `/api/me` returns `dbMode: "prisma"`. NextAuth credentials (email + shared pilot password); JWT carries `userId`, `orgId`, `role`, `isOps`, memberships
+- **Schema:** Prisma multi-tenant models (`Org`, `User`, `Membership`, `Product`, `Listing`, `Order`, …) in `prisma/schema.prisma` (committed as PostgreSQL datasource)
+- **Domain data today:** mostly **`MockApiClient`** + **browser `localStorage`** for Admin IMS settings — inventory/listings/orders and Admin settings are **not** yet the system of record in Postgres
 - **Marketplaces:** adapter stubs; `NEXT_PUBLIC_MARKETPLACE_MODE=mock|live` (live returns `NOT_CONFIGURED` without vendor keys)
 
 ---
@@ -81,9 +81,9 @@ Three product surfaces share one Next.js 14 app:
 - Customer Admin IMS settings suite under `/admin` (persists per-org in `localStorage`)
 - Hammoq Ops console `/ops` (org health, flags, impersonate)
 - 10 pilot orgs + seeded users (including Test Goodwill role demos)
-- Prisma schema + seed script ready for Postgres
+- **Neon Postgres live on Vercel** (Production + Preview): schema push + seed done; auth/session backed by Prisma (`dbMode: "prisma"`)
 - Marketplace client stubs (ShopGoodwill / eBay) with mock/live env switch
-- Brand / Infinity AI positioning: **Auto-List only**
+- Brand / Infinity AI positioning: **Auto-List only** (Item Creation Auto-List primary flow may still be landing / iterating)
 
 ---
 
@@ -93,10 +93,9 @@ Be explicit with stakeholders: **this is a high-fidelity demo, not a production 
 
 | Gap | Notes |
 |-----|--------|
-| **Durable domain data** | Products, listings, orders, Admin IMS settings still mock / `localStorage` — not yet the system of record in Postgres |
-| **Postgres / Neon** | Neon env vars (`DATABASE_URL`, `DATABASE_URL_UNPOOLED`, etc.) are attached on Vercel **Production + Preview** (as of 2026-08-03). **Schema push + seed may still be finishing.** Until confirmed green: **auth may still use seed-module fallback** even though `DATABASE_URL` is present. Verify with Ops `/ops` (db mode) or eng after `db:push` + `db:seed` |
+| **Durable domain data** | Products, listings, orders, Admin IMS settings still mock / `localStorage` — not yet the system of record in Postgres (auth/org membership **is** Prisma-backed) |
 | **Marketplace live keys** | ShopGoodwill / eBay OAuth + listing APIs need real credentials; stubs only |
-| **Ops → real multi-org control plane** | Expand beyond demo health/flags/impersonation to real provisioning, support tooling, audit |
+| **Ops → real multi-org control plane** | `/ops` is a thin pilot console (health/flags/impersonation) — not full multi-org provisioning, support tooling, or audit |
 | **Teammate provisioning** | Admin teammates UI is demo/`localStorage`; need real invites, passwords, MFA, 20+ listers |
 | **Photos / files** | No durable object storage for product images yet |
 | **Carrier / printers / scanners** | Label APIs, printer profiles, barcode workflows not production-wired |
@@ -158,8 +157,8 @@ Useful scripts: `db:push`, `db:seed`, `db:studio`, `lint`, `build`.
 
 ## 10. Honesty statement (copy for stakeholders)
 
-> **store-thru-listing is demo-ready** for Test Goodwill / hammoq walkthroughs: live on Vercel, GitHub linked, roles and Admin/Ops surfaces in place, marketplace flows in mock mode.  
-> **It is not yet a production IMS** for onboarding twenty real listers: durable inventory/listings are still mock/`localStorage`, marketplace live keys are unset, Ops is a pilot console not a full multi-org control plane, and Neon/Postgres wiring on Vercel should be confirmed (push + seed) before treating auth as DB-backed.
+> **store-thru-listing is demo-ready** for Test Goodwill / hammoq walkthroughs: live on Vercel, GitHub linked, roles and Admin/Ops surfaces in place, marketplace flows in mock mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`).  
+> **It is not yet a production IMS** for onboarding twenty real listers: durable inventory/listings/orders and Admin IMS settings are still mock/`localStorage`, marketplace live keys are unset, and Ops is a thin pilot console — not a full multi-org control plane.
 
 ---
 
