@@ -1,10 +1,14 @@
 # Handoff — store-thru-listing (Test Goodwill demo IMS)
 
 **Audience:** Head of Product (+ eng follow-up)  
-**Prepared:** 2026-08-03 (Postgres status updated 2026-08-04)  
-**Status:** **Demo-ready.** Not production-ready for onboarding ~20 real listers.
+**Prepared:** 2026-08-04  
+**Status:** **Send-ready for Product early review.** Demo-ready on Vercel; eng continues P0 (durable domain SoR). Not production-ready for onboarding ~20 real listers.
 
 This document is the single starting point. Deeper phase notes live in [PILOT.md](./PILOT.md) and [LAUNCH.md](./LAUNCH.md). Repo overview: [README.md](./README.md).
+
+**IMS vs Retail:** This repo/folder is **IMS-only** (`store-thru-listing`). **Retail** lives in a separate sibling folder/repo — do not mix handoffs:
+
+`C:\Users\Jared Visser\Documents\HAMMOQ\Hammoq AI Build\hammoq-retail`
 
 ---
 
@@ -82,24 +86,27 @@ Three product surfaces share one Next.js 14 app:
 - Hammoq Ops console `/ops` (org health, flags, impersonate)
 - 10 pilot orgs + seeded users (including Test Goodwill role demos)
 - **Neon Postgres live on Vercel** (Production + Preview): schema push + seed done; auth/session backed by Prisma (`dbMode: "prisma"`)
-- Marketplace client stubs (ShopGoodwill / eBay) with mock/live env switch
-- Brand / Infinity AI positioning: **Auto-List only** (Item Creation Auto-List primary flow may still be landing / iterating)
+- Marketplace client stubs (ShopGoodwill / eBay) with mock/live env switch (`NEXT_PUBLIC_MARKETPLACE_MODE=mock` in prod)
+- Brand / Infinity AI positioning: **Auto-List only** — Item Creation primary path is Auto-List (`/products/auto-list`) with full manual listing form as secondary
+- Formal Product handoff (`HANDOFF.md`) + Desktop zip packaging script
 
 ---
 
-## 6. What’s NOT done / next for Product + Eng
+## 6. What’s NOT done / deferred / next for Product + Eng
 
-Be explicit with stakeholders: **this is a high-fidelity demo, not a production onboard for 20+ listers.**
+Be explicit with stakeholders: **this is a high-fidelity demo, not a production onboard for 20+ listers.**  
+**Send to Product now for early review** while eng continues P0 (durable domain SoR). Do **not** block Product walkthroughs on marketplace live or domain SoR.
 
 | Gap | Notes |
 |-----|--------|
-| **Durable domain data** | Products, listings, orders, Admin IMS settings still mock / `localStorage` — not yet the system of record in Postgres (auth/org membership **is** Prisma-backed) |
-| **Marketplace live keys** | ShopGoodwill / eBay OAuth + listing APIs need real credentials; stubs only |
+| **Durable domain data (P0 eng)** | Products, listings, orders, Admin IMS settings still mock / `localStorage` — not yet the system of record in Postgres (auth/org membership **is** Prisma-backed) |
+| **Marketplace live — DEFERRED for developers** | ShopGoodwill / eBay OAuth + listing APIs need real credentials; stubs only. **Do not start marketplace live in this handoff pass** — leave for eng when keys + scope are ready |
 | **Ops → real multi-org control plane** | `/ops` is a thin pilot console (health/flags/impersonation) — not full multi-org provisioning, support tooling, or audit |
 | **Teammate provisioning** | Admin teammates UI is demo/`localStorage`; need real invites, passwords, MFA, 20+ listers |
 | **Photos / files** | No durable object storage for product images yet |
 | **Carrier / printers / scanners** | Label APIs, printer profiles, barcode workflows not production-wired |
 | **Legal / reliability** | ToS/Privacy/DPA, staging, observability, backups — open |
+| **Retail product** | Separate codebase at `..\hammoq-retail` — out of scope for this IMS handoff |
 
 See [LAUNCH.md](./LAUNCH.md) for the longer production checklist.
 
@@ -157,8 +164,8 @@ Useful scripts: `db:push`, `db:seed`, `db:studio`, `lint`, `build`.
 
 ## 10. Honesty statement (copy for stakeholders)
 
-> **store-thru-listing is demo-ready** for Test Goodwill / hammoq walkthroughs: live on Vercel, GitHub linked, roles and Admin/Ops surfaces in place, marketplace flows in mock mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`).  
-> **It is not yet a production IMS** for onboarding twenty real listers: durable inventory/listings/orders and Admin IMS settings are still mock/`localStorage`, marketplace live keys are unset, and Ops is a thin pilot console — not a full multi-org control plane.
+> **store-thru-listing is demo-ready and send-ready for Product early review:** live on Vercel, GitHub linked, Auto-List primary Item Creation, roles and Admin/Ops surfaces in place, marketplace flows in **mock** mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`).  
+> **It is not yet a production IMS** for onboarding twenty real listers: durable inventory/listings/orders and Admin IMS settings are still mock/`localStorage`, **marketplace live is deferred for developers**, and Ops is a thin pilot console — not a full multi-org control plane. **Retail is a separate repo** (`hammoq-retail`).
 
 ---
 
