@@ -26,19 +26,33 @@ $includeGit = $gitSize -lt 80MB
 Write-Host "include_git=$includeGit"
 if (-not $includeGit -and (Test-Path "$stage\.git")) { Remove-Item "$stage\.git" -Recurse -Force }
 
-Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal -Force
+# Compress-Archive skips hidden items (.git); use ZipFile with -Force enumeration.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$z = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+  $files = Get-ChildItem -Path $stage -Recurse -Force -File
+  foreach ($f in $files) {
+    $rel = $f.FullName.Substring($stage.Length).TrimStart('\', '/')
+    $entryName = $rel -replace '\\', '/'
+    [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+      $z, $f.FullName, $entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+  }
+} finally { $z.Dispose() }
+
 $zipInfo = Get-Item $zip
 Write-Host ("zip_path={0}" -f $zipInfo.FullName)
 Write-Host ("zip_MB={0:N1}" -f ($zipInfo.Length/1MB))
 
-Add-Type -AssemblyName System.IO.Compression.FileSystem
 $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
 try {
   $bad = $z.Entries | Where-Object { $_.FullName -match '(^|/|\\)\.env(?!\.example)|(^|/|\\)node_modules(/|\\)|(^|/|\\)\.next(/|\\)' }
   if ($bad) { Write-Host "WARN bad entries:"; $bad | Select-Object -First 15 -ExpandProperty FullName } else { Write-Host "OK: scrub clean" }
-  $hasGit = ($z.Entries | Where-Object { $_.FullName -match '\.git/' } | Select-Object -First 1) -ne $null
+  $hasGit = ($z.Entries | Where-Object { $_.FullName -match '(^|/)\.git/' } | Select-Object -First 1) -ne $null
   $hasHandoff = ($z.Entries | Where-Object { $_.FullName -match 'HANDOFF\.md$' } | Select-Object -First 1) -ne $null
-  Write-Host "has_git=$hasGit has_handoff=$hasHandoff entries=$($z.Entries.Count)"
+  $hasEnvExample = ($z.Entries | Where-Object { $_.FullName -match '\.env\.example$' } | Select-Object -First 1) -ne $null
+  Write-Host "has_git=$hasGit has_handoff=$hasHandoff has_env_example=$hasEnvExample entries=$($z.Entries.Count)"
+  if (-not $hasGit -or -not $hasHandoff -or -not $hasEnvExample) { throw "Zip missing required contents" }
 } finally { $z.Dispose() }
 
 Remove-Item $stage -Recurse -Force
