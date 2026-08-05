@@ -1,10 +1,40 @@
 /**
- * Listing strategies — saved profiles that drive Auto-List / upload defaults.
- * Editable under Admin → Listing defaults. Selecting a strategy on the product
- * or listing form applies these defaults (user can override).
+ * Listing strategies — Auto-List / upload defaults + multi-step lifecycle engine.
+ * Form defaults: Admin → Listing defaults.
+ * Lifecycle steps: Admin → Listing Strategies.
+ * Runtime state: org-scoped localStorage (`stl-strategy-runs:<orgId>`) until DB models exist.
  */
 
-import type { ListingChannel, ListingType } from "./types";
+import type { ListingChannel, ListingStatus, ListingType } from "./types";
+
+/** Lifecycle step kinds — auction → BIN → multi-channel → handoff → purge. */
+export type StrategyStepKind =
+  | "queued"
+  | "auction"
+  | "bin"
+  | "multi_channel"
+  | "handoff"
+  | "purge";
+
+export type StrategyStep = {
+  id: string;
+  kind: StrategyStepKind;
+  label: string;
+  /** Simulated days on this step before auto-advance (0 = immediate / terminal). */
+  durationDays: number;
+  /** Listing status applied when this step becomes current. */
+  targetStatus: Extract<
+    ListingStatus,
+    "Queued" | "Active" | "Expired" | "Delisted" | "Recycled"
+  >;
+  listingType?: ListingType;
+  channels: ListingChannel[];
+  priceMode: "starting" | "bin" | "reduce_pct" | "hold";
+  /** Percent for reduce_pct (e.g. 20 = −20%). */
+  priceValue?: number;
+  /** Floor-facing next action copy. */
+  nextAction: string;
+};
 
 export type ListingStrategy = {
   id: string;
@@ -41,7 +71,165 @@ export type ListingStrategy = {
   paymentPolicy: string;
   storeCategory: string;
   notes?: string;
+  /** Configurable lifecycle pipeline (Admin → Listing Strategies). */
+  steps?: StrategyStep[];
 };
+
+function channelsFor(channel: ListingChannel | "Both"): ListingChannel[] {
+  if (channel === "Both") return ["eBay", "ShopGoodwill"];
+  return [channel];
+}
+
+/** Default auction → BIN → concurrent multi-channel → handoff → purge pipeline. */
+export function defaultLifecycleSteps(
+  s: Pick<ListingStrategy, "listingType" | "channel">
+): StrategyStep[] {
+  const primary = channelsFor(s.channel);
+  const both: ListingChannel[] = ["eBay", "ShopGoodwill"];
+
+  if (s.listingType === "Fixed Price") {
+    return [
+      {
+        id: "queued",
+        kind: "queued",
+        label: "Queued",
+        durationDays: 0,
+        targetStatus: "Queued",
+        listingType: "Fixed Price",
+        channels: primary,
+        priceMode: "bin",
+        nextAction: "Publish Buy It Now listing",
+      },
+      {
+        id: "bin",
+        kind: "bin",
+        label: "Buy It Now",
+        durationDays: 14,
+        targetStatus: "Active",
+        listingType: "Fixed Price",
+        channels: primary,
+        priceMode: "bin",
+        nextAction: "Open concurrent multi-channel listing",
+      },
+      {
+        id: "multi_channel",
+        kind: "multi_channel",
+        label: "Multi-channel",
+        durationDays: 21,
+        targetStatus: "Active",
+        listingType: "Fixed Price",
+        channels: both,
+        priceMode: "hold",
+        nextAction: "Handoff unsold inventory to outlet",
+      },
+      {
+        id: "handoff",
+        kind: "handoff",
+        label: "Handoff",
+        durationDays: 7,
+        targetStatus: "Active",
+        listingType: "Fixed Price",
+        channels: ["ShopGoodwill"],
+        priceMode: "reduce_pct",
+        priceValue: 20,
+        nextAction: "Purge / recycle remaining stock",
+      },
+      {
+        id: "purge",
+        kind: "purge",
+        label: "Purge",
+        durationDays: 0,
+        targetStatus: "Recycled",
+        channels: [],
+        priceMode: "hold",
+        nextAction: "Lifecycle complete",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "queued",
+      kind: "queued",
+      label: "Queued",
+      durationDays: 0,
+      targetStatus: "Queued",
+      listingType: "Auction",
+      channels: primary,
+      priceMode: "starting",
+      nextAction: "Start auction listing",
+    },
+    {
+      id: "auction",
+      kind: "auction",
+      label: "Auction",
+      durationDays: 7,
+      targetStatus: "Active",
+      listingType: "Auction",
+      channels: primary,
+      priceMode: "starting",
+      nextAction: "Convert unsold auction to Buy It Now",
+    },
+    {
+      id: "bin",
+      kind: "bin",
+      label: "Buy It Now",
+      durationDays: 10,
+      targetStatus: "Active",
+      listingType: "Fixed Price",
+      channels: primary,
+      priceMode: "bin",
+      nextAction: "Open concurrent multi-channel listing",
+    },
+    {
+      id: "multi_channel",
+      kind: "multi_channel",
+      label: "Multi-channel",
+      durationDays: 14,
+      targetStatus: "Active",
+      listingType: "Fixed Price",
+      channels: both,
+      priceMode: "hold",
+      nextAction: "Handoff unsold inventory to outlet",
+    },
+    {
+      id: "handoff",
+      kind: "handoff",
+      label: "Handoff",
+      durationDays: 5,
+      targetStatus: "Active",
+      listingType: "Fixed Price",
+      channels: ["ShopGoodwill"],
+      priceMode: "reduce_pct",
+      priceValue: 25,
+      nextAction: "Purge / recycle remaining stock",
+    },
+    {
+      id: "purge",
+      kind: "purge",
+      label: "Purge",
+      durationDays: 0,
+      targetStatus: "Recycled",
+      channels: [],
+      priceMode: "hold",
+      nextAction: "Lifecycle complete",
+    },
+  ];
+}
+
+export function ensureStrategySteps(s: ListingStrategy): ListingStrategy {
+  if (s.steps?.length) {
+    return {
+      ...s,
+      steps: s.steps.map((st) => ({ ...st, channels: [...st.channels] })),
+    };
+  }
+  return { ...s, steps: defaultLifecycleSteps(s) };
+}
+
+export function getStrategySteps(s: ListingStrategy): StrategyStep[] {
+  return ensureStrategySteps(s).steps ?? defaultLifecycleSteps(s);
+}
 
 /** Seeded strategies — names match Upright / Goodwill screenshot conventions where possible. */
 export const LISTING_STRATEGIES: ListingStrategy[] = [
@@ -373,9 +561,9 @@ export function strategyToFormDefaults(s: ListingStrategy): StrategyFormDefaults
   };
 }
 
-/** Mutable copy used by Admin → Listing defaults (localStorage). */
+/** Mutable copy used by Admin → Listing defaults / Listing Strategies (localStorage). */
 export type EditableStrategy = ListingStrategy;
 
 export function cloneStrategies(): ListingStrategy[] {
-  return LISTING_STRATEGIES.map((s) => ({ ...s }));
+  return LISTING_STRATEGIES.map((s) => ensureStrategySteps({ ...s }));
 }

@@ -1,37 +1,80 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ClipboardList } from "lucide-react";
-import { Button, Card, EmptyState, PageHeader } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
+import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
+import { useOrg } from "@/components/OrgProvider";
+import {
+  createPickListFromOpenOrders,
+  getPickLists,
+  pickListProgress,
+  PICK_LISTS_CHANGED,
+  type PickList,
+} from "@/lib/pick-lists-store";
 
-const DEMO_LISTS = [
-  {
-    id: "PL-1042",
-    profile: "Ready to fulfill · Standard",
-    creator: "jdoe",
-    items: 28,
-    createdAt: "Aug 3, 2026 · 9:14 AM",
-    lockedUntil: "Aug 3, 2026 · 11:59 PM",
-  },
-  {
-    id: "PL-1041",
-    profile: "Multi-item · Being pulled",
-    creator: "jsmith",
-    items: 41,
-    createdAt: "Aug 2, 2026 · 4:02 PM",
-    lockedUntil: "Unlocked",
-  },
-  {
-    id: "PL-1038",
-    profile: "Custom",
-    creator: "ajones",
-    items: 12,
-    createdAt: "Aug 1, 2026 · 11:20 AM",
-    lockedUntil: "Unlocked",
-  },
-];
+function formatWhen(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function statusTone(status: PickList["status"]) {
+  if (status === "packed") return "green" as const;
+  if (status === "picked") return "blue" as const;
+  if (status === "picking") return "yellow" as const;
+  if (status === "cancelled") return "red" as const;
+  return "neutral" as const;
+}
 
 export default function PickListsPage() {
+  const { org, hydrated } = useOrg();
+  const router = useRouter();
+  const [lists, setLists] = useState<PickList[]>([]);
+  const [flash, setFlash] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(() => {
+    if (!hydrated) return;
+    setLists(getPickLists(org.id));
+  }, [hydrated, org.id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    function onChange(e: Event) {
+      const detail = (e as CustomEvent).detail as { orgId?: string } | undefined;
+      if (detail?.orgId && detail.orgId !== org.id) return;
+      refresh();
+    }
+    window.addEventListener(PICK_LISTS_CHANGED, onChange);
+    return () => window.removeEventListener(PICK_LISTS_CHANGED, onChange);
+  }, [org.id, refresh]);
+
+  function flashMsg(msg: string) {
+    setFlash(msg);
+    setTimeout(() => setFlash(null), 2500);
+  }
+
+  function createList() {
+    setBusy(true);
+    try {
+      const list = createPickListFromOpenOrders({ orgId: org.id });
+      flashMsg(`Created ${list.id} · ${list.lines.length} lines`);
+      router.push(`/orders/pick-lists/${list.id}`);
+    } catch (err) {
+      flashMsg(err instanceof Error ? err.message : "Could not create pick list.");
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <Link
@@ -43,45 +86,82 @@ export default function PickListsPage() {
 
       <PageHeader
         title="Pick lists"
-        description="Active and recent pick lists for floor picking (demo stub)."
+        description="Scanner-first pick waves from open orders — group by location, scan SKU/barcode, then pack confirm."
         actions={
-          <Link href="/orders">
-            <Button type="button" variant="outline">
-              <ClipboardList className="h-4 w-4" /> Orders
+          <>
+            <Link href="/orders">
+              <Button type="button" variant="outline">
+                <ClipboardList className="h-4 w-4" /> Orders
+              </Button>
+            </Link>
+            <Button type="button" variant="accent" onClick={createList} disabled={!hydrated || busy}>
+              <Plus className="h-4 w-4" /> Create from open orders
             </Button>
-          </Link>
+          </>
         }
       />
 
+      {flash && (
+        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
+          {flash}
+        </div>
+      )}
+
       <Card className="overflow-x-auto">
-        {DEMO_LISTS.length === 0 ? (
+        {lists.length === 0 ? (
           <EmptyState
-            title="No pick lists"
-            description="Create a pick list from Orders → More actions."
+            title="No pick lists yet"
+            description="Create a pick list from Orders → More actions, or use Create from open orders."
           />
         ) : (
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[800px] text-left text-sm">
             <thead className="border-b bg-mist/60 text-xs uppercase text-muted">
               <tr>
                 <th className="px-5 py-2">Pick list</th>
-                <th className="px-3 py-2">Generated from</th>
+                <th className="px-3 py-2">Profile</th>
                 <th className="px-3 py-2">Creator</th>
-                <th className="px-3 py-2">Item count</th>
-                <th className="px-3 py-2">Created on</th>
+                <th className="px-3 py-2">Progress</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Created</th>
                 <th className="px-5 py-2">Locked until</th>
               </tr>
             </thead>
             <tbody>
-              {DEMO_LISTS.map((row) => (
-                <tr key={row.id} className="border-b hover:bg-accent/8">
-                  <td className="px-5 py-3 font-semibold text-ink">{row.id}</td>
-                  <td className="px-3 py-3">{row.profile}</td>
-                  <td className="px-3 py-3">{row.creator}</td>
-                  <td className="px-3 py-3 tabular-nums">{row.items}</td>
-                  <td className="px-3 py-3 text-muted">{row.createdAt}</td>
-                  <td className="px-5 py-3 text-muted">{row.lockedUntil}</td>
-                </tr>
-              ))}
+              {lists.map((row) => {
+                const prog = pickListProgress(row);
+                return (
+                  <tr key={row.id} className="border-b hover:bg-accent/8">
+                    <td className="px-5 py-3">
+                      <Link
+                        href={`/orders/pick-lists/${row.id}`}
+                        className="font-semibold text-ink hover:underline"
+                      >
+                        {row.id}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-3">{row.profile}</td>
+                    <td className="px-3 py-3">
+                      <span className="font-medium">{row.createdBy}</span>
+                      {row.createdByName && row.createdByName !== row.createdBy ? (
+                        <span className="block text-xs text-muted">{row.createdByName}</span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3 tabular-nums">
+                      {prog.picked}/{prog.total}
+                      {prog.notFound > 0 ? (
+                        <span className="ml-1 text-xs text-coral">({prog.notFound} missing)</span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3">
+                      <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+                    </td>
+                    <td className="px-3 py-3 text-muted">{formatWhen(row.createdAt)}</td>
+                    <td className="px-5 py-3 text-muted">
+                      {row.lockedUntil ? formatWhen(row.lockedUntil) : "Unlocked"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

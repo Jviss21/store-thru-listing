@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -20,7 +20,9 @@ import {
   uniqueOrderLocations,
 } from "@/components/orders/MoreFiltersDrawer";
 import { Badge, Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
+import { useOrg } from "@/components/OrgProvider";
 import { exportOrdersCsv } from "@/lib/demo-actions";
+import { createPickListFromOpenOrders, getLiveOrders } from "@/lib/pick-lists-store";
 import { orders as seedOrders } from "@/lib/mock-data";
 import {
   applyOrderFilters,
@@ -109,6 +111,8 @@ function tabFromParam(raw: string | null): OrdersTabId {
 
 function OrdersInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { org, hydrated } = useOrg();
   const [tab, setTab] = useState<OrdersTabId>(() =>
     tabFromParam(searchParams.get("tab") ?? searchParams.get("fulfillment"))
   );
@@ -124,6 +128,12 @@ function OrdersInner() {
   const [flash, setFlash] = useState<string | null>(null);
   const sortRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  const [liveOrders, setLiveOrders] = useState(seedOrders);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setLiveOrders(getLiveOrders(org.id));
+  }, [hydrated, org.id, flash]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -138,27 +148,27 @@ function OrdersInner() {
   const tabCounts = useMemo(() => {
     const counts = {} as Record<OrdersTabId, number>;
     for (const t of TABS) {
-      counts[t.id] = seedOrders.filter((o) => orderMatchesTab(o, t.id)).length;
+      counts[t.id] = liveOrders.filter((o) => orderMatchesTab(o, t.id)).length;
     }
     return counts;
-  }, []);
+  }, [liveOrders]);
 
   const overdueCount = useMemo(
-    () => seedOrders.filter((o) => o.isOverdue).length,
-    []
+    () => liveOrders.filter((o) => o.isOverdue).length,
+    [liveOrders]
   );
   const urgentCount = useMemo(
-    () => seedOrders.filter((o) => o.isUrgent && !o.isOverdue).length,
-    []
+    () => liveOrders.filter((o) => o.isUrgent && !o.isOverdue).length,
+    [liveOrders]
   );
 
-  const locationOptions = useMemo(() => uniqueOrderLocations(seedOrders), []);
+  const locationOptions = useMemo(() => uniqueOrderLocations(liveOrders), [liveOrders]);
 
   const filtered = useMemo(() => {
-    const byTab = seedOrders.filter((o) => orderMatchesTab(o, tab));
+    const byTab = liveOrders.filter((o) => orderMatchesTab(o, tab));
     const narrowed = applyOrderFilters(byTab, filters, appliedQuery);
     return sortOrders(narrowed, sort);
-  }, [tab, filters, appliedQuery, sort]);
+  }, [tab, filters, appliedQuery, sort, liveOrders]);
 
   const chips = filterChipLabels(filters);
   const activeFilterCount = countActiveFilters(filters);
@@ -221,7 +231,23 @@ function OrdersInner() {
                     className="block w-full px-3 py-2 text-left text-sm hover:bg-mist"
                     onClick={() => {
                       setMoreOpen(false);
-                      flashMsg("Pick list created — demo stub.");
+                      if (!hydrated) {
+                        flashMsg("Org still loading…");
+                        return;
+                      }
+                      try {
+                        const list = createPickListFromOpenOrders({
+                          orgId: org.id,
+                        });
+                        flashMsg(`Pick list ${list.id} created.`);
+                        router.push(`/orders/pick-lists/${list.id}`);
+                      } catch (err) {
+                        flashMsg(
+                          err instanceof Error
+                            ? err.message
+                            : "Could not create pick list."
+                        );
+                      }
                     }}
                   >
                     Create pick list

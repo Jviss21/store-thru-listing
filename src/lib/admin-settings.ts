@@ -14,7 +14,11 @@ import {
   ROLE_PERMISSIONS,
   type PermissionKey,
 } from "@/lib/admin-data";
-import { cloneStrategies, type ListingStrategy } from "@/lib/listing-strategies";
+import {
+  cloneStrategies,
+  ensureStrategySteps,
+  type ListingStrategy,
+} from "@/lib/listing-strategies";
 
 const KEY = "test-goodwill-admin";
 
@@ -71,9 +75,10 @@ export function loadAdminState(): AdminPersistedState {
             : DEFAULT_AI_SETTINGS.categoryRouting.map((r) => ({ ...r })),
       },
       listingDefaults: { ...DEFAULT_LISTING_DEFAULTS, ...parsed.listingDefaults },
-      strategies: parsed.strategies?.length
+      strategies: (parsed.strategies?.length
         ? parsed.strategies
-        : cloneStrategies(),
+        : cloneStrategies()
+      ).map(ensureStrategySteps),
       stations: parsed.stations?.length
         ? parsed.stations
         : structuredClone(DEFAULT_ADMIN_STATE.stations),
@@ -98,14 +103,22 @@ export function clearAdminLocalStorage() {
     "test-goodwill-demo-photos",
     "test-goodwill-demo-manifests",
     "test-goodwill-demo-sku-counter",
+    "test-goodwill-demo-shipments",
     KEY,
   ]) {
     localStorage.removeItem(k);
   }
-  // Org-scoped IMS settings keys
+  // Org-scoped IMS / strategy / pick-list keys
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
-    if (k?.startsWith("stl-admin-ims:")) localStorage.removeItem(k);
+    if (
+      k?.startsWith("stl-admin-ims:") ||
+      k?.startsWith("stl-strategy-runs:") ||
+      k?.startsWith("stl-pick-lists:") ||
+      k?.startsWith("stl-order-overrides:")
+    ) {
+      localStorage.removeItem(k);
+    }
   }
 }
 

@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
-import { ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+import React, {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 
 export function Button({
   className,
@@ -33,12 +37,13 @@ export function Button({
   );
 }
 
-export function Input({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+export const Input = React.forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement>
+>(function Input({ className, ...props }, ref) {
   return (
     <input
+      ref={ref}
       className={cn(
         "h-10 w-full rounded-xl border border-ink/10 bg-white/80 px-3 text-sm outline-none backdrop-blur focus:border-ink/30 focus:ring-2 focus:ring-accent/40",
         className
@@ -46,7 +51,7 @@ export function Input({
       {...props}
     />
   );
-}
+});
 
 export function Textarea({
   className,

@@ -23,6 +23,7 @@ import { useOrg } from "@/components/OrgProvider";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { canEditListing, type Listing } from "@/lib/types";
 import { getListing } from "@/lib/mock-data";
+import { StrategyLifecyclePanel } from "@/components/StrategyLifecyclePanel";
 
 export default function ListingEditPage() {
   const params = useParams();
@@ -147,11 +148,13 @@ export default function ListingEditPage() {
               : "."}
         </div>
       )}
+      <StrategyLifecyclePanel listing={listing} strategyName={form.strategy} />
       <ListingEditorForm
         value={form}
         onChange={setForm}
         lockedChannel={listing.channel}
         readOnly={!editable}
+        productId={listing.productId}
       />
       <SaveConfirmBar show={justSaved} message="Listing saved successfully" />
     </div>
