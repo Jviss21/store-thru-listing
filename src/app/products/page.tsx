@@ -30,13 +30,18 @@ function ProductsInner() {
       ? (initial as ProductStatus | "All")
       : "All"
   );
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [created, setCreated] = useState<ReturnType<typeof getCreatedProducts>>([]);
   const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
     setCreated(getCreatedProducts());
   }, []);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("q");
+    if (fromUrl != null) setQ(fromUrl);
+  }, [searchParams]);
 
   const merged = useMemo(() => {
     const local = created.map((p) => ({

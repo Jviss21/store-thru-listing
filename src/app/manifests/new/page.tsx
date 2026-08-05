@@ -2,256 +2,194 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { Download, Rocket, Settings, Upload } from "lucide-react";
-import {
-  ListingEditorForm,
-  emptyFormState,
-  validateListingForm,
-  type ListingFormState,
-} from "@/components/ListingEditorForm";
-import {
-  SaveButton,
-  SaveConfirmBar,
-  SaveToast,
-  useSaveFeedback,
-} from "@/components/SaveFeedback";
-import { Button, Card, Input } from "@/components/ui";
+import { Suspense, useEffect, useState } from "react";
+import { Printer, Rocket, Settings, Trash2 } from "lucide-react";
+import { BarcodeStub, printUnitBarcode } from "@/components/BarcodeStub";
 import { InfinityBadge } from "@/components/Brand";
 import { RoleGate } from "@/components/RoleGate";
 import { useOrg } from "@/components/OrgProvider";
-import {
-  exportListingPacket,
-  saveCreatedListing,
-  saveCreatedProduct,
-} from "@/lib/demo-actions";
-import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
-import { logEvent } from "@/lib/event-log";
-import { BRAND, CATEGORY_PATHS } from "@/lib/mock-data";
+import { Button, Card, Input, Textarea } from "@/components/ui";
 import {
   allocateDonorSkuBarcode,
-  formatDonorBarcode,
   loadAdminIms,
+  peekNextDonorSku,
   type AdminImsState,
 } from "@/lib/admin-ims";
+import {
+  getCreatedProducts,
+  saveCreatedManifest,
+  saveCreatedProduct,
+} from "@/lib/demo-actions";
+import { logEvent } from "@/lib/event-log";
+import { BRAND, CATEGORY_PATHS, CURRENT_USER, SUPPLIERS } from "@/lib/mock-data";
 import { canAccessAdminConsole } from "@/lib/roles";
-import { printUnitBarcode } from "@/components/BarcodeStub";
+import type { Manifest } from "@/lib/types";
 
-function ManualCreateInner() {
+type Line = {
+  id: string;
+  title: string;
+  sku: string;
+  barcode: string;
+};
+
+function DonorBatchCreateInner() {
   const router = useRouter();
   const params = useSearchParams();
   const { org, session, isOps, hydrated: orgHydrated } = useOrg();
   const canAdmin = canAccessAdminConsole(session.role, isOps);
-  const skuFromUrl = params.get("sku");
-  const barcodeFromUrl = params.get("barcode");
 
-  const [batchBarcode, setBatchBarcode] = useState(barcodeFromUrl ?? "");
+  const [supplier, setSupplier] = useState(SUPPLIERS[SUPPLIERS.length - 1] ?? "Supplier 12");
+  const [batchBarcode, setBatchBarcode] = useState(params.get("barcode") ?? "");
+  const [title, setTitle] = useState(params.get("title") ?? "");
   const [notes, setNotes] = useState("");
-  const [form, setForm] = useState<ListingFormState>(() => {
-    const base = emptyFormState();
-    return {
-      ...base,
-      title: params.get("title") ?? "",
-      sku: skuFromUrl ?? "",
-      channels: [],
-    };
-  });
-  const [ims, setIms] = useState<AdminImsState | null>(null);
-  const [skuReady, setSkuReady] = useState(!!skuFromUrl);
-  const allocatedRef = useRef(false);
-  const [error, setError] = useState<string | null>(null);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const { feedback, justSaved, announce } = useSaveFeedback();
+  const [flash, setFlash] = useState<string | null>(null);
+  const [ims, setIms] = useState<AdminImsState | null>(null);
 
   useEffect(() => {
-    if (!orgHydrated || allocatedRef.current) return;
-    allocatedRef.current = true;
-    const loaded = loadAdminIms(org.id);
-    setIms(loaded);
-    if (skuFromUrl) {
-      setSkuReady(true);
-      if (!barcodeFromUrl && loaded.manifests.autoGenerateSkuOnCreate) {
-        setBatchBarcode(formatDonorBarcode(skuFromUrl, loaded.manifests));
-      }
-      return;
+    if (!orgHydrated) return;
+    setIms(loadAdminIms(org.id));
+  }, [org.id, orgHydrated]);
+
+  function addProduct() {
+    if (!title.trim()) return;
+    if (!orgHydrated) return;
+
+    const auto = ims?.manifests.autoGenerateSkuOnCreate !== false;
+    let sku: string;
+    let barcode: string;
+
+    if (auto) {
+      const allocated = allocateDonorSkuBarcode(org.id);
+      setIms(allocated.state);
+      sku = allocated.sku;
+      barcode = allocated.barcode;
+    } else {
+      const existing = new Set([
+        ...getCreatedProducts().map((p) => p.sku.toUpperCase()),
+        ...lines.map((l) => l.sku.toUpperCase()),
+      ]);
+      const base = params.get("sku")?.trim() || `MANUAL-${Date.now().toString(36).toUpperCase()}`;
+      sku = existing.has(base.toUpperCase()) ? `${base}-${lines.length + 1}` : base;
+      barcode = sku;
     }
-    if (!loaded.manifests.autoGenerateSkuOnCreate) {
-      const fallback = emptyFormState().sku;
-      setForm((prev) => (prev.sku ? prev : { ...prev, sku: fallback }));
-      setSkuReady(true);
-      return;
-    }
-    const allocated = allocateDonorSkuBarcode(org.id);
-    setIms(allocated.state);
-    setForm((prev) => ({ ...prev, sku: allocated.sku }));
-    if (!barcodeFromUrl) setBatchBarcode(allocated.barcode);
-    setSkuReady(true);
+
+    const next: Line = {
+      id: `tmp-${Date.now()}-${lines.length}`,
+      title: title.trim(),
+      sku,
+      barcode,
+    };
+    setLines((prev) => [...prev, next]);
+    setTitle("");
+    setFlash(`Generated SKU ${sku} · barcode ${barcode}`);
+    window.setTimeout(() => setFlash(null), 2400);
     logEvent({
       section: "manifests",
-      action: "Allocated donor SKU from Admin defaults",
-      resource: allocated.sku,
+      action: "Generated unit SKU/barcode",
+      resource: sku,
       resourceHref: "/manifests/new",
       orgId: org.id,
     });
-  }, [org.id, orgHydrated, skuFromUrl, barcodeFromUrl]);
 
-  async function buildAndSave(status: "Draft" | "Active") {
-    if (!form.title.trim() || !form.sku.trim()) {
-      setError("Title and SKU are required.");
-      return null;
+    if (ims?.manifests.printBarcodeOnCreate) {
+      printUnitBarcode({
+        sku: barcode,
+        title: next.title,
+        supplier,
+        batch: batchBarcode.trim() || undefined,
+      });
     }
-    if (batchBarcode.trim() && !/^[A-Za-z0-9:.-]+$/.test(batchBarcode.trim())) {
-      setError("Barcode can only contain letters, numbers, dashes, colons, and periods.");
-      return null;
-    }
-    if (status === "Active" && form.channels.length === 0) {
-      setError("Add at least one channel (eBay or ShopGoodwill) before listing online.");
-      return null;
-    }
-    if (status === "Active" && form.imageUrls.length === 0) {
-      setError("Add at least one photo before listing online.");
-      return null;
-    }
-    if (status === "Active" && form.channels.includes("eBay")) {
-      const aspectsRes = await getEbayAspectsClient().getEbayCategoryAspects(form.ebayCategoryId);
-      const aspects = aspectsRes.ok ? aspectsRes.data.aspects : [];
-      const err = validateListingForm(form, aspects);
-      if (err) {
-        setError(err);
-        return null;
-      }
-    } else if (status === "Active") {
-      const err = validateListingForm(form, []);
-      if (err) {
-        setError(err);
-        return null;
-      }
-    }
-    setError(null);
-    const tags = [...form.tags];
-    if (batchBarcode.trim()) tags.push(`barcode:${batchBarcode.trim()}`);
-    if (notes.trim()) tags.push("manual-notes");
-    return saveCreatedProduct({
-      id: `local-${Date.now()}`,
-      title: form.title.trim(),
-      sku: form.sku.trim(),
-      category: form.category,
-      categoryPath: CATEGORY_PATHS[form.category] ?? form.categoryPath,
-      supplier: form.supplier,
-      price: Number(form.price) || Number(form.startingPrice) || 0,
-      location: form.location,
-      description: form.description,
-      privateDescription: form.privateDescription || form.sku.trim(),
-      status,
-      imageNames: form.imageUrls.map((_, i) => `photo-${i + 1}.jpg`),
-      imageUrls: form.imageUrls,
-      createdAt: new Date().toISOString(),
-      listedOn: [],
-      condition: form.condition,
-      brand: form.brand || form.itemSpecifics.Brand,
-      carrier: form.carrier,
-      strategy: form.strategy,
-      tags: tags.length ? tags : ["Demo", "Manual"],
-      weightLbs: Number(form.weightLbs) || undefined,
-      lengthIn: Number(form.lengthIn) || undefined,
-      widthIn: Number(form.widthIn) || undefined,
-      heightIn: Number(form.heightIn) || undefined,
-      upc: form.upc || undefined,
-      mpn: form.mpn || undefined,
-    });
   }
 
-  function maybePrintBarcode(sku: string, title?: string) {
-    if (!ims?.manifests.printBarcodeOnCreate) return;
-    const code = batchBarcode.trim() || formatDonorBarcode(sku, ims.manifests);
-    printUnitBarcode({
-      sku: code,
-      title: title || form.title.trim() || undefined,
-      batch: batchBarcode.trim() || undefined,
-    });
-    logEvent({
-      section: "manifests",
-      action: "Printed donor barcode on create",
-      resource: code,
-      resourceHref: "/manifests/new",
-      orgId: org.id,
-    });
+  function removeLine(id: string) {
+    setLines((prev) => prev.filter((l) => l.id !== id));
   }
 
-  async function saveDraft() {
+  function save() {
+    const next: string[] = [];
+    if (!supplier) next.push("Supplier / donor is required.");
+    if (!batchBarcode.trim()) next.push("Batch barcode / donation ID is required.");
+    else if (!/^[A-Za-z0-9-]+$/.test(batchBarcode.trim())) {
+      next.push("Batch barcode can only contain letters, numbers, and dashes.");
+    }
+    if (lines.length === 0) next.push("Add at least one product before creating.");
+    setErrors(next);
+    if (next.length) return;
+
     setSaving(true);
-    const product = await buildAndSave("Draft");
-    if (!product) {
-      setSaving(false);
-      return;
+    const now = new Date().toISOString();
+    const code = batchBarcode.trim().toUpperCase();
+    const manifestId = `local-m-${Date.now()}`;
+
+    for (const line of lines) {
+      saveCreatedProduct({
+        id: `local-${line.id}`,
+        title: line.title,
+        sku: line.sku,
+        category: "General Merchandise",
+        categoryPath: CATEGORY_PATHS["General Merchandise"],
+        supplier,
+        price: 0,
+        location: "Receiving",
+        description: `${line.title} — donor intake via ${code}.`,
+        privateDescription: line.sku,
+        status: "Draft",
+        imageNames: [],
+        imageUrls: [],
+        createdAt: now,
+        listedOn: [],
+        condition: "Used - Good",
+        tags: ["Donor", `batch:${code}`, `barcode:${line.barcode}`],
+        upc: line.barcode,
+      });
     }
-    exportListingPacket({
-      title: product.title,
-      sku: product.sku,
-      channel: "Draft",
-      price: product.price,
-      category: product.category,
-      description: product.description,
-      images: product.imageUrls,
-      productId: product.id,
-    });
-    maybePrintBarcode(product.sku, product.title);
-    logEvent({
-      section: "manifests",
-      action: "Saved manual draft",
-      resource: product.sku,
-      resourceHref: "/manifests/new",
-    });
-    announce("Draft saved successfully.");
+
+    const manifest: Manifest = {
+      id: manifestId,
+      code,
+      supplier,
+      createdBy: CURRENT_USER.name,
+      createdAt: now,
+      updatedAt: now,
+      status: "Created",
+      productCount: lines.length,
+      items: lines.map((line, i) => ({
+        id: `mi-${manifestId}-${i}`,
+        title: line.title,
+        sku: line.sku,
+        reviewStatus: "Draft product",
+      })),
+      notes: notes.trim()
+        ? [
+            {
+              id: `note-${Date.now()}`,
+              user: CURRENT_USER.handle,
+              body: notes.trim(),
+              at: now,
+            },
+          ]
+        : [],
+      events: [
+        {
+          id: `ev-${Date.now()}`,
+          user: CURRENT_USER.handle,
+          action: `created donor batch ${code} with ${lines.length} unit SKU(s)`,
+          at: now,
+        },
+      ],
+    };
+    saveCreatedManifest(manifest);
     setSaving(false);
+    router.push(`/manifests/${manifestId}`);
   }
 
-  async function saveAndList() {
-    setSaving(true);
-    const product = await buildAndSave("Active");
-    if (!product) {
-      setSaving(false);
-      return;
-    }
-    const channel = form.channels[0]!;
-    saveCreatedListing({
-      id: `listing-${Date.now()}`,
-      productId: product.id,
-      channel,
-      title: product.title,
-      sku: product.sku,
-      price: product.price,
-      status: "Queued",
-      createdAt: new Date().toISOString(),
-    });
-    exportListingPacket({
-      title: product.title,
-      sku: product.sku,
-      channel,
-      price: product.price,
-      category: product.category,
-      description: product.description,
-      images: product.imageUrls,
-      productId: product.id,
-    });
-    maybePrintBarcode(product.sku, product.title);
-    logEvent({
-      section: "manifests",
-      action: `Manual listed to ${channel}`,
-      resource: product.sku,
-      resourceHref: "/manifests/new",
-    });
-    announce(`Listing created for ${channel} (Queued).`);
-    setSaving(false);
-    setTimeout(() => {
-      router.push(
-        channel === "eBay" ? "/listings/ebay?status=Queued" : "/listings/shopgoodwill?status=Queued"
-      );
-    }, 800);
-  }
+  const nextPreview = ims ? peekNextDonorSku(ims.manifests) : "TG-4801";
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="space-y-4 pb-10">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <div>
           <Link href="/manifests" className="text-primary hover:underline">
@@ -269,54 +207,13 @@ function ManualCreateInner() {
         )}
       </div>
 
-      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b bg-white/95 py-3 backdrop-blur">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Manual donor create</h1>
-          <p className="text-sm text-muted">
-            Photos + details for eBay and ShopGoodwill — tertiary to {BRAND.autoList} onboarding.
-            {ims?.manifests.autoGenerateSkuOnCreate
-              ? ` SKU prefix ${ims.manifests.skuPrefix} from Admin defaults.`
-              : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SaveButton
-            justSaved={justSaved}
-            saving={saving || !skuReady}
-            savedLabel="Draft saved"
-            onClick={() => void saveDraft()}
-          >
-            <Download className="h-4 w-4" /> Save draft
-          </SaveButton>
-          {justSaved && (
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-save-ok">
-              ✓ Saved
-            </span>
-          )}
-          <Button
-            variant="accent"
-            type="button"
-            disabled={saving || !skuReady}
-            onClick={() => void saveAndList()}
-          >
-            <Upload className="h-4 w-4" /> Create listing
-          </Button>
-        </div>
-      </div>
-
-      <SaveToast feedback={feedback} />
-      {error && (
-        <div className="rounded-xl border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
-          {error}
-        </div>
-      )}
-
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">Ideal path: {BRAND.autoList} onboarding</p>
           <p className="text-xs text-muted">
-            Request a demo to get fully onboarded, or try {BRAND.autoList} in this demo app.
+            Request a demo for full store→ecomm onboarding. This page is the manual donation-batch
+            create with per-unit SKU / barcode generation.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -333,39 +230,175 @@ function ManualCreateInner() {
         </div>
       </Card>
 
-      <Card className="grid gap-4 p-4 sm:grid-cols-2">
-        <div>
-          <label className="text-sm font-medium text-ink">Item barcode</label>
-          <Input
-            className="mt-1"
-            value={batchBarcode}
-            onChange={(e) => setBatchBarcode(e.target.value)}
-            placeholder={ims ? formatDonorBarcode(form.sku || "SKU", ims.manifests) : "Barcode"}
-          />
-          <p className="mt-1 text-xs text-muted">
-            Derived from Admin barcode format
-            {ims ? ` (${ims.manifests.barcodeFormat})` : ""}
-            {ims?.manifests.printBarcodeOnCreate ? " · prints on save" : ""}.
-          </p>
+      <Card className="p-6">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Create donor batch</h1>
+        <p className="mt-1 text-sm text-muted">
+          Select supplier, enter a batch / donation ID, then add products. Each unit gets a unique{" "}
+          <span className="font-mono text-ink">{nextPreview.replace(/\d+$/, "xxxx")}</span> SKU and
+          printable barcode when added
+          {ims?.manifests.autoGenerateSkuOnCreate === false
+            ? " (auto-generate is off in Admin — enter SKUs manually via URL or defaults)."
+            : ` (prefix ${ims?.manifests.skuPrefix ?? "TG"} from Admin defaults).`}
+        </p>
+
+        {errors.length > 0 && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <ul className="list-disc pl-4">
+              {errors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {flash && (
+          <div className="mt-4 rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
+            {flash}
+          </div>
+        )}
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium">
+              Supplier / donor <span className="text-red-600">(required)</span>
+            </label>
+            <select
+              className="mt-1 h-9 w-full rounded-md border px-3 text-sm"
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+            >
+              {SUPPLIERS.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">
+              Batch barcode / donation ID <span className="text-red-600">(required)</span>
+            </label>
+            <Input
+              className="mt-1"
+              value={batchBarcode}
+              onChange={(e) => setBatchBarcode(e.target.value)}
+              placeholder="e.g. BATCH-1001"
+            />
+          </div>
         </div>
-        <div>
-          <label className="text-sm font-medium text-ink">Intake notes (optional)</label>
-          <Input
+
+        <div className="mt-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-medium">Products</h2>
+            <span className="rounded-full bg-gray-100 px-2 text-xs font-medium">{lines.length}</span>
+            {ims?.manifests.autoGenerateSkuOnCreate !== false && (
+              <span className="text-xs text-muted">
+                Next SKU <span className="font-mono font-semibold text-ink">{nextPreview}</span>
+              </span>
+            )}
+          </div>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Input
+              placeholder="Red sweater, Lot of records, etc..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addProduct();
+                }
+              }}
+            />
+            <Button type="button" onClick={addProduct} disabled={!orgHydrated}>
+              Add Product
+            </Button>
+          </div>
+
+          {lines.length === 0 ? (
+            <div className="mt-8 rounded-md border border-dashed py-12 text-center text-sm text-muted">
+              This item batch is blank. Click &quot;Add product&quot; above — a unique SKU and barcode
+              are generated for each unit.
+            </div>
+          ) : (
+            <ul className="mt-4 divide-y rounded-md border">
+              {lines.map((line) => (
+                <li
+                  key={line.id}
+                  className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-ink">{line.title}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      SKU <span className="font-mono font-semibold text-ink">{line.sku}</span>
+                      {" · "}
+                      Barcode{" "}
+                      <span className="font-mono font-semibold text-ink">{line.barcode}</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <BarcodeStub
+                      compact
+                      sku={line.barcode}
+                      title={line.title}
+                      supplier={supplier}
+                      batch={batchBarcode.trim() || undefined}
+                    />
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                      onClick={() => removeLine(line.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="success" type="button" disabled={saving} onClick={save}>
+              Create Item
+            </Button>
+            {lines.length > 0 && (
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  lines.forEach((line, i) => {
+                    window.setTimeout(() => {
+                      printUnitBarcode({
+                        sku: line.barcode,
+                        title: line.title,
+                        supplier,
+                        batch: batchBarcode.trim(),
+                      });
+                    }, i * 350);
+                  });
+                  logEvent({
+                    section: "manifests",
+                    action: "Printed unit barcodes",
+                    resource: `${lines.length} labels`,
+                    resourceHref: "/manifests/new",
+                    orgId: org.id,
+                  });
+                }}
+              >
+                <Printer className="h-4 w-4" /> Print all barcodes
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <label className="text-sm font-medium">Notes</label>
+          <Textarea
             className="mt-1"
+            rows={3}
+            placeholder="Optional notes here."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Floor notes, source cart, etc."
           />
         </div>
       </Card>
-
-      <div className="rounded-xl border border-gold/40 bg-gold/15 px-4 py-3 text-sm font-medium text-ink">
-        Fill photos, title, description, category, condition, brand, price, quantity, and shipping —
-        then add eBay and/or ShopGoodwill before Create listing.
-      </div>
-
-      <ListingEditorForm value={form} onChange={setForm} />
-      <SaveConfirmBar show={justSaved} message="Draft saved successfully" />
     </div>
   );
 }
@@ -374,7 +407,7 @@ export default function NewManifestPage() {
   return (
     <RoleGate path="/manifests/new">
       <Suspense fallback={<div className="p-8 text-sm text-muted">Loading…</div>}>
-        <ManualCreateInner />
+        <DonorBatchCreateInner />
       </Suspense>
     </RoleGate>
   );
