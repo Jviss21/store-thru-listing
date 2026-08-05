@@ -36,7 +36,7 @@ export const EVENT_SECTION_LABELS: Record<EventSection, string> = {
   listings: "Listings",
   orders: "Orders",
   shipments: "Shipments",
-  manifests: "Item Creation",
+  manifests: "Donor Item Creation",
   "auto-list": "Auto-List",
   admin: "Admin",
   reports: "Reports",
@@ -260,7 +260,7 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       resource: "Shipments export",
       resourceHref: "/shipments",
     },
-    // Item Creation (manifests)
+    // Donor Item Creation (manifests)
     {
       at: minsAgo(22),
       section: "manifests",

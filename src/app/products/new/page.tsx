@@ -155,11 +155,11 @@ function NewProductInner() {
     <div className="space-y-4 pb-12">
       <div className="text-sm text-muted">
         <Link href="/manifests" className="text-primary hover:underline">
-          Item Creation
+          Donor Item Creation
         </Link>{" "}
         &gt;{" "}
         <Link href="/manifests/new" className="text-primary hover:underline">
-          Manual create
+          Manual donor create
         </Link>{" "}
         &gt; New product
       </div>
@@ -167,11 +167,11 @@ function NewProductInner() {
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">New Product</h1>
           <p className="text-sm text-muted">
-            Full product + channel form — secondary to {BRAND.autoList}. Prefer{" "}
+            Full product + channel form — tertiary to {BRAND.autoList} onboarding. Prefer{" "}
             <Link href="/manifests/new" className="font-semibold text-brand-orange hover:underline">
-              Manual create
+              Manual donor create
             </Link>{" "}
-            from Item Creation.
+            from Donor Item Creation.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -204,12 +204,22 @@ function NewProductInner() {
       </div>
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
-        <p className="text-sm">Prefer speed? Use {BRAND.autoList}.</p>
+        <p className="min-w-0 flex-1 text-sm">
+          Ideal onboarding uses {BRAND.autoList} — request a demo, or try it in this app.
+        </p>
+        <a
+          href="https://hammoq.com/contact"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-semibold text-brand-orange hover:underline"
+        >
+          Request a demo
+        </a>
         <Link
           href="/products/auto-list"
-          className="ml-auto text-sm font-semibold text-brand-orange hover:underline"
+          className="text-sm font-semibold text-muted hover:underline"
         >
-          Open {BRAND.autoList}
+          Try {BRAND.autoList}
         </Link>
       </Card>
       <ListingEditorForm value={form} onChange={setForm} />

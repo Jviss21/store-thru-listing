@@ -45,7 +45,7 @@ const floorActions = [
 
 const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavSection }> = [
   { href: "/", label: "Home", icon: Home, section: "home" },
-  { href: "/manifests", label: "Item Creation", icon: ClipboardList, section: "manifests" },
+  { href: "/manifests", label: "Donor Item Creation", icon: ClipboardList, section: "manifests" },
   { href: "/products", label: "Products", icon: Package, section: "products" },
   { href: "/listings/shopgoodwill", label: "Listings", icon: List, section: "listings" },
   { href: "/orders", label: "Orders", icon: ShoppingCart, section: "orders" },

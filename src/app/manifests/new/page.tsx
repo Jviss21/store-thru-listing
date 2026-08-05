@@ -182,16 +182,16 @@ function ManualCreateInner() {
     <div className="space-y-4 pb-12">
       <div className="text-sm text-muted">
         <Link href="/manifests" className="text-primary hover:underline">
-          Item Creation
+          Donor Item Creation
         </Link>{" "}
-        &gt; Manual create
+        &gt; Manual donor create
       </div>
 
       <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b bg-white/95 py-3 backdrop-blur">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Manual create</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Manual donor create</h1>
           <p className="text-sm text-muted">
-            Photos + details for eBay and ShopGoodwill — secondary to {BRAND.autoList}.
+            Photos + details for eBay and ShopGoodwill — tertiary to {BRAND.autoList} onboarding.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -224,14 +224,23 @@ function ManualCreateInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">Prefer speed? Use {BRAND.autoList}</p>
-          <p className="text-xs text-muted">Primary Item Creation path for floor-ready products.</p>
+          <p className="text-sm font-semibold text-ink">Ideal path: {BRAND.autoList} onboarding</p>
+          <p className="text-xs text-muted">
+            Request a demo to get fully onboarded, or try {BRAND.autoList} in this demo app.
+          </p>
         </div>
-        <Link href="/products/auto-list">
-          <Button variant="primary" size="sm" type="button">
-            <Rocket className="h-3.5 w-3.5" /> {BRAND.autoList}
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <a href="https://hammoq.com/contact" target="_blank" rel="noopener noreferrer">
+            <Button variant="accent" size="sm" type="button">
+              Request a demo
+            </Button>
+          </a>
+          <Link href="/products/auto-list">
+            <Button variant="outline" size="sm" type="button">
+              <Rocket className="h-3.5 w-3.5" /> Try {BRAND.autoList}
+            </Button>
+          </Link>
+        </div>
       </Card>
 
       <Card className="grid gap-4 p-4 sm:grid-cols-2">

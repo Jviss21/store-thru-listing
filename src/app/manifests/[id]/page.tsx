@@ -144,7 +144,7 @@ export default function ManifestDetailPage() {
     <div className="space-y-4">
       <div className="text-sm text-muted">
         <Link href="/manifests" className="text-primary hover:underline">
-          Item Creation
+          Donor Item Creation
         </Link>{" "}
         &gt; View Item Batch
       </div>

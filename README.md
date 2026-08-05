@@ -54,7 +54,7 @@ Password for all: `testgoodwill` (or `DEMO_PASSWORD`).
 |------|--------|
 | Login | `/login` |
 | Home dashboard | `/` |
-| Item Creation | `/manifests`, … |
+| Donor Item Creation | `/manifests`, … |
 | Products / Auto-List | `/products`, `/products/auto-list` |
 | Listings | `/listings/shopgoodwill`, `/listings/ebay` |
 | Orders / Shipments | `/orders`, `/shipments` |

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ClipboardList, Download, Eye, Rocket, Trash2 } from "lucide-react";
+import { ClipboardList, Download, ExternalLink, Eye, Rocket, Trash2 } from "lucide-react";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { ManifestStatusBadge } from "@/components/StatusBadge";
 import { InfinityBadge } from "@/components/Brand";
@@ -71,8 +71,8 @@ function ManifestsInner() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Item Creation"
-        description={`${BRAND.autoList} is the main path to list online. Manual create is available when you need full photos and channel details by hand.`}
+        title="Donor Item Creation"
+        description={`${BRAND.autoList} is the ideal onboarding path for store donations and supplier intake. Request a demo to get fully onboarded, try it in this app, or create donor items manually.`}
         actions={
           <Button
             variant="outline"
@@ -92,38 +92,79 @@ function ManifestsInner() {
         }
       />
 
-      <div className={cn("grid gap-4", canAutoList ? "lg:grid-cols-[1.4fr_1fr]" : "lg:grid-cols-1")}>
+      <div
+        className={cn(
+          "grid gap-4",
+          canAutoList ? "lg:grid-cols-3" : "lg:grid-cols-1"
+        )}
+      >
         {canAutoList && (
-          <Link
-            href="/products/auto-list"
-            className="group block rounded-2xl bg-ink p-5 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-ink/95"
-            onClick={() =>
-              logEvent({
-                section: "manifests",
-                action: "Opened Auto-List from Item Creation",
-                resource: BRAND.autoList,
-                resourceHref: "/products/auto-list",
-              })
-            }
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-ink">
+          <>
+            <a
+              href="https://hammoq.com/contact"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group block rounded-2xl bg-ink p-5 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-ink/95"
+              onClick={() =>
+                logEvent({
+                  section: "manifests",
+                  action: "Opened Request a demo from Donor Item Creation",
+                  resource: "hammoq.com/contact",
+                  resourceHref: "https://hammoq.com/contact",
+                })
+              }
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-ink">
+                  <Rocket className="h-5 w-5" />
+                </div>
+                <InfinityBadge />
+              </div>
+              <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+                Primary · ideal onboarding
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">
+                {BRAND.autoList}
+              </h2>
+              <p className="mt-2 max-w-md text-sm text-white/70">
+                How teams get fully onboarded and see the ideal store→ecomm workflow for donor and
+                supplier intake. Talk with hammoq to set it up for your org.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent group-hover:underline">
+                Request a demo <ExternalLink className="h-3.5 w-3.5" />
+              </span>
+            </a>
+
+            <Link
+              href="/products/auto-list"
+              className="group block rounded-2xl border border-ink/10 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-ink/20"
+              onClick={() =>
+                logEvent({
+                  section: "manifests",
+                  action: "Opened Auto-List demo from Donor Item Creation",
+                  resource: BRAND.autoList,
+                  resourceHref: "/products/auto-list",
+                })
+              }
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mist text-ink">
                 <Rocket className="h-5 w-5" />
               </div>
-              <InfinityBadge />
-            </div>
-            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-              Primary · recommended
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">{BRAND.autoList}</h2>
-            <p className="mt-2 max-w-md text-sm text-white/70">
-              Push ready products to eBay and ShopGoodwill using each item&apos;s listing strategy —
-              weight, dims, shipping, and channel defaults.
-            </p>
-            <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent group-hover:underline">
-              Open {BRAND.autoList} →
-            </span>
-          </Link>
+              <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
+                Secondary · try in demo
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
+                Try {BRAND.autoList}
+              </h2>
+              <p className="mt-2 max-w-md text-sm text-muted">
+                Explore the floor demo: push ready products to eBay and ShopGoodwill using each
+                item&apos;s listing strategy.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
+                Try demo →
+              </span>
+            </Link>
+          </>
         )}
 
         <Link
@@ -132,8 +173,8 @@ function ManifestsInner() {
           onClick={() =>
             logEvent({
               section: "manifests",
-              action: "Opened Manual create from Item Creation",
-              resource: "Manual create",
+              action: "Opened Manual donor create from Donor Item Creation",
+              resource: "Manual donor create",
               resourceHref: "/manifests/new",
             })
           }
@@ -142,15 +183,17 @@ function ManifestsInner() {
             <ClipboardList className="h-5 w-5" />
           </div>
           <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
-            Secondary · full form
+            Tertiary · full form
           </p>
-          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">Manual create</h2>
+          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
+            Manual donor create
+          </h2>
           <p className="mt-2 max-w-md text-sm text-muted">
-            Enter photos, title, description, category, condition, brand, price, quantity, and shipping —
-            then list to eBay or ShopGoodwill.
+            Enter photos, title, description, category, condition, brand, price, quantity, and
+            shipping for donation/supplier batches — then list to eBay or ShopGoodwill.
           </p>
           <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
-            Manual create →
+            Manual donor create →
           </span>
         </Link>
       </div>
