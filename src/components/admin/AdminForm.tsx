@@ -88,14 +88,18 @@ export function ToggleRow({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-7 w-12 shrink-0 rounded-full transition",
-          checked ? "bg-accent" : "bg-ink/15"
+          "relative h-7 w-12 shrink-0 rounded-full border transition",
+          checked
+            ? "border-accent bg-accent"
+            : "border-ink/35 bg-[#D1D5DB]"
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition",
-            checked ? "left-5" : "left-0.5"
+            "absolute top-0.5 h-6 w-6 rounded-full shadow transition",
+            checked
+              ? "left-5 bg-white"
+              : "left-0.5 border border-ink/25 bg-[#F3F4F6]"
           )}
         />
       </button>
