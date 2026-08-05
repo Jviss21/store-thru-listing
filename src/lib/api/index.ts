@@ -20,6 +20,7 @@ export {
   getEbayAspectsClient,
   setEbayAspectsClient,
   MockEbayAspectsClient,
+  LiveEbayAspectsClient,
   reconcileItemSpecifics,
   defaultEbayCategoryIdForProductCategory,
   getSgwFieldsForPath,
@@ -36,6 +37,19 @@ export type {
   SgwCategoryField,
   SgwCategoryFields,
 } from "./ebay-aspects";
+
+export {
+  getEbayTaxonomyClient,
+  setEbayTaxonomyClient,
+  MockEbayTaxonomyClient,
+  LiveEbayTaxonomyClient,
+  isEbayTaxonomyConfigured,
+} from "@/lib/ebay/taxonomy-client";
+export {
+  getBundledCategoryIndex,
+  searchCategories,
+  getCategoryPath,
+} from "@/lib/ebay/category-tree";
 
 import { getMarketplaceMode } from "./config";
 import { createLiveApiClient } from "./live-client";

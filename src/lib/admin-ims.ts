@@ -134,7 +134,15 @@ export type AdminImsState = {
     barcodeFormat: "same-as-sku" | "prefix-dash-seq" | "code128-sku";
     printBarcodeOnCreate: boolean;
   };
-  categories: { id: string; name: string; parentId: string | null }[];
+  categories: {
+    id: string;
+    name: string;
+    parentId: string | null;
+    /** Mapped eBay taxonomy category id (optional). */
+    ebayCategoryId?: string | null;
+    /** Cached eBay path for display. */
+    ebayCategoryPath?: string | null;
+  }[];
   images: {
     watermarkEnabled: boolean;
     defaultAspect: "Custom" | "Square" | "4:3" | "16:9";
@@ -283,16 +291,70 @@ export function defaultAdminImsState(): AdminImsState {
       printBarcodeOnCreate: false,
     },
     categories: [
-      { id: "cat-antiques", name: "Antiques", parentId: null },
-      { id: "cat-art", name: "Art", parentId: null },
-      { id: "cat-books", name: "Books/Movies/Music", parentId: null },
+      {
+        id: "cat-antiques",
+        name: "Antiques",
+        parentId: null,
+        ebayCategoryId: "20081",
+        ebayCategoryPath: "Antiques",
+      },
+      {
+        id: "cat-art",
+        name: "Art",
+        parentId: null,
+        ebayCategoryId: "550",
+        ebayCategoryPath: "Art",
+      },
+      {
+        id: "cat-books",
+        name: "Books/Movies/Music",
+        parentId: null,
+        ebayCategoryId: "267",
+        ebayCategoryPath: "Books & Magazines",
+      },
       { id: "cat-bulk", name: "Bulk", parentId: "cat-books" },
-      { id: "cat-clothing", name: "Clothing", parentId: null },
-      { id: "cat-collectibles", name: "Collectibles", parentId: null },
-      { id: "cat-electronics", name: "Computers & Electronics", parentId: null },
-      { id: "cat-home", name: "Home", parentId: null },
-      { id: "cat-jewelry", name: "Jewelry", parentId: null },
-      { id: "cat-travel", name: "Travel/Luggage", parentId: null },
+      {
+        id: "cat-clothing",
+        name: "Clothing",
+        parentId: null,
+        ebayCategoryId: "11450",
+        ebayCategoryPath: "Clothing, Shoes & Accessories",
+      },
+      {
+        id: "cat-collectibles",
+        name: "Collectibles",
+        parentId: null,
+        ebayCategoryId: "1",
+        ebayCategoryPath: "Collectibles",
+      },
+      {
+        id: "cat-electronics",
+        name: "Computers & Electronics",
+        parentId: null,
+        ebayCategoryId: "293",
+        ebayCategoryPath: "Consumer Electronics",
+      },
+      {
+        id: "cat-home",
+        name: "Home",
+        parentId: null,
+        ebayCategoryId: "11700",
+        ebayCategoryPath: "Home & Garden",
+      },
+      {
+        id: "cat-jewelry",
+        name: "Jewelry",
+        parentId: null,
+        ebayCategoryId: "281",
+        ebayCategoryPath: "Jewelry & Watches",
+      },
+      {
+        id: "cat-travel",
+        name: "Travel/Luggage",
+        parentId: null,
+        ebayCategoryId: "181378",
+        ebayCategoryPath: "Travel > Luggage",
+      },
     ],
     images: {
       watermarkEnabled: true,

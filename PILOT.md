@@ -95,12 +95,26 @@ Infinity AI ships **Auto-List only** — do not reintroduce Auto-Draft in produc
 | Layer | Location |
 |-------|----------|
 | Interface | `EbayAspectsClient.getEbayCategoryAspects(categoryId)` in `src/lib/api/ebay-aspects.ts` |
-| Mock | `MockEbayAspectsClient` (Suits, Handbags, Headphones, Jewelry, Shoes, Collectibles, Travel/Luggage, Backpacks) |
+| Mock | `MockEbayAspectsClient` (Suits, Handbags, Headphones, Jewelry, Shoes, Collectibles, Travel/Luggage, Backpacks) + generic aspects for other taxonomy nodes |
 | SGW fields | `getSgwCategoryFields` / `getSgwFieldsForPath` — separate SGW paths (e.g. Travel/Luggage > Backpacks) |
 | UI | `ListingEditorForm` remounts Required/Optional Specifics on category change |
 | Storage | `listing.itemSpecifics: Record<string, string>` |
 
-Replace mock with eBay Commerce Taxonomy **getItemAspectsForCategory** when API keys exist.
+Replace mock aspects with eBay Commerce Taxonomy **getItemAspectsForCategory** when API keys exist.
+
+## eBay US category taxonomy tree
+
+| Layer | Location |
+|-------|----------|
+| Bundled tree | `src/lib/ebay/us-category-tree.json` (+ `.gz`) — ~5k EBAY_US nodes for offline demo |
+| Generator | `scripts/generate-ebay-us-category-tree.mjs` (then dense-expand when regenerating) |
+| Helpers | `src/lib/ebay/category-tree.ts` — index, path, search, children |
+| Client | `src/lib/ebay/taxonomy-client.ts` — mock loads bundled; live calls `getCategoryTree` when `EBAY_CLIENT_ID` + `EBAY_CLIENT_SECRET` set, else bundled fallback |
+| API | `GET /api/ebay/category-tree` — roots / children / search |
+| Admin UI | `/admin/categories` — org categories + browsable/searchable eBay tree mapping |
+| Listing UI | `EbayCategoryTreePicker` in `ListingEditorForm` eBay channel section |
+
+**Source:** Vendored demo snapshot shaped like Commerce Taxonomy `getCategoryTree` for marketplace `EBAY_US` (tree id `0`). Real leaf IDs preserved for aspect-mock categories. Live mode refreshes from eBay when credentials exist (`EBAY_ENV=sandbox|production`). Regenerate with `node scripts/generate-ebay-us-category-tree.mjs`.
 
 ## Listing strategies (Auto-List defaults)
 
@@ -152,7 +166,7 @@ Add new pages by appending to `ADMIN_NAV_GROUPS` in `src/lib/admin-nav.ts` and c
 | General | `/admin/suppliers` | Supplier abbreviations |
 | Manifests | `/admin/item-authentication` | Luxury hold rules |
 | Manifests | `/admin/manifests` | Rejection responses |
-| Products | `/admin/categories` | Category tree |
+| Products | `/admin/categories` | Org categories + eBay US taxonomy mapping |
 | Products | `/admin/images` | Watermark / crop defaults |
 | Products | `/admin/listing-strategies` | Alias of listing-defaults |
 | Products | `/admin/listing-defaults` | Strategy editor (kept) |

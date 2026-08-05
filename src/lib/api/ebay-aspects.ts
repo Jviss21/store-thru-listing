@@ -4,9 +4,18 @@
  * Pilot uses MockEbayAspectsClient. When eBay API keys exist, replace the mock with
  * Commerce Taxonomy `getItemAspectsForCategory` (and related metadata) behind the
  * same EbayAspectsClient interface — see PILOT.md § eBay item specifics.
+ *
+ * Category listing comes from the US taxonomy tree (`src/lib/ebay/`) — full bundled
+ * tree in mock mode; live Taxonomy API when EBAY_* credentials are present.
  */
 
 import type { ApiResult } from "./types";
+import {
+  getBundledCategoryIndex,
+  getCategoryPath,
+  listLeafOptions,
+} from "@/lib/ebay/category-tree";
+import { getEbayTaxonomyClient } from "@/lib/ebay/taxonomy-client";
 
 export type EbayAspectMode =
   | "FREE_TEXT"
@@ -471,23 +480,52 @@ export function missingRequiredSpecifics(
     .map((a) => a.name);
 }
 
+function genericAspects(): EbayAspect[] {
+  return [
+    aspect("Brand", true, undefined, 100000),
+    aspect("Color", false, ["Black", "White", "Blue", "Red", "Multi", "Other"]),
+    aspect("Type", false),
+    aspect("Material", false),
+    aspect("MPN", false),
+    aspect("Country of Origin", false, ["United States", "China", "Unknown"]),
+  ];
+}
+
+function aspectsForCategoryId(categoryId: string): EbayAspect[] {
+  const known = ASPECTS_BY_CATEGORY[categoryId];
+  if (known) {
+    return known.map((a) => ({ ...a, values: a.values ? [...a.values] : undefined }));
+  }
+  return genericAspects();
+}
+
 export class MockEbayAspectsClient implements EbayAspectsClient {
   async listCategories(): Promise<ApiResult<EbayCategoryOption[]>> {
-    return ok(MOCK_EBAY_CATEGORIES);
+    const index = getBundledCategoryIndex("mock");
+    // Prefer aspect-seeded leaves first, then full tree leaves for pickers.
+    const seeded = MOCK_EBAY_CATEGORIES;
+    const rest = listLeafOptions(index).filter(
+      (c) => !seeded.some((s) => s.id === c.id)
+    );
+    return ok([...seeded, ...rest]);
   }
 
   async getEbayCategoryAspects(
     categoryId: string
   ): Promise<ApiResult<EbayCategoryAspects>> {
-    const cat = MOCK_EBAY_CATEGORIES.find((c) => c.id === categoryId);
-    const aspects = ASPECTS_BY_CATEGORY[categoryId];
-    if (!cat || !aspects) {
+    const index = getBundledCategoryIndex("mock");
+    const node = index.byId.get(categoryId);
+    const seeded = MOCK_EBAY_CATEGORIES.find((c) => c.id === categoryId);
+    if (!node && !seeded) {
       return fail(`Unknown eBay category: ${categoryId}`, "UNKNOWN_CATEGORY");
     }
+    const path =
+      seeded?.path ??
+      (node ? getCategoryPath(index, categoryId) : categoryId);
     return ok({
-      categoryId: cat.id,
-      categoryPath: cat.path,
-      aspects: aspects.map((a) => ({ ...a, values: a.values ? [...a.values] : undefined })),
+      categoryId,
+      categoryPath: path,
+      aspects: aspectsForCategoryId(categoryId),
     });
   }
 
@@ -498,11 +536,46 @@ export class MockEbayAspectsClient implements EbayAspectsClient {
   }
 }
 
+/**
+ * Live aspects client: category list from Taxonomy client; aspects still mock
+ * until getItemAspectsForCategory is wired with vendor keys.
+ */
+export class LiveEbayAspectsClient implements EbayAspectsClient {
+  private mock = new MockEbayAspectsClient();
+
+  async listCategories(): Promise<ApiResult<EbayCategoryOption[]>> {
+    const tax = getEbayTaxonomyClient();
+    const res = await tax.listLeaves();
+    if (!res.ok) return this.mock.listCategories();
+    const seeded = MOCK_EBAY_CATEGORIES;
+    const rest = res.data.filter((c) => !seeded.some((s) => s.id === c.id));
+    return ok([...seeded, ...rest]);
+  }
+
+  async getEbayCategoryAspects(categoryId: string) {
+    return this.mock.getEbayCategoryAspects(categoryId);
+  }
+
+  async getSgwCategoryFields(categoryPath: string) {
+    return this.mock.getSgwCategoryFields!(categoryPath);
+  }
+}
+
 let aspectsClient: EbayAspectsClient | null = null;
 
-/** Singleton — swap implementation when Taxonomy API is wired. */
+/** Singleton — mock by default; live when NEXT_PUBLIC_MARKETPLACE_MODE=live. */
 export function getEbayAspectsClient(): EbayAspectsClient {
-  if (!aspectsClient) aspectsClient = new MockEbayAspectsClient();
+  if (!aspectsClient) {
+    const mode =
+      typeof process !== "undefined" &&
+      (process.env.NEXT_PUBLIC_MARKETPLACE_MODE || process.env.MARKETPLACE_MODE)
+        ?.trim()
+        .toLowerCase() === "live"
+        ? "live"
+        : "mock";
+    aspectsClient =
+      mode === "live" ? new LiveEbayAspectsClient() : new MockEbayAspectsClient();
+  }
   return aspectsClient;
 }
 

@@ -27,9 +27,10 @@ import {
   seedSpecificsFromTitle,
   SGW_CATEGORY_PATHS,
   type EbayAspect,
-  type EbayCategoryOption,
   type SgwCategoryField,
 } from "@/lib/api/ebay-aspects";
+import { EbayCategoryTreePicker } from "@/components/ebay/EbayCategoryTreePicker";
+import { getBundledCategoryIndex, getCategoryPath } from "@/lib/ebay/category-tree";
 import {
   getStrategyByName,
   strategyToFormDefaults,
@@ -557,7 +558,7 @@ export function ListingEditorForm({
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const { feedback: photoFeedback, announce: announcePhoto } = useSaveFeedback(4000);
-  const [ebayCategories, setEbayCategories] = useState<EbayCategoryOption[]>([]);
+  const [ebayCategoriesReady, setEbayCategoriesReady] = useState(false);
   const [aspects, setAspects] = useState<EbayAspect[]>([]);
   const [sgwFields, setSgwFields] = useState<SgwCategoryField[]>([]);
   const [showOptional, setShowOptional] = useState(true);
@@ -585,7 +586,11 @@ export function ListingEditorForm({
   function onProductCategoryChange(category: string) {
     if (readOnly) return;
     const ebayId = defaultEbayCategoryIdForProductCategory(category);
-    const ebayCat = ebayCategories.find((c) => c.id === ebayId);
+    const index = getBundledCategoryIndex();
+    const path =
+      getCategoryPath(index, ebayId) ||
+      CATEGORY_PATHS[category] ||
+      value.ebayCategoryPath;
     const sgwPath = SGW_CATEGORY_PATHS[category] ?? CATEGORY_PATHS[category] ?? category;
     onChange({
       ...value,
@@ -593,7 +598,7 @@ export function ListingEditorForm({
       categoryPath: CATEGORY_PATHS[category] ?? category,
       sgwCategoryPath: sgwPath,
       ebayCategoryId: ebayId,
-      ebayCategoryPath: ebayCat?.path ?? value.ebayCategoryPath,
+      ebayCategoryPath: path,
       itemSpecifics: {},
       sgwSpecifics: {},
     });
@@ -604,11 +609,7 @@ export function ListingEditorForm({
   const showSgw = value.channels.includes("ShopGoodwill");
 
   useEffect(() => {
-    void getEbayAspectsClient()
-      .listCategories()
-      .then((res) => {
-        if (res.ok) setEbayCategories(res.data);
-      });
+    setEbayCategoriesReady(true);
   }, []);
 
   useEffect(() => {
@@ -1376,27 +1377,28 @@ export function ListingEditorForm({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
                 <FieldLabel>eBay category</FieldLabel>
-                <select
-                  disabled={readOnly}
-                  className="h-10 w-full rounded-xl border border-ink/10 bg-white px-3 text-sm"
-                  value={value.ebayCategoryId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    const cat = ebayCategories.find((c) => c.id === id);
-                    patch({
-                      ebayCategoryId: id,
-                      ebayCategoryPath: cat?.path ?? value.ebayCategoryPath,
-                      itemSpecifics: {},
-                    });
-                    setAspectsKey((k) => k + 1);
-                  }}
-                >
-                  {ebayCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.path}
-                    </option>
-                  ))}
-                </select>
+                {value.ebayCategoryPath ? (
+                  <p className="mb-2 rounded-lg border border-ink/10 bg-white px-3 py-2 text-sm">
+                    <span className="font-medium text-ink">{value.ebayCategoryPath}</span>
+                    <span className="ml-2 font-mono text-xs text-muted">
+                      #{value.ebayCategoryId}
+                    </span>
+                  </p>
+                ) : null}
+                {!readOnly && ebayCategoriesReady ? (
+                  <EbayCategoryTreePicker
+                    compact
+                    selectedId={value.ebayCategoryId}
+                    onSelect={(sel) => {
+                      patch({
+                        ebayCategoryId: sel.categoryId,
+                        ebayCategoryPath: sel.path,
+                        itemSpecifics: {},
+                      });
+                      setAspectsKey((k) => k + 1);
+                    }}
+                  />
+                ) : null}
               </div>
               <div>
                 <FieldLabel>Store category</FieldLabel>
