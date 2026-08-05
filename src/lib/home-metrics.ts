@@ -1,6 +1,6 @@
 /** Period-aware org metrics for the Test Goodwill home screen.
  *
- * Formulas (stable across Day / Week / Month):
+ * Formulas (stable across Day / Week / Month / Custom):
  *   ASP            = topLineRevenue / unitsSold   (falls out of the mix)
  *   Sell through   = unitsSold / unitsListed      (natural thrift band)
  *   Top line       = ASP × unitsSold
@@ -11,18 +11,45 @@
  * No hard-locked ASP or sell-through targets.
  */
 
+import { daysInRange, formatDisplayDate } from "@/lib/report-dates";
+
 const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3600000).toISOString();
 const daysAgo = (d: number) => new Date(now - d * 86400000).toISOString();
 
-export type HomePeriod = "day" | "week" | "month";
+export type HomePeriod = "day" | "week" | "month" | "custom";
+export type HomePresetPeriod = Exclude<HomePeriod, "custom">;
+
+export type HomeCustomRange = { start: string; end: string };
 
 export const HOME_PERIODS: { id: HomePeriod; label: string; hint: string }[] = [
   { id: "day", label: "Day", hint: "Today" },
   { id: "week", label: "Week", hint: "Last 7 days" },
   { id: "month", label: "Month", hint: "Month to date" },
+  { id: "custom", label: "Custom", hint: "Pick dates" },
 ];
 
+function ymdLocal(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Default custom window: trailing 14 days inclusive through today. */
+export function defaultCustomRange(nowDate = new Date()): HomeCustomRange {
+  const end = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+  const start = new Date(end);
+  start.setDate(start.getDate() - 13);
+  return { start: ymdLocal(start), end: ymdLocal(end) };
+}
+
+export function normalizeCustomRange(start: string, end: string): HomeCustomRange {
+  if (!start && !end) return defaultCustomRange();
+  if (!start) return { start: end, end };
+  if (!end) return { start, end: start };
+  return start <= end ? { start, end } : { start: end, end: start };
+}
 export type HomeSaleRow = {
   rank: number;
   title: string;
@@ -221,7 +248,7 @@ function sellThroughOf(unitsSold: number, unitsListed: number) {
   return Math.round((unitsSold / unitsListed) * 1000) / 10;
 }
 
-export const homeMetricsByPeriod: Record<HomePeriod, HomePeriodMetrics> = {
+export const homeMetricsByPeriod: Record<HomePresetPeriod, HomePeriodMetrics> = {
   day: {
     periodLabel: "Today",
     rangeLabel: "Sales so far today · jewelry, collectibles, apparel & authenticated luxury",
@@ -263,5 +290,103 @@ export const homeMetricsByPeriod: Record<HomePeriod, HomePeriodMetrics> = {
     topPhotographers: buildPhotographers([4, 0, 6, 1, 2, 7, 5, 3], 7200, 460, 1480, 100),
   },
 };
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+/** Scale volumes between Day / Week / Month anchors by inclusive day count. */
+function volumeForDays(n: number) {
+  const days = Math.max(1, n);
+  if (days === 1) return { ...DAY };
+
+  if (days <= 7) {
+    const t = (days - 1) / 6;
+    const dailySold = lerp(DAY.unitsSold, WEEK.unitsSold / 7, t);
+    const dailyListed = lerp(DAY.unitsListed, WEEK.unitsListed / 7, t);
+    const dailyRev = lerp(DAY.revenue, WEEK.revenue / 7, t);
+    return {
+      unitsSold: Math.round(dailySold * days),
+      unitsListed: Math.round(dailyListed * days),
+      revenue: Math.round(dailyRev * days * 100) / 100,
+    };
+  }
+
+  const t = Math.min(1, (days - 7) / 23);
+  const dailySold = lerp(WEEK.unitsSold / 7, MONTH.unitsSold / 30, t);
+  const dailyListed = lerp(WEEK.unitsListed / 7, MONTH.unitsListed / 30, t);
+  const dailyRev = lerp(WEEK.revenue / 7, MONTH.revenue / 30, t);
+  return {
+    unitsSold: Math.round(dailySold * days),
+    unitsListed: Math.round(dailyListed * days),
+    revenue: Math.round(dailyRev * days * 100) / 100,
+  };
+}
+
+function sparkForDays(n: number, seed: number): number[] {
+  const buckets = 12;
+  const base = Math.max(8, Math.round((volumeForDays(n).unitsSold / buckets) * 0.85));
+  return Array.from({ length: buckets }, (_, i) => {
+    const wave = Math.round(Math.sin((i + seed) * 0.7) * base * 0.18);
+    return Math.max(4, base + wave + ((i + seed) % 5) * 2);
+  });
+}
+
+function formatCustomPeriodLabel(range: HomeCustomRange) {
+  if (range.start === range.end) return formatDisplayDate(range.start);
+  return `${formatDisplayDate(range.start)} – ${formatDisplayDate(range.end)}`;
+}
+
+function buildCustomMetrics(range: HomeCustomRange): HomePeriodMetrics {
+  const days = daysInRange(range.start, range.end);
+  const n = Math.max(1, days.length);
+  const vol = volumeForDays(n);
+  const seed = (n * 5 + range.start.length + range.end.charCodeAt(range.end.length - 1)) % 11;
+  const priceScale = n <= 1 ? 1 : n <= 7 ? 1.02 : 1.05;
+  const staffScale = Math.max(1, n / 7);
+
+  return {
+    periodLabel: formatCustomPeriodLabel(range),
+    rangeLabel: `Custom · ${formatCustomPeriodLabel(range)} · thrift mix + authenticated luxury`,
+    topLineRevenue: vol.revenue,
+    asp: aspOf(vol.revenue, vol.unitsSold),
+    sellThrough: sellThroughOf(vol.unitsSold, vol.unitsListed),
+    paidOrders: vol.unitsSold,
+    unitsSold: vol.unitsSold,
+    salesSpark: sparkForDays(n, seed),
+    topSales: buildTopSales(seed || 2, priceScale, (i) => {
+      const day = days[i % days.length]!;
+      const hour = 10 + (i % 10);
+      return `${day}T${String(hour).padStart(2, "0")}:00:00.000Z`;
+    }),
+    topListers: buildListers(
+      [2, 0, 5, 1, 6, 4, 3, 7],
+      Math.round(140 * staffScale),
+      Math.round(12 * staffScale),
+      Math.round(2700 * staffScale),
+      Math.round(240 * staffScale)
+    ),
+    topPhotographers: buildPhotographers(
+      [0, 4, 1, 6, 2, 5, 7, 3],
+      Math.round(340 * staffScale),
+      Math.round(28 * staffScale),
+      Math.round(72 * staffScale),
+      Math.round(5 * staffScale)
+    ),
+  };
+}
+
+/** Resolve metrics for a preset period or a custom from–to range. */
+export function getHomeMetrics(
+  period: HomePeriod,
+  customRange?: HomeCustomRange
+): HomePeriodMetrics {
+  if (period !== "custom") return homeMetricsByPeriod[period];
+  const range = normalizeCustomRange(
+    customRange?.start ?? defaultCustomRange().start,
+    customRange?.end ?? defaultCustomRange().end
+  );
+  return buildCustomMetrics(range);
+}
 
 export const DEFAULT_HOME_PERIOD: HomePeriod = "day";

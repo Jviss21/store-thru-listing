@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowRight,
+  CalendarDays,
   Camera,
   Package,
   Rocket,
@@ -21,17 +22,35 @@ import {
 import {
   DEFAULT_HOME_PERIOD,
   HOME_PERIODS,
-  homeMetricsByPeriod,
+  defaultCustomRange,
+  getHomeMetrics,
+  type HomeCustomRange,
   type HomePeriod,
 } from "@/lib/home-metrics";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { useOrg } from "@/components/OrgProvider";
 
+const dateFieldClass =
+  "h-9 w-full min-w-0 rounded-lg border border-white/15 bg-white/10 px-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-accent/60 focus:ring-2 focus:ring-accent/30";
+
 export default function HomePage() {
   const [period, setPeriod] = useState<HomePeriod>(DEFAULT_HOME_PERIOD);
-  const m = homeMetricsByPeriod[period];
+  const [customRange, setCustomRange] = useState<HomeCustomRange>(() => defaultCustomRange());
+  const m = getHomeMetrics(period, customRange);
   const s = dashboardStats;
   const { org } = useOrg();
+  const metricsKey =
+    period === "custom"
+      ? `custom-${customRange.start}-${customRange.end}`
+      : period;
+
+  function updateCustom(next: Partial<HomeCustomRange>) {
+    setCustomRange((prev) => ({
+      start: next.start ?? prev.start,
+      end: next.end ?? prev.end,
+    }));
+    setPeriod("custom");
+  }
 
   return (
     <div className="space-y-6">
@@ -54,28 +73,65 @@ export default function HomePage() {
                 Powered by {BRAND.product}
               </p>
             </div>
-            <div
-              className="inline-flex rounded-xl border border-white/15 bg-[var(--ink-soft)] p-1 shadow-inner"
-              role="tablist"
-              aria-label="Sales period"
-            >
-              {HOME_PERIODS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={period === p.id}
-                  onClick={() => setPeriod(p.id)}
-                  className={cn(
-                    "min-w-[4.25rem] rounded-lg px-3.5 py-2 text-sm font-semibold transition",
-                    period === p.id
-                      ? "bg-accent text-accent-ink shadow-sm"
-                      : "text-white/65 hover:bg-white/10 hover:text-white"
-                  )}
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <div
+                className="inline-flex flex-wrap rounded-xl border border-white/15 bg-[var(--ink-soft)] p-1 shadow-inner"
+                role="tablist"
+                aria-label="Sales period"
+              >
+                {HOME_PERIODS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={period === p.id}
+                    onClick={() => setPeriod(p.id)}
+                    className={cn(
+                      "inline-flex min-w-[4.25rem] items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition",
+                      period === p.id
+                        ? "bg-accent text-accent-ink shadow-sm"
+                        : "text-white/65 hover:bg-white/10 hover:text-white"
+                    )}
+                  >
+                    {p.id === "custom" ? (
+                      <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    ) : null}
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {period === "custom" ? (
+                <div
+                  className="flex flex-wrap items-end gap-2 rounded-xl border border-white/10 bg-white/5 p-2.5 sm:gap-3"
+                  role="group"
+                  aria-label="Custom date range"
                 >
-                  {p.label}
-                </button>
-              ))}
+                  <label className="block min-w-[8.5rem] flex-1">
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                      From
+                    </span>
+                    <input
+                      type="date"
+                      value={customRange.start}
+                      max={customRange.end}
+                      onChange={(e) => updateCustom({ start: e.target.value })}
+                      className={dateFieldClass}
+                    />
+                  </label>
+                  <label className="block min-w-[8.5rem] flex-1">
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                      To
+                    </span>
+                    <input
+                      type="date"
+                      value={customRange.end}
+                      min={customRange.start}
+                      onChange={(e) => updateCustom({ end: e.target.value })}
+                      className={dateFieldClass}
+                    />
+                  </label>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -148,7 +204,7 @@ export default function HomePage() {
               <tbody>
                 {m.topSales.map((row) => (
                   <tr
-                    key={`${period}-${row.rank}`}
+                    key={`${metricsKey}-${row.rank}`}
                     className="border-b border-ink/5 transition hover:bg-mist/40 last:border-0"
                   >
                     <td className="px-4 py-2.5 tabular-nums text-muted">{row.rank}</td>
@@ -190,7 +246,7 @@ export default function HomePage() {
             <ul className="divide-y divide-ink/5">
               {m.topListers.map((row) => (
                 <li
-                  key={`${period}-lister-${row.handle}`}
+                  key={`${metricsKey}-lister-${row.handle}`}
                   className="flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-sm transition hover:bg-mist/50"
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -236,7 +292,7 @@ export default function HomePage() {
             <ul className="divide-y divide-ink/5">
               {m.topPhotographers.map((row) => (
                 <li
-                  key={`${period}-photo-${row.handle}`}
+                  key={`${metricsKey}-photo-${row.handle}`}
                   className="flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-sm transition hover:bg-mist/50"
                 >
                   <div className="flex min-w-0 items-center gap-3">
