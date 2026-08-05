@@ -32,10 +32,50 @@ function ProductsInner() {
   );
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [created, setCreated] = useState<ReturnType<typeof getCreatedProducts>>([]);
+  const [dbProducts, setDbProducts] = useState<
+    {
+      id: string;
+      title: string;
+      sku: string;
+      status: string;
+      location?: string | null;
+      supplier?: string | null;
+      createdAt?: string;
+      category?: string | null;
+      price: number;
+      imageUrls?: string[];
+      listedOn?: string[];
+    }[]
+  >([]);
+  const [dbSource, setDbSource] = useState<"prisma" | "mock" | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
     setCreated(getCreatedProducts());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/products?includeMock=0");
+        const json = (await res.json()) as {
+          ok?: boolean;
+          source?: string;
+          data?: typeof dbProducts;
+        };
+        if (cancelled || !json.ok) return;
+        if (json.source === "prisma" && Array.isArray(json.data)) {
+          setDbProducts(json.data);
+          setDbSource("prisma");
+        }
+      } catch {
+        /* keep local ∪ mock */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -44,29 +84,50 @@ function ProductsInner() {
   }, [searchParams]);
 
   const merged = useMemo(() => {
-    const local = created.map((p) => ({
+    const fromDb = dbProducts.map((p) => ({
       id: p.id,
       title: p.title,
       sku: p.sku,
       status: p.status as ProductStatus,
-      location: p.location,
-      supplier: p.supplier,
-      createdBy: "jdoe",
-      createdAt: p.createdAt,
-      category: p.category,
+      location: p.location ?? "Receiving",
+      supplier: p.supplier ?? "—",
+      createdBy: "db",
+      createdAt: p.createdAt ?? new Date().toISOString(),
+      category: p.category ?? "General Merchandise",
       price: p.price,
       imageColor: "#f0b429",
       imageUrls: p.imageUrls?.length ? p.imageUrls : getPhotoOverlay(p.id),
-      listedOn: p.listedOn as ("ShopGoodwill" | "eBay")[],
+      listedOn: (p.listedOn ?? []) as ("ShopGoodwill" | "eBay")[],
     }));
+    const dbSkus = new Set(fromDb.map((p) => p.sku.toUpperCase()));
+    const local = created
+      .filter((p) => !dbSkus.has(p.sku.toUpperCase()))
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        sku: p.sku,
+        status: p.status as ProductStatus,
+        location: p.location,
+        supplier: p.supplier,
+        createdBy: "jdoe",
+        createdAt: p.createdAt,
+        category: p.category,
+        price: p.price,
+        imageColor: "#f0b429",
+        imageUrls: p.imageUrls?.length ? p.imageUrls : getPhotoOverlay(p.id),
+        listedOn: p.listedOn as ("ShopGoodwill" | "eBay")[],
+      }));
     return [
+      ...fromDb,
       ...local,
-      ...seed.map((p) => {
-        const overlay = getPhotoOverlay(p.id);
-        return overlay.length ? { ...p, imageUrls: overlay } : p;
-      }),
+      ...seed
+        .filter((p) => !dbSkus.has(p.sku.toUpperCase()))
+        .map((p) => {
+          const overlay = getPhotoOverlay(p.id);
+          return overlay.length ? { ...p, imageUrls: overlay } : p;
+        }),
     ];
-  }, [created]);
+  }, [created, dbProducts]);
 
   const filtered = useMemo(() => {
     return merged.filter((p) => {
@@ -93,9 +154,16 @@ function ProductsInner() {
     <div className="space-y-5">
       <PageHeader
         title="Products"
-        description={`${BRAND.ai} Auto-List sits alongside your catalog — export downloads real CSV files.`}
+        description={`${BRAND.ai} Auto-List sits alongside your catalog — export downloads real CSV files.${
+          dbSource === "prisma" ? " Showing Postgres catalog ∪ seed." : ""
+        }`}
         actions={
           <>
+            <Link href="/products/putaway">
+              <Button variant="outline" type="button">
+                Scan / putaway
+              </Button>
+            </Link>
             <Link href="/products/auto-list">
               <Button variant="accent" type="button">
                 {BRAND.autoList}

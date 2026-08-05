@@ -53,8 +53,19 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 |-------|--------|
 | Auth / session / org memberships | **Real** (NextAuth + seed or Prisma) |
 | Org switch + Ops impersonation | **Real** (JWT + cookies; audit when DB ready) |
-| Products, listings, orders, Auto-List queue | **Still mock** (`MockApiClient`) |
+| Teammate invites | **Real** (Prisma `Invite`; `/admin/teammates` + `/invite/[token]`; copyable link; email stubbed/logged) |
+| Donor create products / manifests | **Prefer Postgres** when `dbMode: prisma` — falls back to localStorage mock |
+| Admin IMS settings | **Prefer Postgres** `OrgSettings.adminImsJson` on save; localStorage cache |
+| Products list | **DB ∪ mock** (Prisma rows when present, else seed/mock) |
+| Listings, orders, Auto-List queue UI | **Still largely mock** (`MockApiClient` / local) — tables exist as stubs |
 | Marketplace OAuth / sync | **Stubs** (`marketplaces/*`; live mode via env) |
+
+### Domain SoR + invites (landed)
+
+- Schema: extended `Product`, `Manifest`/`ManifestLine`, `OrderLine`, `OrgSettings`, `Invite`
+- Repos: `src/lib/db/{products,manifests,invites,org-settings}.ts`
+- APIs: `/api/manifests`, `/api/invites`, `/api/invites/[token]`, `/api/org/settings`, `/api/products` POST
+- **Still mock:** full listings/orders cutover, marketplace live, durable photo storage, invite email delivery (Resend optional)
 
 ### Phase 2 — IN PROGRESS (marketplace stubs)
 
@@ -65,7 +76,7 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 | eBay client stub (`src/lib/api/marketplaces/ebay.ts`) | Done (NOT_CONFIGURED without keys) |
 | API routes `/api/marketplaces/{status,connect,sync}` | Done (scaffold) |
 | Real OAuth + listing create/update/end against vendor APIs | Next (needs keys) |
-| Persist products/listings/orders in Prisma | Later |
+| Persist products/listings/orders in Prisma | **Partial** — products/manifests/settings/invites yes; listings/orders UI cutover later |
 | Durable photo storage | Later |
 
 #### Phase 2 env vars (optional — do not block pilot)

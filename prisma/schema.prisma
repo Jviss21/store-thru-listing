@@ -19,7 +19,7 @@ model Organization {
   name      String
   slug      String   @unique
   region    String?
-  type      String   // goodwill | resale | other
+  type      String // goodwill | resale | other
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -34,6 +34,9 @@ model Organization {
   featureFlags FeatureFlags?
   photos      Photo[]
   syncErrors  SyncError[]
+  manifests   Manifest[]
+  invites     Invite[]
+  settings    OrgSettings?
 }
 
 model User {
@@ -45,8 +48,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships Membership[]
-  auditEvents AuditEvent[]
+  memberships      Membership[]
+  auditEvents      AuditEvent[]
+  productsCreated  Product[]  @relation("ProductCreatedBy")
+  manifestsCreated Manifest[] @relation("ManifestCreatedBy")
+  invitesSent      Invite[]   @relation("InviteInvitedBy")
+  settingsUpdated  OrgSettings[] @relation("OrgSettingsUpdatedBy")
 }
 
 model Membership {
@@ -65,11 +72,11 @@ model Membership {
 }
 
 model FeatureFlags {
-  orgId         String  @id
-  autoList      Boolean @default(true)
-  shopgoodwill  Boolean @default(true)
-  ebay          Boolean @default(true)
-  killSwitchOff Boolean @default(true) // false = kill switch engaged
+  orgId         String   @id
+  autoList      Boolean  @default(true)
+  shopgoodwill  Boolean  @default(true)
+  ebay          Boolean  @default(true)
+  killSwitchOff Boolean  @default(true) // false = kill switch engaged
   updatedAt     DateTime @updatedAt
 
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -95,40 +102,138 @@ model MarketplaceConnection {
   @@index([orgId])
 }
 
-model Product {
-  id         String   @id @default(cuid())
-  orgId      String
-  sku        String
-  title      String
-  status     String   @default("Draft") // Active | Draft | Recycled
-  priceCents Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+/// Org-scoped Admin IMS settings blob (rejection responses, SKU prefix, etc.)
+model OrgSettings {
+  orgId        String   @id
+  /// Full AdminImsState JSON (or subset). Source of truth when DB is ready.
+  adminImsJson String   @default("{}")
+  updatedAt    DateTime @updatedAt
+  updatedById  String?
 
-  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  listings Listing[]
-  photos   Photo[]
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  updatedBy User?        @relation("OrgSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/// Teammate invite — email + role + token; accept creates User + Membership.
+model Invite {
+  id          String    @id @default(cuid())
+  orgId       String
+  email       String
+  role        String // Admin | Ops Lead | Lister | Photographer | Viewer
+  token       String    @unique
+  expiresAt   DateTime
+  invitedById String?
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invitedBy User?        @relation("InviteInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([orgId])
+  @@index([email])
+  @@index([orgId, email])
+  @@index([token])
+}
+
+/// Donor / supplier intake batch (aka DonorBatch).
+model Manifest {
+  id           String   @id @default(cuid())
+  orgId        String
+  batchBarcode String
+  supplier     String?
+  supplierId   String?
+  notes        String?
+  status       String   @default("Created") // Created | Processing | Complete
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation("ManifestCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  lines     ManifestLine[]
+  products  Product[]
+
+  @@unique([orgId, batchBarcode])
+  @@index([orgId])
+  @@index([orgId, status])
+}
+
+model ManifestLine {
+  id           String  @id @default(cuid())
+  manifestId   String
+  productId    String?
+  title        String
+  sku          String
+  barcode      String?
+  reviewStatus String  @default("Draft product")
+  sortOrder    Int     @default(0)
+
+  manifest Manifest @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([manifestId])
+  @@index([productId])
+  @@index([sku])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  orgId       String
+  sku         String
+  barcode     String?
+  title       String
+  status      String   @default("Draft") // Active | Draft | Recycled
+  priceCents  Int      @default(0)
+  location    String?
+  supplier    String?
+  category    String?
+  description String?
+  /// JSON array of photo URLs (stub until object storage)
+  photosJson  String?
+  /// JSON array of tags
+  tagsJson    String?
+  createdById String?
+  manifestId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org          Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdBy    User?          @relation("ProductCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  manifest     Manifest?      @relation(fields: [manifestId], references: [id], onDelete: SetNull)
+  listings     Listing[]
+  photos       Photo[]
   autoListJobs AutoListJob[]
+  manifestLines ManifestLine[]
+  orderLines   OrderLine[]
 
   @@unique([orgId, sku])
   @@index([orgId])
+  @@index([orgId, status])
+  @@index([orgId, barcode])
+  @@index([manifestId])
 }
 
 model Listing {
-  id            String  @id @default(cuid())
+  id            String    @id @default(cuid())
   orgId         String
   productId     String
   channel       String // ShopGoodwill | eBay
   status        String
   externalId    String?
-  priceCents    Int     @default(0)
+  /// Stub for channel-specific external ids / payload
+  externalIdsJson String?
+  priceCents    Int       @default(0)
   lastSyncError String?
+  listedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([productId])
+  @@index([orgId, channel])
 }
 
 model AutoListJob {
@@ -147,30 +252,49 @@ model AutoListJob {
 }
 
 model Order {
-  id                 String   @id @default(cuid())
-  orgId              String
-  orderNumber        String
-  channel            String
-  totalCents         Int      @default(0)
-  paymentStatus      String
-  fulfillmentStatus  String
-  createdAt          DateTime @default(now())
+  id                String   @id @default(cuid())
+  orgId             String
+  orderNumber       String
+  channel           String
+  totalCents        Int      @default(0)
+  paymentStatus     String
+  fulfillmentStatus String
+  externalId        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   shipments Shipment[]
+  lines     OrderLine[]
 
   @@unique([orgId, orderNumber])
   @@index([orgId])
 }
 
+model OrderLine {
+  id         String  @id @default(cuid())
+  orderId    String
+  productId  String?
+  sku        String?
+  title      String?
+  quantity   Int     @default(1)
+  priceCents Int     @default(0)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
 model Shipment {
-  id              String    @id @default(cuid())
-  orgId           String
-  orderId         String
-  carrier         String
-  trackingNumber  String
-  status          String
-  shippedAt       DateTime?
+  id             String    @id @default(cuid())
+  orgId          String
+  orderId        String
+  carrier        String
+  trackingNumber String
+  status         String
+  shippedAt      DateTime?
 
   org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   order Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)

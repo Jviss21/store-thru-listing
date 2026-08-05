@@ -107,19 +107,33 @@ async function main() {
     }
   }
 
+  // Ensure OrgSettings rows exist (empty JSON — Admin UI writes full blob on save)
+  for (const org of PILOT_ORGS) {
+    await prisma.orgSettings.upsert({
+      where: { orgId: org.id },
+      create: { orgId: org.id, adminImsJson: "{}" },
+      update: {},
+    });
+  }
+
+  // Expire any leftover demo invites so seed is idempotent; table itself is live for Admin UI
+  const inviteCount = await prisma.invite.count();
+
   await prisma.auditEvent.create({
     data: {
       action: "seed.complete",
       metaJson: JSON.stringify({
         orgs: PILOT_ORGS.length,
         users: SEED_USERS.length,
+        orgSettings: PILOT_ORGS.length,
+        pendingInvites: inviteCount,
         at: new Date().toISOString(),
       }),
     },
   });
 
   console.log(
-    `Seeded ${PILOT_ORGS.length} orgs, ${SEED_USERS.length} users. Password: ${password}`
+    `Seeded ${PILOT_ORGS.length} orgs, ${SEED_USERS.length} users, OrgSettings. Invites table ready (pending: ${inviteCount}). Password: ${password}`
   );
 }
 

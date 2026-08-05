@@ -108,7 +108,7 @@ function DonorBatchCreateInner() {
     setLines((prev) => prev.filter((l) => l.id !== id));
   }
 
-  function save() {
+  async function save() {
     const next: string[] = [];
     if (!supplier) next.push("Supplier / donor is required.");
     if (!batchBarcode.trim()) next.push("Batch barcode / donation ID is required.");
@@ -122,11 +122,41 @@ function DonorBatchCreateInner() {
     setSaving(true);
     const now = new Date().toISOString();
     const code = batchBarcode.trim().toUpperCase();
-    const manifestId = `local-m-${Date.now()}`;
+
+    // Prefer Postgres SoR when session has orgId and DB is ready
+    let dbManifestId: string | null = null;
+    try {
+      const res = await fetch("/api/manifests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId: org.id,
+          batchBarcode: code,
+          supplier,
+          notes: notes.trim() || undefined,
+          lines: lines.map((l) => ({
+            title: l.title,
+            sku: l.sku,
+            barcode: l.barcode,
+          })),
+        }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        data?: { id: string; products?: { id: string; sku: string }[] };
+      };
+      if (json.ok && json.data?.id) {
+        dbManifestId = json.data.id;
+      }
+    } catch {
+      /* fall through to local mock */
+    }
+
+    const manifestId = dbManifestId ?? `local-m-${Date.now()}`;
 
     for (const line of lines) {
       saveCreatedProduct({
-        id: `local-${line.id}`,
+        id: dbManifestId ? `db-${line.sku}` : `local-${line.id}`,
         title: line.title,
         sku: line.sku,
         category: "General Merchandise",
@@ -151,7 +181,7 @@ function DonorBatchCreateInner() {
       id: manifestId,
       code,
       supplier,
-      createdBy: CURRENT_USER.name,
+      createdBy: session.name || CURRENT_USER.name,
       createdAt: now,
       updatedAt: now,
       status: "Created",
@@ -166,7 +196,7 @@ function DonorBatchCreateInner() {
         ? [
             {
               id: `note-${Date.now()}`,
-              user: CURRENT_USER.handle,
+              user: session.handle || CURRENT_USER.handle,
               body: notes.trim(),
               at: now,
             },
@@ -175,15 +205,22 @@ function DonorBatchCreateInner() {
       events: [
         {
           id: `ev-${Date.now()}`,
-          user: CURRENT_USER.handle,
-          action: `created donor batch ${code} with ${lines.length} unit SKU(s)`,
+          user: session.handle || CURRENT_USER.handle,
+          action: `created donor batch ${code} with ${lines.length} unit SKU(s)${
+            dbManifestId ? " (postgres)" : ""
+          }`,
           at: now,
         },
       ],
     };
     saveCreatedManifest(manifest);
     setSaving(false);
-    router.push(`/manifests/${manifestId}`);
+    const firstBarcode = lines[0]?.barcode;
+    if (firstBarcode) {
+      router.push(`/products/putaway?barcode=${encodeURIComponent(firstBarcode)}`);
+    } else {
+      router.push(`/manifests/${manifestId}`);
+    }
   }
 
   const nextPreview = ims ? peekNextDonorSku(ims.manifests) : "TG-4801";
@@ -341,6 +378,12 @@ function DonorBatchCreateInner() {
                       supplier={supplier}
                       batch={batchBarcode.trim() || undefined}
                     />
+                    <Link
+                      href={`/products/putaway?barcode=${encodeURIComponent(line.barcode)}`}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-primary hover:bg-mist"
+                    >
+                      Putaway
+                    </Link>
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-red-600 hover:bg-red-50"
@@ -355,7 +398,12 @@ function DonorBatchCreateInner() {
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="success" type="button" disabled={saving} onClick={save}>
+            <Button
+              variant="success"
+              type="button"
+              disabled={saving}
+              onClick={() => void save()}
+            >
               Create Item
             </Button>
             {lines.length > 0 && (

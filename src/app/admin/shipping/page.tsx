@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui";
 import {
   AdminBreadcrumb,
@@ -15,6 +16,28 @@ import { useAdminIms } from "@/components/admin/useAdminIms";
 
 export default function AdminShippingPage() {
   const { state, setState, persist, saved, ready } = useAdminIms();
+  const [apiStatus, setApiStatus] = useState<{
+    configured: boolean;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/shipping/labels")
+      .then((r) => r.json())
+      .then((j: { easyPostConfigured?: boolean; message?: string }) => {
+        setApiStatus({
+          configured: Boolean(j.easyPostConfigured),
+          message: j.message || "",
+        });
+      })
+      .catch(() =>
+        setApiStatus({
+          configured: false,
+          message: "Could not reach label API.",
+        })
+      );
+  }, []);
+
   if (!ready || !state) return <p className="text-sm text-muted">Loading…</p>;
   const s = state.shipping;
 
@@ -24,10 +47,34 @@ export default function AdminShippingPage() {
       <AdminPageIntro title="Shipping" description="Carrier accounts and pack/ship workflow toggles." />
 
       <SectionCard>
+        {apiStatus && (
+          <div
+            className={`mb-4 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${
+              apiStatus.configured
+                ? "border-mustard/30 bg-mustard/10 text-ink"
+                : "border-ink/10 bg-mist/60 text-ink"
+            }`}
+          >
+            {apiStatus.configured ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-mustard" />
+            ) : (
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+            )}
+            <div>
+              <p className="font-medium">
+                {apiStatus.configured
+                  ? "EASYPOST_API_KEY detected on server"
+                  : "No EASYPOST_API_KEY — printable stub labels"}
+              </p>
+              <p className="mt-0.5 text-xs text-muted">{apiStatus.message}</p>
+            </div>
+          </div>
+        )}
         {s.easyPostConnected ? (
           <div className="mb-4 flex items-start gap-2 rounded-xl border border-mustard/30 bg-mustard/10 px-4 py-3 text-sm text-ink">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-mustard" />
-            EasyPost Account Connected. Your carrier accounts are listed below.
+            EasyPost Account Connected in Admin. Shipments → New shipment will purchase labels
+            {apiStatus?.configured ? " via live EasyPost." : " (stub until API key is set)."}
           </div>
         ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
@@ -47,6 +94,10 @@ export default function AdminShippingPage() {
         >
           {s.easyPostConnected ? "Disconnect my EasyPost account" : "Connect EasyPost"}
         </button>
+        <FieldHelp>
+          Toggle stores org preference. Live buy requires EASYPOST_API_KEY in env; without it,
+          /shipments/new still generates printable SVG/PDF stubs and tracking.
+        </FieldHelp>
       </SectionCard>
 
       <SectionCard>

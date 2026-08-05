@@ -144,6 +144,13 @@ export interface Shipment {
   packedBy: string;
   shippedAt: string;
   status: ShipmentStatus;
+  /** Printable SVG data URL or remote label URL. */
+  labelSvgUrl?: string;
+  /** Minimal PDF data URL for download. */
+  labelPdfUrl?: string;
+  /** Optional PNG / EasyPost postage label URL. */
+  labelImageUrl?: string;
+  labelMode?: "easypost" | "stub";
 }
 
 export interface EbayListingInputPack {

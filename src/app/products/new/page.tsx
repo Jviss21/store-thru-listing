@@ -21,9 +21,11 @@ import { InfinityBadge } from "@/components/Brand";
 import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { BRAND, CATEGORY_PATHS, INFINITY_AI_UPLOAD_HREF } from "@/lib/mock-data";
+import { useOrg } from "@/components/OrgProvider";
 
 function NewProductInner() {
   const router = useRouter();
+  const { org } = useOrg();
   const params = useSearchParams();
   const [form, setForm] = useState<ListingFormState>(() => {
     const base = emptyFormState();
@@ -214,7 +216,7 @@ function NewProductInner() {
           Upload in {BRAND.ai}
         </Link>
       </Card>
-      <ListingEditorForm value={form} onChange={setForm} />
+      <ListingEditorForm value={form} onChange={setForm} orgId={org.id} />
       <SaveConfirmBar show={justSaved} message="Draft saved successfully" />
     </div>
   );

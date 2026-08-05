@@ -35,7 +35,7 @@ import {
   getStrategyByName,
   strategyToFormDefaults,
 } from "@/lib/listing-strategies";
-import { readFilesAsDataUrls, urlToDataUrl } from "@/lib/photos";
+import { uploadDurablePhotos, urlToDataUrl } from "@/lib/photos";
 import { rotateImage90Cw } from "@/lib/image-edit";
 import {
   BOX_PADDINGS,
@@ -448,6 +448,9 @@ type Props = {
   lockedChannel?: ListingChannel;
   readOnly?: boolean;
   className?: string;
+  /** When set, uploads attach to this product (Prisma photosJson when DB ready). */
+  productId?: string;
+  orgId?: string;
 };
 
 function FieldLabel({
@@ -549,12 +552,15 @@ export function ListingEditorForm({
   lockedChannel,
   readOnly,
   className,
+  productId,
+  orgId,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewIdx, setPreviewIdx] = useState(value.mainImageIndex);
   const [editorIdx, setEditorIdx] = useState<number | null>(null);
   const [editorSrc, setEditorSrc] = useState<string | null>(null);
   const [rotatingIdx, setRotatingIdx] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
   const { feedback: photoFeedback, announce: announcePhoto } = useSaveFeedback(4000);
@@ -674,13 +680,26 @@ export function ListingEditorForm({
     if (!files?.length || readOnly) return;
     const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
     if (!list.length) return;
-    const urls = await readFilesAsDataUrls(list);
-    const next = [...value.imageUrls, ...urls];
-    patch({
-      imageUrls: next,
-      mainImageIndex: value.imageUrls.length === 0 ? 0 : value.mainImageIndex,
-    });
-    if (value.imageUrls.length === 0) setPreviewIdx(0);
+    setUploading(true);
+    try {
+      const urls = await uploadDurablePhotos(list, { productId, orgId });
+      const next = [...value.imageUrls, ...urls];
+      patch({
+        imageUrls: next,
+        mainImageIndex: value.imageUrls.length === 0 ? 0 : value.mainImageIndex,
+      });
+      if (value.imageUrls.length === 0) setPreviewIdx(0);
+      announcePhoto(
+        urls.length === 1
+          ? "Photo uploaded to durable storage."
+          : `${urls.length} photos uploaded to durable storage.`
+      );
+    } catch {
+      announcePhoto("Photo upload failed. Try again.", { error: true });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   async function addStockImages() {
@@ -845,10 +864,10 @@ export function ListingEditorForm({
               variant="outline"
               size="sm"
               type="button"
-              disabled={readOnly}
+              disabled={readOnly || uploading}
               onClick={() => fileRef.current?.click()}
             >
-              <ImagePlus className="h-4 w-4" /> Upload
+              <ImagePlus className="h-4 w-4" /> {uploading ? "Uploading…" : "Upload"}
             </Button>
             <Button variant="outline" size="sm" type="button" disabled={readOnly} onClick={addStockImages}>
               Stock photos
@@ -1091,6 +1110,7 @@ export function ListingEditorForm({
             />
             <p className="mt-1 text-xs text-muted">
               Auto-fills weight, dims, shipping, pricing. Auto-List uses this for channel payload.
+              Lifecycle steps: Admin → Listing Strategies; advance on the listing page.
             </p>
           </div>
           <div>

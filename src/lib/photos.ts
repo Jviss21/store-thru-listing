@@ -1,5 +1,65 @@
 /** Seeded placeholder photos + helpers for demo product imagery. */
 
+export type DurableUploadResult = {
+  url: string;
+  id: string;
+  backend: string;
+  dataUrl?: string;
+};
+
+/**
+ * Upload an image to durable storage (`/api/photos/upload`).
+ * Falls back to a local data URL if the API is unavailable.
+ */
+export async function uploadDurablePhoto(
+  file: File,
+  opts?: { productId?: string; orgId?: string }
+): Promise<DurableUploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  if (opts?.productId) form.append("productId", opts.productId);
+  if (opts?.orgId) form.append("orgId", opts.orgId);
+
+  try {
+    const res = await fetch("/api/photos/upload", { method: "POST", body: form });
+    const json = (await res.json()) as {
+      ok?: boolean;
+      url?: string;
+      id?: string;
+      backend?: string;
+      dataUrl?: string;
+      error?: string;
+    };
+    if (res.ok && json.ok && json.url) {
+      return {
+        url: json.dataUrl && json.backend === "memory" ? json.dataUrl : json.url,
+        id: json.id || "",
+        backend: json.backend || "unknown",
+        dataUrl: json.dataUrl,
+      };
+    }
+  } catch {
+    /* fall through to local data URL */
+  }
+
+  const [dataUrl] = await readFilesAsDataUrls([file]);
+  return { url: dataUrl, id: `local-${Date.now()}`, backend: "client-data-url", dataUrl };
+}
+
+/** Upload many files; preserves order. */
+export async function uploadDurablePhotos(
+  files: FileList | File[],
+  opts?: { productId?: string; orgId?: string }
+): Promise<string[]> {
+  const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+  const urls: string[] = [];
+  for (const file of list) {
+    const result = await uploadDurablePhoto(file, opts);
+    urls.push(result.url);
+  }
+  return urls;
+}
+
 export function productPhotoUrl(seed: string, size = 400): string {
   const safe = encodeURIComponent(seed.replace(/[^a-zA-Z0-9_-]/g, ""));
   return `https://picsum.photos/seed/${safe}/${size}/${size}`;

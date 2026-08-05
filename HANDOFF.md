@@ -71,8 +71,8 @@ Three product surfaces share one Next.js 14 app:
 ### Supporting stack
 
 - **Auth / DB (production):** **Prisma + Neon Postgres** — Vercel Production + Preview have `DATABASE_URL` / `DATABASE_URL_UNPOOLED` for Neon project `store-thru-listing-db`. Schema push + seed completed; prod `/api/me` returns `dbMode: "prisma"`. NextAuth credentials (email + shared pilot password); JWT carries `userId`, `orgId`, `role`, `isOps`, memberships
-- **Schema:** Prisma multi-tenant models (`Org`, `User`, `Membership`, `Product`, `Listing`, `Order`, …) in `prisma/schema.prisma` (committed as PostgreSQL datasource)
-- **Domain data today:** mostly **`MockApiClient`** + **browser `localStorage`** for Admin IMS settings — inventory/listings/orders and Admin settings are **not** yet the system of record in Postgres
+- **Schema:** Prisma multi-tenant models (`Org`, `User`, `Membership`, `Product`, `Manifest`, `Listing`, `Order`/`OrderLine`, `OrgSettings`, `Invite`, …) in `prisma/schema.prisma`
+- **Domain data:** **Postgres SoR started** — donor create (`/manifests/new`) writes Manifest + Products when DB ready; Products list merges DB ∪ mock; Admin IMS settings save to `OrgSettings` JSON (and localStorage cache). Listings/orders UI still largely mock; Invite path is live for new teammates
 - **Marketplaces:** adapter stubs; `NEXT_PUBLIC_MARKETPLACE_MODE=mock|live` (live returns `NOT_CONFIGURED` without vendor keys)
 
 ---
@@ -99,11 +99,11 @@ Be explicit with stakeholders: **this is a high-fidelity demo, not a production 
 
 | Gap | Notes |
 |-----|--------|
-| **Durable domain data (P0 eng)** | Products, listings, orders, Admin IMS settings still mock / `localStorage` — not yet the system of record in Postgres (auth/org membership **is** Prisma-backed) |
+| **Durable domain data (P0 eng — in progress)** | **Landed:** Product/Manifest/Invite/OrgSettings (+ OrderLine stub). Donor create + Admin IMS settings persist to Neon when session has orgId. **Still mock:** most listings/orders UI, seed catalog overlay, photos/object storage |
 | **Marketplace live — DEFERRED for developers** | ShopGoodwill / eBay OAuth + listing APIs need real credentials; stubs only. **Do not start marketplace live in this handoff pass** — leave for eng when keys + scope are ready |
 | **Ops → real multi-org control plane** | `/ops` is a thin pilot console (health/flags/impersonation) — not full multi-org provisioning, support tooling, or audit |
-| **Teammate provisioning** | Admin teammates UI is demo/`localStorage`; need real invites, passwords, MFA, 20+ listers |
-| **Photos / files** | No durable object storage for product images yet |
+| **Teammate provisioning** | **Invites landed** (`/admin/teammates` → copyable `/invite/[token]`). Seeded demo logins still use shared password. MFA / bulk 20+ lister ops still open |
+| **Photos / files** | No durable object storage for product images yet (URLs/json stub on Product) |
 | **Carrier / printers / scanners** | Label APIs, printer profiles, barcode workflows not production-wired |
 | **Legal / reliability** | ToS/Privacy/DPA, staging, observability, backups — open |
 | **Retail product** | Separate codebase at `..\hammoq-retail` — out of scope for this IMS handoff |
@@ -164,8 +164,8 @@ Useful scripts: `db:push`, `db:seed`, `db:studio`, `lint`, `build`.
 
 ## 10. Honesty statement (copy for stakeholders)
 
-> **store-thru-listing is demo-ready and send-ready for Product early review:** live on Vercel, GitHub linked, Auto-List primary Item Creation, roles and Admin/Ops surfaces in place, marketplace flows in **mock** mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`).  
-> **It is not yet a production IMS** for onboarding twenty real listers: durable inventory/listings/orders and Admin IMS settings are still mock/`localStorage`, **marketplace live is deferred for developers**, and Ops is a thin pilot console — not a full multi-org control plane. **Retail is a separate repo** (`hammoq-retail`).
+> **store-thru-listing is demo-ready and send-ready for Product early review:** live on Vercel, GitHub linked, Auto-List primary Item Creation, roles and Admin/Ops surfaces in place, marketplace flows in **mock** mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`). Domain SoR + teammate invites have landed for donor products / OrgSettings / invites.  
+> **It is not yet a full production IMS** for onboarding twenty real listers: listings/orders UI and photos are still largely mock, **marketplace live is deferred for developers**, and Ops is a thin pilot console — not a full multi-org control plane. **Retail is a separate repo** (`hammoq-retail`).
 
 ---
 

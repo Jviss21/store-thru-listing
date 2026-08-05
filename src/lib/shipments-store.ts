@@ -18,6 +18,11 @@ export type NewShipmentInput = {
   fees?: number;
   cost?: number;
   status?: ShipmentStatus;
+  easyPostId?: string;
+  labelSvgUrl?: string;
+  labelPdfUrl?: string;
+  labelImageUrl?: string;
+  labelMode?: "easypost" | "stub";
 };
 
 function readCreated(): Shipment[] {
@@ -78,7 +83,7 @@ export function saveCreatedShipment(input: NewShipmentInput): Shipment {
     channel,
     carrier: input.carrier,
     trackingNumber: input.trackingNumber?.trim() || shipmentNumber,
-    easyPostId: `shp_${hexChunk(now + n, 32)}`,
+    easyPostId: input.easyPostId || `shp_${hexChunk(now + n, 32)}`,
     cost: input.cost ?? 8.45,
     fees: input.fees ?? 0.06,
     insurance: input.insurance ?? null,
@@ -86,6 +91,10 @@ export function saveCreatedShipment(input: NewShipmentInput): Shipment {
     packedBy: input.packedBy ?? "jdoe",
     shippedAt: new Date().toISOString(),
     status: input.status ?? "Label created",
+    labelSvgUrl: input.labelSvgUrl,
+    labelPdfUrl: input.labelPdfUrl,
+    labelImageUrl: input.labelImageUrl,
+    labelMode: input.labelMode,
   };
   writeCreated([row, ...created]);
   const session = loadSession();
@@ -101,6 +110,112 @@ export function saveCreatedShipment(input: NewShipmentInput): Shipment {
   return row;
 }
 
+export function updateShipmentLabel(
+  shipmentId: string,
+  patch: Partial<
+    Pick<
+      Shipment,
+      | "labelSvgUrl"
+      | "labelPdfUrl"
+      | "labelImageUrl"
+      | "labelMode"
+      | "trackingNumber"
+      | "easyPostId"
+      | "cost"
+      | "fees"
+      | "carrier"
+      | "status"
+    >
+  >
+): Shipment | null {
+  const created = readCreated();
+  const idx = created.findIndex((s) => s.id === shipmentId);
+  if (idx < 0) return null;
+  created[idx] = { ...created[idx], ...patch };
+  writeCreated(created);
+  return created[idx];
+}
+
 export function clearCreatedShipments() {
   localStorage.removeItem(SHIPMENTS_STORAGE_KEY);
+}
+
+/** Purchase label via API (EasyPost live or printable stub). */
+export async function purchaseLabelForShipment(input: {
+  orderNumber: string;
+  channel?: string;
+  channelOrderId?: string;
+  carrier?: string;
+  insurance?: number | null;
+  autoSelectBestRate?: boolean;
+  requireSignature?: boolean;
+  orgId?: string;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  easyPostConfigured?: boolean;
+  label?: {
+    mode: "easypost" | "stub";
+    easyPostId: string;
+    trackingNumber: string;
+    carrier: string;
+    service: string;
+    costCents: number;
+    feesCents: number;
+    insuranceCents: number | null;
+    labelSvgDataUrl: string;
+    labelPdfDataUrl: string;
+    labelPngHint: string;
+    message: string;
+  };
+}> {
+  try {
+    const res = await fetch("/api/shipping/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderNumber: input.orderNumber,
+        channel: input.channel,
+        channelOrderId: input.channelOrderId,
+        carrier: input.carrier,
+        insuranceCents:
+          input.insurance != null ? Math.round(input.insurance * 100) : null,
+        autoSelectBestRate: input.autoSelectBestRate !== false,
+        requireSignature: Boolean(input.requireSignature),
+        orgId: input.orgId,
+      }),
+    });
+    const json = (await res.json()) as {
+      ok?: boolean;
+      error?: string;
+      easyPostConfigured?: boolean;
+      label?: {
+        mode: "easypost" | "stub";
+        easyPostId: string;
+        trackingNumber: string;
+        carrier: string;
+        service: string;
+        costCents: number;
+        feesCents: number;
+        insuranceCents: number | null;
+        labelSvgDataUrl: string;
+        labelPdfDataUrl: string;
+        labelPngHint: string;
+        message: string;
+      };
+    };
+    if (!res.ok || !json.ok || !json.label) {
+      return { ok: false, error: json.error || "Label purchase failed" };
+    }
+    return {
+      ok: true,
+      easyPostConfigured: json.easyPostConfigured,
+      label: json.label,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Network error",
+    };
+  }
 }

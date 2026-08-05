@@ -1,0 +1,252 @@
+/**
+ * Invite repository — create / list pending / accept (User + Membership).
+ */
+
+import { randomBytes } from "crypto";
+import { prisma, isDbReady } from "@/lib/db/client";
+import { hashPassword } from "@/lib/auth/credentials";
+import type { InviteRole } from "@/lib/db/api-auth";
+
+const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+export type InviteDto = {
+  id: string;
+  orgId: string;
+  email: string;
+  role: string;
+  token: string;
+  expiresAt: string;
+  invitedById: string | null;
+  acceptedAt: string | null;
+  createdAt: string;
+  inviteUrl?: string;
+};
+
+function toDto(
+  row: {
+    id: string;
+    orgId: string;
+    email: string;
+    role: string;
+    token: string;
+    expiresAt: Date;
+    invitedById: string | null;
+    acceptedAt: Date | null;
+    createdAt: Date;
+  },
+  baseUrl?: string
+): InviteDto {
+  const dto: InviteDto = {
+    id: row.id,
+    orgId: row.orgId,
+    email: row.email,
+    role: row.role,
+    token: row.token,
+    expiresAt: row.expiresAt.toISOString(),
+    invitedById: row.invitedById,
+    acceptedAt: row.acceptedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
+  if (baseUrl) {
+    dto.inviteUrl = `${baseUrl.replace(/\/$/, "")}/invite/${row.token}`;
+  }
+  return dto;
+}
+
+export function newInviteToken(): string {
+  return randomBytes(24).toString("hex");
+}
+
+export async function createInvite(opts: {
+  orgId: string;
+  email: string;
+  role: InviteRole;
+  invitedById?: string | null;
+  baseUrl?: string;
+}): Promise<InviteDto | null> {
+  if (!isDbReady() || !prisma) return null;
+  const email = opts.email.trim().toLowerCase();
+  if (!email || !email.includes("@")) return null;
+
+  try {
+    // Expire any prior pending invites for same org+email
+    await prisma.invite.updateMany({
+      where: {
+        orgId: opts.orgId,
+        email,
+        acceptedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { expiresAt: new Date() },
+    });
+
+    const token = newInviteToken();
+    const row = await prisma.invite.create({
+      data: {
+        orgId: opts.orgId,
+        email,
+        role: opts.role,
+        token,
+        expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+        invitedById: opts.invitedById ?? null,
+      },
+    });
+
+    const dto = toDto(row, opts.baseUrl);
+    // Demo email stub — log invite link for operators / Vercel logs
+    console.info("[invite] created", {
+      email: dto.email,
+      orgId: dto.orgId,
+      role: dto.role,
+      inviteUrl: dto.inviteUrl ?? `/invite/${dto.token}`,
+      expiresAt: dto.expiresAt,
+    });
+    return dto;
+  } catch (e) {
+    console.error("[invite] create failed", e);
+    return null;
+  }
+}
+
+export async function listPendingInvites(
+  orgId: string,
+  baseUrl?: string
+): Promise<InviteDto[] | null> {
+  if (!isDbReady() || !prisma) return null;
+  try {
+    const rows = await prisma.invite.findMany({
+      where: {
+        orgId,
+        acceptedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map((r) => toDto(r, baseUrl));
+  } catch {
+    return null;
+  }
+}
+
+export async function getInviteByToken(token: string): Promise<
+  | (InviteDto & {
+      orgName: string;
+      status: "pending" | "accepted" | "expired";
+    })
+  | null
+> {
+  if (!isDbReady() || !prisma) return null;
+  try {
+    const row = await prisma.invite.findUnique({
+      where: { token },
+      include: { org: true },
+    });
+    if (!row) return null;
+    let status: "pending" | "accepted" | "expired" = "pending";
+    if (row.acceptedAt) status = "accepted";
+    else if (row.expiresAt.getTime() < Date.now()) status = "expired";
+    return {
+      ...toDto(row),
+      orgName: row.org.name,
+      status,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export type AcceptInviteResult =
+  | { ok: true; userId: string; email: string; orgId: string; role: string }
+  | { ok: false; error: string };
+
+export async function acceptInvite(opts: {
+  token: string;
+  name: string;
+  password: string;
+}): Promise<AcceptInviteResult> {
+  if (!isDbReady() || !prisma) {
+    return { ok: false, error: "Database unavailable" };
+  }
+  const name = opts.name.trim();
+  const password = opts.password;
+  if (name.length < 2) return { ok: false, error: "Name is required" };
+  if (password.length < 8) {
+    return { ok: false, error: "Password must be at least 8 characters" };
+  }
+
+  try {
+    const invite = await prisma.invite.findUnique({ where: { token: opts.token } });
+    if (!invite) return { ok: false, error: "Invite not found" };
+    if (invite.acceptedAt) return { ok: false, error: "Invite already accepted" };
+    if (invite.expiresAt.getTime() < Date.now()) {
+      return { ok: false, error: "Invite has expired" };
+    }
+
+    const passwordHash = await hashPassword(password);
+    const existing = await prisma.user.findUnique({
+      where: { email: invite.email },
+    });
+
+    let userId: string;
+    if (existing) {
+      userId = existing.id;
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { name, passwordHash },
+      });
+      await prisma.membership.upsert({
+        where: { orgId_userId: { orgId: invite.orgId, userId: existing.id } },
+        create: {
+          orgId: invite.orgId,
+          userId: existing.id,
+          role: invite.role,
+          status: "Active",
+        },
+        update: { role: invite.role, status: "Active" },
+      });
+    } else {
+      userId = `user-${randomBytes(8).toString("hex")}`;
+      await prisma.user.create({
+        data: {
+          id: userId,
+          email: invite.email,
+          name,
+          passwordHash,
+          isOps: false,
+          memberships: {
+            create: {
+              orgId: invite.orgId,
+              role: invite.role,
+              status: "Active",
+            },
+          },
+        },
+      });
+    }
+
+    await prisma.invite.update({
+      where: { id: invite.id },
+      data: { acceptedAt: new Date() },
+    });
+
+    await prisma.auditEvent.create({
+      data: {
+        orgId: invite.orgId,
+        userId,
+        action: "invite.accepted",
+        metaJson: JSON.stringify({ email: invite.email, role: invite.role }),
+      },
+    });
+
+    return {
+      ok: true,
+      userId,
+      email: invite.email,
+      orgId: invite.orgId,
+      role: invite.role,
+    };
+  } catch (e) {
+    console.error("[invite] accept failed", e);
+    return { ok: false, error: "Could not accept invite" };
+  }
+}

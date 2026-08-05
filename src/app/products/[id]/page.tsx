@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, MapPin } from "lucide-react";
 import {
   ListingEditorForm,
   productToFormState,
@@ -30,6 +30,8 @@ import {
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { getProduct, listings } from "@/lib/mock-data";
 import type { Product } from "@/lib/types";
+import { useOrg } from "@/components/OrgProvider";
+import { findShelfLocation } from "@/lib/putaway-store";
 
 function asProduct(created: CreatedProduct): Product {
   return {
@@ -67,12 +69,14 @@ function asProduct(created: CreatedProduct): Product {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { org } = useOrg();
   const id = String(params.id ?? "");
   const seed = getProduct(id);
   const [product, setProduct] = useState<Product | null>(seed ?? null);
   const [form, setForm] = useState<ListingFormState | null>(null);
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [shelfName, setShelfName] = useState<string | null>(null);
   const { feedback, justSaved, announce } = useSaveFeedback();
 
   useEffect(() => {
@@ -84,10 +88,20 @@ export default function ProductDetailPage() {
     setProduct(p);
     if (p) {
       const base = productToFormState(p);
-      setForm({ ...base, channels: p.listedOn.length ? [...p.listedOn] : base.channels });
+      const shelf = findShelfLocation(org.id, {
+        barcode: p.upc,
+        upc: p.upc,
+        sku: p.sku,
+      });
+      setShelfName(shelf?.locationName ?? (p.location || null));
+      setForm({
+        ...base,
+        channels: p.listedOn.length ? [...p.listedOn] : base.channels,
+        location: shelf?.locationName || base.location,
+      });
     }
     setReady(true);
-  }, [id, seed]);
+  }, [id, seed, org.id]);
 
   if (!ready) return <div className="p-8 text-sm text-muted">Loading product…</div>;
   if (!product || !form) {
@@ -240,6 +254,31 @@ export default function ProductDetailPage() {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink/10 bg-mist/40 px-4 py-3 text-sm">
+        <div className="flex items-start gap-2">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink" />
+          <div>
+            <p className="font-semibold text-ink">Find on shelf</p>
+            <p className="text-muted">
+              {shelfName ? (
+                <>
+                  Location: <span className="font-mono font-semibold text-ink">{shelfName}</span>
+                </>
+              ) : (
+                "Not put away yet — scan barcode to assign a bin."
+              )}
+            </p>
+          </div>
+        </div>
+        <Link
+          href={`/products/putaway?barcode=${encodeURIComponent(product.upc || product.sku)}`}
+        >
+          <Button type="button" variant="outline" size="sm">
+            Scan / putaway
+          </Button>
+        </Link>
+      </div>
+
       {productListings.length > 0 && (
         <div className="rounded-xl border border-ink/10 bg-mist/40 px-4 py-3 text-sm">
           <p className="font-medium">Channel listings</p>
@@ -257,7 +296,12 @@ export default function ProductDetailPage() {
           </ul>
         </div>
       )}
-      <ListingEditorForm value={form} onChange={setForm} />
+      <ListingEditorForm
+        value={form}
+        onChange={setForm}
+        productId={product.id}
+        orgId={org.id}
+      />
       <SaveConfirmBar show={justSaved} message="Product saved successfully" />
     </div>
   );

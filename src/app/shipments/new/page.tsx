@@ -2,39 +2,116 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { CARRIERS, CURRENT_USER, orders } from "@/lib/mock-data";
-import { saveCreatedShipment } from "@/lib/shipments-store";
+import {
+  purchaseLabelForShipment,
+  saveCreatedShipment,
+} from "@/lib/shipments-store";
 import type { ListingChannel } from "@/lib/types";
+import { useOrg } from "@/components/OrgProvider";
+import { loadAdminIms } from "@/lib/admin-ims";
+import { ShipmentLabelModal } from "@/components/ShipmentLabelModal";
+import type { Shipment } from "@/lib/types";
 
 export default function NewShipmentPage() {
   const router = useRouter();
+  const { org } = useOrg();
   const defaultOrder = orders.find((o) => o.fulfillmentStatus !== "Unfulfilled") ?? orders[0];
   const [orderNumber, setOrderNumber] = useState(defaultOrder?.orderNumber ?? "");
   const [channel, setChannel] = useState<ListingChannel>(defaultOrder?.channel ?? "eBay");
   const [carrier, setCarrier] = useState(CARRIERS[0] ?? "FedEx");
   const [tracking, setTracking] = useState("");
   const [insurance, setInsurance] = useState("");
-  const [cost, setCost] = useState("8.45");
   const [flash, setFlash] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
+  const [easyPostHint, setEasyPostHint] = useState("");
+  const [createdLabel, setCreatedLabel] = useState<Shipment | null>(null);
+  const [shippingSettings, setShippingSettings] = useState(() => loadAdminIms(org.id).shipping);
 
-  function onSubmit(e: FormEvent) {
+  useEffect(() => {
+    setShippingSettings(loadAdminIms(org.id).shipping);
+  }, [org.id]);
+
+  useEffect(() => {
+    void fetch("/api/shipping/labels")
+      .then((r) => r.json())
+      .then((j: { easyPostConfigured?: boolean; message?: string }) => {
+        setEasyPostHint(
+          j.easyPostConfigured
+            ? "EasyPost API key detected — live purchase when connected in Admin."
+            : "Demo stub labels (set EASYPOST_API_KEY for live). Printable PDF/SVG always available."
+        );
+      })
+      .catch(() => setEasyPostHint("Label API ready (stub mode)."));
+  }, []);
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    setError(null);
+    setBuying(true);
+
+    const matched = orders.find(
+      (o) => o.orderNumber.toLowerCase() === orderNumber.trim().toLowerCase()
+    );
+    const orderTotal = matched?.total ?? 0;
+    const requireSignature =
+      shippingSettings.autoRequireSignature &&
+      orderTotal >= shippingSettings.signatureThreshold;
+    const insuranceVal = insurance
+      ? Number(insurance)
+      : orderTotal >= shippingSettings.insuranceThreshold
+        ? Math.round(orderTotal * 0.02 * 100) / 100
+        : null;
+
+    if (shippingSettings.requirePacking) {
+      // Soft check — demo does not block, but surfaces the admin toggle.
+      setFlash("Admin requires packing before ship — demo continues with label purchase.");
+    }
+
+    const purchased = await purchaseLabelForShipment({
+      orderNumber,
+      channel,
+      channelOrderId: matched?.channelOrderId,
+      carrier,
+      insurance: insuranceVal,
+      autoSelectBestRate: shippingSettings.autoSelectBestRate,
+      requireSignature,
+      orgId: org.id,
+    });
+
+    if (!purchased.ok || !purchased.label) {
+      setError(purchased.error || "Could not purchase label.");
+      setBuying(false);
+      return;
+    }
+
+    const label = purchased.label;
     const row = saveCreatedShipment({
       orderNumber,
       channel,
-      carrier,
-      trackingNumber: tracking || undefined,
+      carrier: label.carrier || carrier,
+      trackingNumber: tracking.trim() || label.trackingNumber,
       createdBy: CURRENT_USER.handle,
-      packedBy: CURRENT_USER.handle,
-      insurance: insurance ? Number(insurance) : null,
-      cost: Number(cost) || 8.45,
-      fees: 0.06,
+      packedBy: shippingSettings.autoSelectPacker
+        ? CURRENT_USER.handle
+        : CURRENT_USER.handle,
+      insurance: insuranceVal,
+      cost: label.costCents / 100,
+      fees: label.feesCents / 100,
+      easyPostId: label.easyPostId,
+      labelSvgUrl: label.labelSvgDataUrl,
+      labelPdfUrl: label.labelPdfDataUrl,
+      labelImageUrl: label.labelPngHint || undefined,
+      labelMode: label.mode,
     });
-    setFlash(`Shipment ${row.shipmentNumber} created.`);
-    setTimeout(() => router.push("/shipments"), 600);
+
+    setFlash(label.message);
+    setCreatedLabel(row);
+    setBuying(false);
   }
 
   return (
@@ -47,18 +124,37 @@ export default function NewShipmentPage() {
       </Link>
 
       <PageHeader
-        title="New shipment"
-        description="Demo stub — creates a mock label and stores it in this browser."
+        title="Buy shipping label"
+        description="Purchases via EasyPost when configured; otherwise generates a printable demo PDF/SVG + tracking."
       />
 
-      {flash && (
-        <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm text-ink">
-          {flash}
+      {easyPostHint && (
+        <p className="text-sm text-muted">
+          {easyPostHint}{" "}
+          {shippingSettings.easyPostConnected ? (
+            <span className="font-medium text-ink">Admin: EasyPost connected.</span>
+          ) : (
+            <Link href="/admin/shipping" className="text-primary hover:underline">
+              Connect in Admin → Shipping
+            </Link>
+          )}
+        </p>
+      )}
+
+      {(flash || error) && (
+        <div
+          className={`rounded-xl border px-4 py-2 text-sm ${
+            error
+              ? "border-red-300 bg-red-50 text-red-800"
+              : "border-accent/35 bg-accent/10 text-ink"
+          }`}
+        >
+          {error ?? flash}
         </div>
       )}
 
       <Card className="p-5">
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
           <label className="block space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted">
               Order number
@@ -94,6 +190,7 @@ export default function NewShipmentPage() {
                 className="h-10 w-full rounded-xl border border-ink/10 bg-white/80 px-3 text-sm outline-none focus:border-ink/30 focus:ring-2 focus:ring-accent/40"
                 value={carrier}
                 onChange={(e) => setCarrier(e.target.value)}
+                disabled={shippingSettings.autoSelectBestRate}
               >
                 {CARRIERS.map((c) => (
                   <option key={c} value={c}>
@@ -101,47 +198,42 @@ export default function NewShipmentPage() {
                   </option>
                 ))}
               </select>
+              {shippingSettings.autoSelectBestRate && (
+                <span className="text-[11px] text-muted">
+                  Admin auto-selects best rate — carrier may change after purchase.
+                </span>
+              )}
             </label>
           </div>
 
           <label className="block space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Tracking number (optional)
+              Tracking override (optional)
             </span>
             <Input
               value={tracking}
               onChange={(e) => setTracking(e.target.value)}
-              placeholder="Leave blank to auto-generate"
+              placeholder="Leave blank to use purchased tracking"
             />
           </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Label cost
-              </span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Insurance (optional)
-              </span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={insurance}
-                onChange={(e) => setInsurance(e.target.value)}
-                placeholder="—"
-              />
-            </label>
-          </div>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Insurance (optional)
+            </span>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={insurance}
+              onChange={(e) => setInsurance(e.target.value)}
+              placeholder={
+                shippingSettings.insuranceThreshold
+                  ? `Auto above $${shippingSettings.insuranceThreshold}`
+                  : "—"
+              }
+            />
+          </label>
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             <Link href="/shipments">
@@ -149,12 +241,22 @@ export default function NewShipmentPage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" variant="accent">
-              Create shipment
+            <Button type="submit" variant="accent" disabled={buying}>
+              {buying ? "Purchasing…" : "Purchase & print label"}
             </Button>
           </div>
         </form>
       </Card>
+
+      {createdLabel && (
+        <ShipmentLabelModal
+          shipment={createdLabel}
+          onClose={() => {
+            setCreatedLabel(null);
+            router.push("/shipments");
+          }}
+        />
+      )}
     </div>
   );
 }
