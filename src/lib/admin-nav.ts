@@ -116,8 +116,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/channels/ebay", label: "eBay", icon: Tags },
       { href: "/admin/channels/shopgoodwill", label: "ShopGoodwill", icon: Store },
-      { href: "/admin/channels/shopify", label: "Shopify", icon: Cable, stub: true },
-      { href: "/admin/channels/goodwillfinds", label: "GoodwillFinds", icon: Layers, stub: true },
       { href: "/admin/marketplaces", label: "All connections", icon: Cable },
     ],
   },

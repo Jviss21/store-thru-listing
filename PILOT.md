@@ -171,9 +171,9 @@ Add new pages by appending to `ADMIN_NAV_GROUPS` in `src/lib/admin-nav.ts` and c
 | Team | `/admin/users` | Redirect → teammates |
 | Channels | `/admin/channels/ebay` | Accounts + defaults |
 | Channels | `/admin/channels/shopgoodwill` | SGW defaults form |
-| Channels | `/admin/channels/shopify` | Stub |
-| Channels | `/admin/channels/goodwillfinds` | Stub |
 | Channels | `/admin/marketplaces` | All connections (kept) |
+
+> Shopify and GoodwillFinds channel stubs were removed from the Admin UI (nav + `/admin/channels/shopify` / `goodwillfinds` pages).
 | Advanced | `/admin/developer` | API tokens table |
 | Advanced | `/admin/embedded-listings` | Activate stub |
 
