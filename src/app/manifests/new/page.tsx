@@ -22,7 +22,7 @@ import { RoleGate } from "@/components/RoleGate";
 import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { logEvent } from "@/lib/event-log";
-import { BRAND, CATEGORY_PATHS } from "@/lib/mock-data";
+import { BRAND, CATEGORY_PATHS, INFINITY_AI_UPLOAD_HREF } from "@/lib/mock-data";
 
 function ManualCreateInner() {
   const router = useRouter();
@@ -224,23 +224,16 @@ function ManualCreateInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">Ideal path: {BRAND.autoList} onboarding</p>
+          <p className="text-sm font-semibold text-ink">Ideal path: upload in {BRAND.ai}</p>
           <p className="text-xs text-muted">
-            Request a demo to get fully onboarded, or try {BRAND.autoList} in this demo app.
+            Push donor products through {BRAND.autoList} instead of filling the full manual form.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <a href="https://hammoq.com/contact" target="_blank" rel="noopener noreferrer">
-            <Button variant="accent" size="sm" type="button">
-              Request a demo
-            </Button>
-          </a>
-          <Link href="/products/auto-list">
-            <Button variant="outline" size="sm" type="button">
-              <Rocket className="h-3.5 w-3.5" /> Try {BRAND.autoList}
-            </Button>
-          </Link>
-        </div>
+        <Link href={INFINITY_AI_UPLOAD_HREF}>
+          <Button variant="accent" size="sm" type="button">
+            <Rocket className="h-3.5 w-3.5" /> Upload in {BRAND.ai}
+          </Button>
+        </Link>
       </Card>
 
       <Card className="grid gap-4 p-4 sm:grid-cols-2">

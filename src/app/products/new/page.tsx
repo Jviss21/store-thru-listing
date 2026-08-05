@@ -20,7 +20,7 @@ import { Button, Card } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
-import { BRAND, CATEGORY_PATHS } from "@/lib/mock-data";
+import { BRAND, CATEGORY_PATHS, INFINITY_AI_UPLOAD_HREF } from "@/lib/mock-data";
 
 function NewProductInner() {
   const router = useRouter();
@@ -205,21 +205,13 @@ function NewProductInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <p className="min-w-0 flex-1 text-sm">
-          Ideal onboarding uses {BRAND.autoList} — request a demo, or try it in this app.
+          Ideal path: upload products in {BRAND.ai} and push with {BRAND.autoList}.
         </p>
-        <a
-          href="https://hammoq.com/contact"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={INFINITY_AI_UPLOAD_HREF}
           className="text-sm font-semibold text-brand-orange hover:underline"
         >
-          Request a demo
-        </a>
-        <Link
-          href="/products/auto-list"
-          className="text-sm font-semibold text-muted hover:underline"
-        >
-          Try {BRAND.autoList}
+          Upload in {BRAND.ai}
         </Link>
       </Card>
       <ListingEditorForm value={form} onChange={setForm} />

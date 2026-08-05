@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Download, ExternalLink, Eye, Pencil, Rocket, Sparkles } from "lucide-react";
+import { Download, Eye, Pencil, Rocket, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { ProductImage } from "@/components/ProductImage";
@@ -74,54 +74,42 @@ function AutoListInner() {
         </Link>
       </div>
 
-      <a
-        href="https://hammoq.com/contact"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group flex flex-wrap items-center gap-4 rounded-2xl bg-ink p-5 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-ink/95"
-        onClick={() =>
-          logEvent({
-            section: "auto-list",
-            action: "Opened Request a demo from Auto-List",
-            resource: "hammoq.com/contact",
-            resourceHref: "https://hammoq.com/contact",
-          })
-        }
-      >
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-ink p-5 text-white shadow-card">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-ink">
           <Rocket className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-              Primary · ideal onboarding
+              Primary · {BRAND.ai}
             </p>
             <InfinityBadge />
           </div>
           <h2 className="mt-1 font-display text-xl font-bold tracking-tight sm:text-2xl">
-            Get fully onboarded with {BRAND.autoList}
+            Upload products in {BRAND.ai}
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-white/70">
-            {BRAND.autoList} is how teams see the ideal store→ecomm workflow. Request a demo via
-            hammoq.com/contact — use the queue below to try the floor demo in this app.
+            {BRAND.autoList} is how teams run the ideal store→ecomm workflow. Select ready items
+            below and push them to channels with {BRAND.ai}.
           </p>
         </div>
-        <span className="inline-flex items-center gap-2 text-sm font-semibold text-accent group-hover:underline">
-          Request a demo <ExternalLink className="h-3.5 w-3.5" />
-        </span>
-      </a>
+        <Button
+          variant="accent"
+          type="button"
+          disabled={!selected.length}
+          onClick={listSelected}
+          className="shrink-0"
+        >
+          <Rocket className="h-4 w-4" /> Upload with {BRAND.autoList}
+        </Button>
+      </div>
 
       <PageHeader
         title={BRAND.autoList}
-        description={`Demo queue — ${BRAND.ai} pushes ready products using each product’s Listing Strategy for weight, dims, shipping, pricing, and channel payload defaults. For production onboarding, request a demo.`}
+        description={`${BRAND.ai} pushes ready products using each product’s Listing Strategy for weight, dims, shipping, pricing, and channel payload defaults.`}
         actions={
           <>
             <InfinityBadge />
-            <a href="https://hammoq.com/contact" target="_blank" rel="noopener noreferrer">
-              <Button variant="accent" type="button">
-                <ExternalLink className="h-4 w-4" /> Request a demo
-              </Button>
-            </a>
             <Link href="/manifests/new">
               <Button variant="outline" type="button">
                 Manual donor create

@@ -21,6 +21,12 @@ export const BRAND = {
   autoList: "Auto-List",
 };
 
+/**
+ * In-app Infinity AI upload / Auto-List surface.
+ * No external Infinity AI app URL is defined in this repo — use this path for CTAs.
+ */
+export const INFINITY_AI_UPLOAD_HREF = "/products/auto-list";
+
 /** Strategy names — definitions live in `listing-strategies.ts`. */
 export const STRATEGIES = STRATEGY_NAMES;
 
