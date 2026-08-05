@@ -27,7 +27,6 @@ import {
   Users,
   UserCog,
   FileText,
-  Layers,
   Database,
   Sparkles,
   Building2,
@@ -124,7 +123,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Advanced",
     items: [
       { href: "/admin/developer", label: "Developer", icon: Code2 },
-      { href: "/admin/embedded-listings", label: "Embedded Listings", icon: Layers, stub: true },
     ],
   },
 ];

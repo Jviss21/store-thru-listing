@@ -215,10 +215,6 @@ export type AdminImsState = {
   developer: {
     tokens: ApiToken[];
   };
-  embeddedListings: {
-    activated: boolean;
-    notes: string;
-  };
 };
 
 function daysAgo(d: number) {
@@ -654,10 +650,6 @@ export function defaultAdminImsState(): AdminImsState {
         },
       ],
     },
-    embeddedListings: {
-      activated: false,
-      notes: "Embed Hammoq listing widgets on partner storefronts. Activation stub for pilot.",
-    },
   };
 }
 
@@ -740,7 +732,6 @@ function deepMergeIms(base: AdminImsState, patch: Partial<AdminImsState>): Admin
     developer: {
       tokens: patch.developer?.tokens?.length ? patch.developer.tokens : base.developer.tokens,
     },
-    embeddedListings: { ...base.embeddedListings, ...patch.embeddedListings },
   };
 }
 
