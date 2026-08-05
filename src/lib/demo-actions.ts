@@ -22,11 +22,12 @@ import {
 import { downloadCsv, downloadJson, stamp } from "@/lib/download";
 import { getStrategyByName } from "@/lib/listing-strategies";
 import { productPhotoUrls } from "@/lib/photos";
-import type { EbayListingInputPack, Listing } from "@/lib/types";
+import type { EbayListingInputPack, Listing, Manifest } from "@/lib/types";
 import { logEvent } from "@/lib/event-log";
 import { loadSession } from "@/lib/session";
 
 const KEY = "test-goodwill-demo-created";
+const MANIFEST_KEY = "test-goodwill-demo-manifests";
 
 export type CreatedProduct = {
   id: string;
@@ -139,6 +140,45 @@ export function saveCreatedListing(listing: CreatedListing) {
     orgId: session.activeOrgId,
   });
   return listing;
+}
+
+function readManifestStore(): Manifest[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(MANIFEST_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as Manifest[];
+  } catch {
+    return [];
+  }
+}
+
+function writeManifestStore(rows: Manifest[]) {
+  localStorage.setItem(MANIFEST_KEY, JSON.stringify(rows));
+}
+
+export function getCreatedManifests(): Manifest[] {
+  return readManifestStore();
+}
+
+export function getCreatedManifest(id: string): Manifest | undefined {
+  return readManifestStore().find((m) => m.id === id || m.code === id);
+}
+
+export function saveCreatedManifest(manifest: Manifest) {
+  const rows = readManifestStore();
+  writeManifestStore([manifest, ...rows.filter((m) => m.id !== manifest.id)]);
+  const session = loadSession();
+  logEvent({
+    section: "manifests",
+    action: "Created donor item batch",
+    resource: manifest.code,
+    resourceHref: `/manifests/${encodeURIComponent(manifest.id)}`,
+    user: session.handle || undefined,
+    userName: session.name || undefined,
+    orgId: session.activeOrgId,
+  });
+  return manifest;
 }
 
 export function updateCreatedProductPhotos(productId: string, imageUrls: string[], imageNames: string[]) {

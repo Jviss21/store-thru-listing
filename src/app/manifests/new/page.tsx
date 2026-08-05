@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { Download, Rocket, Upload } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { Download, Rocket, Settings, Upload } from "lucide-react";
 import {
   ListingEditorForm,
   emptyFormState,
@@ -19,36 +19,89 @@ import {
 import { Button, Card, Input } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { RoleGate } from "@/components/RoleGate";
-import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
+import { useOrg } from "@/components/OrgProvider";
+import {
+  exportListingPacket,
+  saveCreatedListing,
+  saveCreatedProduct,
+} from "@/lib/demo-actions";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { logEvent } from "@/lib/event-log";
-import { BRAND, CATEGORY_PATHS, INFINITY_AI_UPLOAD_HREF } from "@/lib/mock-data";
+import { BRAND, CATEGORY_PATHS } from "@/lib/mock-data";
+import {
+  allocateDonorSkuBarcode,
+  formatDonorBarcode,
+  loadAdminIms,
+  type AdminImsState,
+} from "@/lib/admin-ims";
+import { canAccessAdminConsole } from "@/lib/roles";
+import { printUnitBarcode } from "@/components/BarcodeStub";
 
 function ManualCreateInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const [batchBarcode, setBatchBarcode] = useState(params.get("barcode") ?? "");
+  const { org, session, isOps, hydrated: orgHydrated } = useOrg();
+  const canAdmin = canAccessAdminConsole(session.role, isOps);
+  const skuFromUrl = params.get("sku");
+  const barcodeFromUrl = params.get("barcode");
+
+  const [batchBarcode, setBatchBarcode] = useState(barcodeFromUrl ?? "");
   const [notes, setNotes] = useState("");
   const [form, setForm] = useState<ListingFormState>(() => {
     const base = emptyFormState();
     return {
       ...base,
       title: params.get("title") ?? "",
-      sku: params.get("sku") ?? base.sku,
+      sku: skuFromUrl ?? "",
       channels: [],
     };
   });
+  const [ims, setIms] = useState<AdminImsState | null>(null);
+  const [skuReady, setSkuReady] = useState(!!skuFromUrl);
+  const allocatedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { feedback, justSaved, announce } = useSaveFeedback();
+
+  useEffect(() => {
+    if (!orgHydrated || allocatedRef.current) return;
+    allocatedRef.current = true;
+    const loaded = loadAdminIms(org.id);
+    setIms(loaded);
+    if (skuFromUrl) {
+      setSkuReady(true);
+      if (!barcodeFromUrl && loaded.manifests.autoGenerateSkuOnCreate) {
+        setBatchBarcode(formatDonorBarcode(skuFromUrl, loaded.manifests));
+      }
+      return;
+    }
+    if (!loaded.manifests.autoGenerateSkuOnCreate) {
+      const fallback = emptyFormState().sku;
+      setForm((prev) => (prev.sku ? prev : { ...prev, sku: fallback }));
+      setSkuReady(true);
+      return;
+    }
+    const allocated = allocateDonorSkuBarcode(org.id);
+    setIms(allocated.state);
+    setForm((prev) => ({ ...prev, sku: allocated.sku }));
+    if (!barcodeFromUrl) setBatchBarcode(allocated.barcode);
+    setSkuReady(true);
+    logEvent({
+      section: "manifests",
+      action: "Allocated donor SKU from Admin defaults",
+      resource: allocated.sku,
+      resourceHref: "/manifests/new",
+      orgId: org.id,
+    });
+  }, [org.id, orgHydrated, skuFromUrl, barcodeFromUrl]);
 
   async function buildAndSave(status: "Draft" | "Active") {
     if (!form.title.trim() || !form.sku.trim()) {
       setError("Title and SKU are required.");
       return null;
     }
-    if (batchBarcode.trim() && !/^[A-Za-z0-9-]+$/.test(batchBarcode.trim())) {
-      setError("Batch barcode can only contain letters, numbers, and dashes.");
+    if (batchBarcode.trim() && !/^[A-Za-z0-9:.-]+$/.test(batchBarcode.trim())) {
+      setError("Barcode can only contain letters, numbers, dashes, colons, and periods.");
       return null;
     }
     if (status === "Active" && form.channels.length === 0) {
@@ -76,7 +129,7 @@ function ManualCreateInner() {
     }
     setError(null);
     const tags = [...form.tags];
-    if (batchBarcode.trim()) tags.push(`batch:${batchBarcode.trim()}`);
+    if (batchBarcode.trim()) tags.push(`barcode:${batchBarcode.trim()}`);
     if (notes.trim()) tags.push("manual-notes");
     return saveCreatedProduct({
       id: `local-${Date.now()}`,
@@ -108,6 +161,23 @@ function ManualCreateInner() {
     });
   }
 
+  function maybePrintBarcode(sku: string, title?: string) {
+    if (!ims?.manifests.printBarcodeOnCreate) return;
+    const code = batchBarcode.trim() || formatDonorBarcode(sku, ims.manifests);
+    printUnitBarcode({
+      sku: code,
+      title: title || form.title.trim() || undefined,
+      batch: batchBarcode.trim() || undefined,
+    });
+    logEvent({
+      section: "manifests",
+      action: "Printed donor barcode on create",
+      resource: code,
+      resourceHref: "/manifests/new",
+      orgId: org.id,
+    });
+  }
+
   async function saveDraft() {
     setSaving(true);
     const product = await buildAndSave("Draft");
@@ -125,6 +195,7 @@ function ManualCreateInner() {
       images: product.imageUrls,
       productId: product.id,
     });
+    maybePrintBarcode(product.sku, product.title);
     logEvent({
       section: "manifests",
       action: "Saved manual draft",
@@ -163,6 +234,7 @@ function ManualCreateInner() {
       images: product.imageUrls,
       productId: product.id,
     });
+    maybePrintBarcode(product.sku, product.title);
     logEvent({
       section: "manifests",
       action: `Manual listed to ${channel}`,
@@ -180,11 +252,21 @@ function ManualCreateInner() {
 
   return (
     <div className="space-y-4 pb-12">
-      <div className="text-sm text-muted">
-        <Link href="/manifests" className="text-primary hover:underline">
-          Donor Item Creation
-        </Link>{" "}
-        &gt; Manual donor create
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
+        <div>
+          <Link href="/manifests" className="text-primary hover:underline">
+            Donor Item Creation
+          </Link>{" "}
+          &gt; Manual donor create
+        </div>
+        {canAdmin && (
+          <Link
+            href="/admin/donor-item-creation"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            <Settings className="h-3.5 w-3.5" /> Admin SKU & barcode settings
+          </Link>
+        )}
       </div>
 
       <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b bg-white/95 py-3 backdrop-blur">
@@ -192,12 +274,15 @@ function ManualCreateInner() {
           <h1 className="font-display text-3xl font-bold tracking-tight">Manual donor create</h1>
           <p className="text-sm text-muted">
             Photos + details for eBay and ShopGoodwill — tertiary to {BRAND.autoList} onboarding.
+            {ims?.manifests.autoGenerateSkuOnCreate
+              ? ` SKU prefix ${ims.manifests.skuPrefix} from Admin defaults.`
+              : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <SaveButton
             justSaved={justSaved}
-            saving={saving}
+            saving={saving || !skuReady}
             savedLabel="Draft saved"
             onClick={() => void saveDraft()}
           >
@@ -208,7 +293,12 @@ function ManualCreateInner() {
               ✓ Saved
             </span>
           )}
-          <Button variant="accent" type="button" disabled={saving} onClick={() => void saveAndList()}>
+          <Button
+            variant="accent"
+            type="button"
+            disabled={saving || !skuReady}
+            onClick={() => void saveAndList()}
+          >
             <Upload className="h-4 w-4" /> Create listing
           </Button>
         </div>
@@ -224,28 +314,39 @@ function ManualCreateInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">Ideal path: upload in {BRAND.ai}</p>
+          <p className="text-sm font-semibold text-ink">Ideal path: {BRAND.autoList} onboarding</p>
           <p className="text-xs text-muted">
-            Push donor products through {BRAND.autoList} instead of filling the full manual form.
+            Request a demo to get fully onboarded, or try {BRAND.autoList} in this demo app.
           </p>
         </div>
-        <Link href={INFINITY_AI_UPLOAD_HREF}>
-          <Button variant="accent" size="sm" type="button">
-            <Rocket className="h-3.5 w-3.5" /> Upload in {BRAND.ai}
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <a href="https://hammoq.com/contact" target="_blank" rel="noopener noreferrer">
+            <Button variant="accent" size="sm" type="button">
+              Request a demo
+            </Button>
+          </a>
+          <Link href="/products/auto-list">
+            <Button variant="outline" size="sm" type="button">
+              <Rocket className="h-3.5 w-3.5" /> Try {BRAND.autoList}
+            </Button>
+          </Link>
+        </div>
       </Card>
 
       <Card className="grid gap-4 p-4 sm:grid-cols-2">
         <div>
-          <label className="text-sm font-medium text-ink">Batch barcode (optional)</label>
+          <label className="text-sm font-medium text-ink">Item barcode</label>
           <Input
             className="mt-1"
             value={batchBarcode}
             onChange={(e) => setBatchBarcode(e.target.value)}
-            placeholder="e.g. BATCH-1001"
+            placeholder={ims ? formatDonorBarcode(form.sku || "SKU", ims.manifests) : "Barcode"}
           />
-          <p className="mt-1 text-xs text-muted">Ties this item to an intake batch when present.</p>
+          <p className="mt-1 text-xs text-muted">
+            Derived from Admin barcode format
+            {ims ? ` (${ims.manifests.barcodeFormat})` : ""}
+            {ims?.manifests.printBarcodeOnCreate ? " · prints on save" : ""}.
+          </p>
         </div>
         <div>
           <label className="text-sm font-medium text-ink">Intake notes (optional)</label>

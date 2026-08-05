@@ -96,6 +96,8 @@ export function clearAdminLocalStorage() {
     "test-goodwill-settings",
     "test-goodwill-demo-created",
     "test-goodwill-demo-photos",
+    "test-goodwill-demo-manifests",
+    "test-goodwill-demo-sku-counter",
     KEY,
   ]) {
     localStorage.removeItem(k);

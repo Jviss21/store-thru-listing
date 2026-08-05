@@ -61,6 +61,39 @@ export type ApiToken = {
   lastUsedAt: string | null;
 };
 
+/** Org API key for item/donation authentication integrations (demo IMS). */
+export type ItemAuthApiKeyEnv = "live" | "test";
+
+export type ItemAuthApiKey = {
+  id: string;
+  /** Full mock secret — stored in org-scoped localStorage for demo IMS. */
+  secret: string;
+  environment: ItemAuthApiKeyEnv;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
+export function generateItemAuthApiKey(
+  environment: ItemAuthApiKeyEnv = "live"
+): ItemAuthApiKey {
+  const body =
+    Math.random().toString(36).slice(2) +
+    Math.random().toString(36).slice(2) +
+    Date.now().toString(36);
+  return {
+    id: `iak-${Date.now()}`,
+    secret: `ham_${environment}_${body.slice(0, 28)}`,
+    environment,
+    createdAt: new Date().toISOString(),
+    lastUsedAt: null,
+  };
+}
+
+export function maskItemAuthApiKey(secret: string): string {
+  if (secret.length <= 16) return `${secret.slice(0, 8)}…`;
+  return `${secret.slice(0, 12)}…${secret.slice(-4)}`;
+}
+
 export type TeammateAccount = AdminUser & {
   supplierId: string | null;
   sgwUsername: string;
@@ -85,11 +118,21 @@ export type AdminImsState = {
     requireAuthForLuxury: boolean;
     authHoldThreshold: number;
     notes: string;
+    /** API key for item/donation intake & external auth integrations. */
+    apiKey: ItemAuthApiKey | null;
   };
   manifests: {
     rejectionReasons: string[];
     requirePhotosOnAccept: boolean;
     autoAssignProcessor: boolean;
+    /** SKU / barcode defaults for floor Donor Item Creation (`/manifests/new`) */
+    skuPrefix: string;
+    autoGenerateSkuOnCreate: boolean;
+    /** Last issued numeric sequence (next SKU uses lastIssuedSequence + 1) */
+    lastIssuedSequence: number;
+    /** How the item barcode is derived from the SKU */
+    barcodeFormat: "same-as-sku" | "prefix-dash-seq" | "code128-sku";
+    printBarcodeOnCreate: boolean;
   };
   categories: { id: string; name: string; parentId: string | null }[];
   images: {
@@ -211,6 +254,7 @@ export function defaultAdminImsState(): AdminImsState {
       requireAuthForLuxury: true,
       authHoldThreshold: 95,
       notes: "Authenticated designer holds route to Additional QA Required until cleared.",
+      apiKey: null,
     },
     manifests: {
       rejectionReasons: [
@@ -232,6 +276,11 @@ export function defaultAdminImsState(): AdminImsState {
       ],
       requirePhotosOnAccept: true,
       autoAssignProcessor: false,
+      skuPrefix: "TG",
+      autoGenerateSkuOnCreate: true,
+      lastIssuedSequence: 4800,
+      barcodeFormat: "same-as-sku",
+      printBarcodeOnCreate: false,
     },
     categories: [
       { id: "cat-antiques", name: "Antiques", parentId: null },
@@ -665,4 +714,67 @@ export function passwordRequirements(password: string) {
 
 export function passwordMeetsAll(password: string) {
   return passwordRequirements(password).every((r) => r.ok);
+}
+
+/** Normalize SKU prefix (letters/digits only, uppercased). */
+export function normalizeSkuPrefix(prefix: string) {
+  const cleaned = prefix.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  return cleaned.slice(0, 8) || "TG";
+}
+
+/** Donor unit SKU, e.g. TG-4801 (matches Test Goodwill seed style). */
+export function formatDonorSku(prefix: string, sequence: number) {
+  return `${normalizeSkuPrefix(prefix)}-${sequence}`;
+}
+
+export function peekNextDonorSku(manifests: AdminImsState["manifests"]) {
+  return formatDonorSku(manifests.skuPrefix, manifests.lastIssuedSequence + 1);
+}
+
+export function formatDonorBarcode(
+  sku: string,
+  manifests: Pick<AdminImsState["manifests"], "skuPrefix" | "barcodeFormat" | "lastIssuedSequence">
+) {
+  switch (manifests.barcodeFormat) {
+    case "prefix-dash-seq": {
+      const prefix = normalizeSkuPrefix(manifests.skuPrefix);
+      const seqMatch = sku.match(/(\d+)$/);
+      const seq = seqMatch ? seqMatch[1] : String(manifests.lastIssuedSequence);
+      return `${prefix}-${seq}`;
+    }
+    case "code128-sku":
+      return `C128:${sku}`;
+    case "same-as-sku":
+    default:
+      return sku;
+  }
+}
+
+/**
+ * Allocate the next donor SKU from Admin IMS defaults, persist lastIssuedSequence,
+ * and return SKU + barcode for floor create.
+ */
+export function allocateDonorSkuBarcode(orgId: string): {
+  sku: string;
+  barcode: string;
+  state: AdminImsState;
+} {
+  const state = loadAdminIms(orgId);
+  const nextSeq = state.manifests.lastIssuedSequence + 1;
+  const sku = formatDonorSku(state.manifests.skuPrefix, nextSeq);
+  const next: AdminImsState = {
+    ...state,
+    manifests: { ...state.manifests, lastIssuedSequence: nextSeq },
+  };
+  saveAdminIms(orgId, next);
+  return {
+    sku,
+    barcode: formatDonorBarcode(sku, next.manifests),
+    state: next,
+  };
+}
+
+export function lastIssuedDonorSku(manifests: AdminImsState["manifests"]) {
+  if (manifests.lastIssuedSequence <= 0) return null;
+  return formatDonorSku(manifests.skuPrefix, manifests.lastIssuedSequence);
 }

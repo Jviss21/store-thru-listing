@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   MessageSquare,
@@ -11,8 +11,10 @@ import {
   X,
 } from "lucide-react";
 import { useParams } from "next/navigation";
+import { BarcodeStub, printUnitBarcode } from "@/components/BarcodeStub";
 import { Button, Card, Input, Textarea } from "@/components/ui";
 import { ManifestStatusBadge, ReviewStatusBadge } from "@/components/StatusBadge";
+import { getCreatedManifest } from "@/lib/demo-actions";
 import { REJECT_REASONS, getManifest } from "@/lib/mock-data";
 import type { ItemReviewStatus, Manifest, ManifestItem, ManifestStatus } from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
@@ -42,6 +44,15 @@ export default function ManifestDetailPage() {
   const [sortByStatus, setSortByStatus] = useState(false);
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    if (seed) return;
+    const local = getCreatedManifest(params.id);
+    if (local) {
+      setManifest(structuredClone(local));
+      setPendingStatus(local.status);
+    }
+  }, [params.id, seed]);
+
   const items = useMemo(() => {
     if (!manifest) return [];
     const list = [...manifest.items];
@@ -50,6 +61,20 @@ export default function ManifestDetailPage() {
     }
     return list;
   }, [manifest, sortByStatus]);
+
+  function printSelectedBarcodes(ids: string[]) {
+    const targets = items.filter((it) => ids.includes(it.id));
+    targets.forEach((item, i) => {
+      window.setTimeout(() => {
+        printUnitBarcode({
+          sku: item.sku,
+          title: item.title,
+          supplier: manifest?.supplier,
+          batch: manifest?.code,
+        });
+      }, i * 350);
+    });
+  }
 
   if (!manifest) {
     return (
@@ -192,7 +217,16 @@ export default function ManifestDetailPage() {
             <Button variant="outline" size="sm" type="button">
               <Printer className="h-3.5 w-3.5" /> Print sheet
             </Button>
-            <Button variant="outline" size="sm" type="button">
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() =>
+                printSelectedBarcodes(
+                  selected.length ? selected : manifest.items.map((it) => it.id)
+                )
+              }
+            >
               <Printer className="h-3.5 w-3.5" /> Print barcode
             </Button>
             <Button variant="outline" size="sm" type="button">
@@ -235,7 +269,12 @@ export default function ManifestDetailPage() {
               <Button size="sm" variant="outline" type="button">
                 Divide
               </Button>
-              <Button size="sm" variant="outline" type="button">
+              <Button
+                size="sm"
+                variant="outline"
+                type="button"
+                onClick={() => printSelectedBarcodes(selected)}
+              >
                 Print barcodes
               </Button>
             </div>
@@ -262,8 +301,17 @@ export default function ManifestDetailPage() {
                   <p className="font-medium">{item.title}</p>
                   <p className="text-xs text-muted">
                     {item.reviewStatus}
-                    {item.rejectReason ? ` · ${item.rejectReason}` : ""} · {item.sku}
+                    {item.rejectReason ? ` · ${item.rejectReason}` : ""} · SKU/barcode{" "}
+                    <span className="font-mono font-semibold text-ink">{item.sku}</span>
                   </p>
+                  <BarcodeStub
+                    compact
+                    className="mt-2 max-w-[200px]"
+                    sku={item.sku}
+                    title={item.title}
+                    supplier={manifest.supplier}
+                    batch={manifest.code}
+                  />
                 </div>
                 <ReviewStatusBadge status={item.reviewStatus} />
                 <div className="flex items-center gap-1">
@@ -284,14 +332,25 @@ export default function ManifestDetailPage() {
                   <button className="rounded p-1.5 text-gray-500 hover:bg-gray-50" title="Comment">
                     <MessageSquare className="h-4 w-4" />
                   </button>
-                  <button className="rounded p-1.5 text-gray-500 hover:bg-gray-50" title="Print">
+                  <button
+                    className="rounded p-1.5 text-gray-500 hover:bg-gray-50"
+                    title="Print barcode"
+                    onClick={() =>
+                      printUnitBarcode({
+                        sku: item.sku,
+                        title: item.title,
+                        supplier: manifest.supplier,
+                        batch: manifest.code,
+                      })
+                    }
+                  >
                     <Printer className="h-4 w-4" />
                   </button>
                   <Link
-                    href={`/manifests/new?title=${encodeURIComponent(item.title)}&sku=${encodeURIComponent(item.sku)}`}
+                    href={`/products?q=${encodeURIComponent(item.sku)}`}
                     className="ml-1 text-xs text-primary hover:underline"
                   >
-                    Create product
+                    View product
                   </Link>
                 </div>
               </li>

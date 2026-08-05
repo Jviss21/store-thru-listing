@@ -74,10 +74,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     id: "manifests",
-    label: "Manifests & Authentication",
+    label: "Donor intake & Authentication",
     items: [
       { href: "/admin/item-authentication", label: "Item Authentication", icon: ShieldCheck },
-      { href: "/admin/manifests", label: "Manifests", icon: PackageOpen },
+      { href: "/admin/donor-item-creation", label: "Donor Item Creation", icon: PackageOpen },
     ],
   },
   {

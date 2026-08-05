@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ClipboardList, Download, Eye, Rocket, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ClipboardList, Download, Eye, Rocket, Settings, Trash2 } from "lucide-react";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { ManifestStatusBadge } from "@/components/StatusBadge";
 import { InfinityBadge } from "@/components/Brand";
@@ -10,11 +10,11 @@ import { useOrg } from "@/components/OrgProvider";
 import { BRAND, CATEGORIES, INFINITY_AI_UPLOAD_HREF, manifests as seedManifests } from "@/lib/mock-data";
 import type { Manifest, ManifestStatus } from "@/lib/types";
 import { cn, formatNumber } from "@/lib/utils";
-import { exportManifestsCsv } from "@/lib/demo-actions";
+import { exportManifestsCsv, getCreatedManifests } from "@/lib/demo-actions";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import { RoleGate } from "@/components/RoleGate";
 import { logEvent } from "@/lib/event-log";
-import { canAccessNav } from "@/lib/roles";
+import { canAccessAdminConsole, canAccessNav } from "@/lib/roles";
 
 const STATUSES: ManifestStatus[] = [
   "Created",
@@ -29,12 +29,22 @@ const STATUSES: ManifestStatus[] = [
 function ManifestsInner() {
   const { session, isOps } = useOrg();
   const canAutoList = canAccessNav("auto-list", session.role, isOps);
+  const canAdmin = canAccessAdminConsole(session.role, isOps);
   const [rows, setRows] = useState<Manifest[]>(seedManifests);
   const [lookup, setLookup] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    const local = getCreatedManifests();
+    if (!local.length) return;
+    setRows((prev) => {
+      const ids = new Set(local.map((m) => m.id));
+      return [...local, ...prev.filter((m) => !ids.has(m.id))];
+    });
+  }, []);
 
   const filtered = useMemo(() => {
     return rows.filter((m) => {
@@ -74,21 +84,41 @@ function ManifestsInner() {
         title="Donor Item Creation"
         description={`${BRAND.autoList} via ${BRAND.ai} is the ideal path for store donations and supplier intake — upload products there, or create donor items manually.`}
         actions={
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => {
-              exportManifestsCsv();
-              logEvent({
-                section: "manifests",
-                action: "Exported manifests CSV",
-                resource: "Manifests export",
-                resourceHref: "/manifests",
-              });
-            }}
-          >
-            <Download className="h-4 w-4" /> Export CSV
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canAdmin && (
+              <Link href="/admin/donor-item-creation">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() =>
+                    logEvent({
+                      section: "manifests",
+                      action: "Opened Admin donor intake settings",
+                      resource: "Donor Item Creation",
+                      resourceHref: "/admin/donor-item-creation",
+                    })
+                  }
+                >
+                  <Settings className="h-4 w-4" /> Admin settings
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                exportManifestsCsv();
+                logEvent({
+                  section: "manifests",
+                  action: "Exported manifests CSV",
+                  resource: "Manifests export",
+                  resourceHref: "/manifests",
+                });
+              }}
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+          </div>
         }
       />
 
@@ -149,14 +179,14 @@ function ManifestsInner() {
             <ClipboardList className="h-5 w-5" />
           </div>
           <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
-            Tertiary · full form
+            Tertiary · donation batch
           </p>
           <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
             Manual donor create
           </h2>
           <p className="mt-2 max-w-md text-sm text-muted">
-            Enter photos, title, description, category, condition, brand, price, quantity, and
-            shipping for donation/supplier batches — then list to eBay or ShopGoodwill.
+            Select supplier, batch barcode, and add products — each unit gets a unique TG-xxxx SKU
+            and printable barcode at create time.
           </p>
           <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
             Manual donor create →

@@ -542,6 +542,8 @@ export const DEMO_LOCAL_STORAGE_KEYS = [
   "test-goodwill-demo-created",
   "test-goodwill-demo-photos",
   "test-goodwill-demo-shipments",
+  "test-goodwill-demo-manifests",
+  "test-goodwill-demo-sku-counter",
   "test-goodwill-admin",
   "stl-admin-ims:",
 ] as const;
