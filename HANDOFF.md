@@ -171,6 +171,7 @@ Useful scripts: `db:push`, `db:seed`, `db:studio`, `lint`, `build`.
 | [INTEGRATIONS.md](./INTEGRATIONS.md) | **4-product stack**, App Store CTAs, InfinityAI → Auto-List / Hammoq Retail triage, folder rules |
 | [PILOT.md](./PILOT.md) | Phase 0–2 plan, real vs mock matrix, Admin URL map |
 | [LAUNCH.md](./LAUNCH.md) | Beyond-demo production checklist |
+| [docs/GCP-MIGRATION.md](./docs/GCP-MIGRATION.md) | **Future** Google Cloud cutover prep (Cloud Run / SQL / GCS) — Vercel stays until you choose to move |
 
 ---
 

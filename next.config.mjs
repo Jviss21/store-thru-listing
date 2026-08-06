@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Required for Docker / Cloud Run (see Dockerfile + docs/GCP-MIGRATION.md).
+  // Vercel ignores standalone output and keeps using its own builder.
+  output: "standalone",
   async headers() {
     return [
       {

@@ -1,0 +1,50 @@
+# Cloud Build stub — build image, push to Artifact Registry, deploy Cloud Run.
+# Not wired to production. Adjust substitutions, then:
+#   gcloud builds submit --config cloudbuild.yaml
+#
+# Connect GitHub later via Cloud Build triggers if desired.
+# Leave Vercel connected until you intentionally cut over DNS.
+
+substitutions:
+  _REGION: us-central1
+  _AR_REPO: stl-docker
+  _SERVICE: store-thru-listing
+  # _PROJECT_ID is provided by Cloud Build as $PROJECT_ID
+
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest"
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --quiet
+      # Secrets / env: set once on the service (or expand this step). See deploy/gcp/.
+
+options:
+  logging: CLOUD_LOGGING_ONLY

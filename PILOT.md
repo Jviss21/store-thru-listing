@@ -2,6 +2,8 @@
 
 Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold brand.
 
+**Hosting today:** Vercel. **Future GCP move (prep only):** see [docs/GCP-MIGRATION.md](./docs/GCP-MIGRATION.md) — do not cut over until ready.
+
 ## Phase 0 — DONE
 
 | Item | Status |
