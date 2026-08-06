@@ -32,8 +32,8 @@ export function InfinityBadge({
 }
 
 /**
- * Primary InfinityAI → Auto-List CTA.
- * Mobile → App Store (id 6746443451); desktop → in-app `/products/auto-list` demo.
+ * Primary InfinityAI CTA.
+ * Mobile → App Store (id 6746443451); desktop → in-app `/infinity-ai` queue.
  */
 export function InfinityAiUploadLink({
   children,

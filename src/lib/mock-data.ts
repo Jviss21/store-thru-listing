@@ -33,10 +33,10 @@ export const HAMMOQ_RETAIL_APP_STORE_URL =
   "https://apps.apple.com/us/app/hammoq-retail/id6460302479";
 
 /**
- * Desktop / web demo surface for Auto-List queue.
+ * Desktop / web demo surface for Infinity AI → Auto-List queue in IMS.
  * Mobile CTAs should prefer {@link INFINITY_AI_APP_STORE_URL}.
  */
-export const INFINITY_AI_UPLOAD_HREF = "/products/auto-list";
+export const INFINITY_AI_UPLOAD_HREF = "/infinity-ai";
 
 /** True when the UA looks like a phone/tablet (client-only). */
 export function isMobileClient(): boolean {
@@ -45,8 +45,8 @@ export function isMobileClient(): boolean {
 }
 
 /**
- * Primary InfinityAI → Auto-List CTA target:
- * App Store on mobile; in-app Auto-List demo on desktop.
+ * Primary InfinityAI CTA target:
+ * App Store on mobile; in-app Infinity AI / Auto-List queue on desktop.
  */
 export function resolveInfinityAiUploadHref(): string {
   return isMobileClient() ? INFINITY_AI_APP_STORE_URL : INFINITY_AI_UPLOAD_HREF;

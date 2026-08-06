@@ -287,7 +287,7 @@ export function buildWorkflowSnapshot(
 
   const barcode = encodeURIComponent(product.upc || product.sku);
   const productHref = `/products/${encodeURIComponent(product.id)}`;
-  const autoListHref = `/products/auto-list?sku=${encodeURIComponent(product.sku)}`;
+  const autoListHref = `/infinity-ai?sku=${encodeURIComponent(product.sku)}`;
 
   let next: WorkflowNextAction | null = null;
   const secondary: WorkflowNextAction[] = [];

@@ -2,25 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Download, Eye, Rocket, Settings, Trash2 } from "lucide-react";
+import { ClipboardList, Download, Eye, Settings, Trash2 } from "lucide-react";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { ManifestStatusBadge } from "@/components/StatusBadge";
-import { HammoqRetailLink, InfinityAiUploadLink, InfinityBadge } from "@/components/Brand";
+import { HammoqRetailLink } from "@/components/Brand";
 import { useOrg } from "@/components/OrgProvider";
 import {
   BRAND,
   CATEGORIES,
   HAMMOQ_RETAIL_APP_STORE_URL,
-  INFINITY_AI_UPLOAD_HREF,
   manifests as seedManifests,
 } from "@/lib/mock-data";
 import type { Manifest, ManifestStatus } from "@/lib/types";
-import { cn, formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 import { exportManifestsCsv, getCreatedManifests } from "@/lib/demo-actions";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import { RoleGate } from "@/components/RoleGate";
 import { logEvent } from "@/lib/event-log";
-import { canAccessAdminConsole, canAccessNav } from "@/lib/roles";
+import { canAccessAdminConsole } from "@/lib/roles";
 
 const STATUSES: ManifestStatus[] = [
   "Created",
@@ -34,7 +33,6 @@ const STATUSES: ManifestStatus[] = [
 
 function ManifestsInner() {
   const { session, isOps } = useOrg();
-  const canAutoList = canAccessNav("auto-list", session.role, isOps);
   const canAdmin = canAccessAdminConsole(session.role, isOps);
   const [rows, setRows] = useState<Manifest[]>(seedManifests);
   const [lookup, setLookup] = useState("");
@@ -88,7 +86,7 @@ function ManifestsInner() {
     <div className="space-y-5">
       <PageHeader
         title="Donor Item Creation"
-        description={`${BRAND.autoList} via the ${BRAND.ai} iOS app is the ecom listing path. Use ${BRAND.retail} at the store to triage retail vs ecom before intake continues here.`}
+        description={`Manual donation batches with SKU / barcode create. For ecom photos, use ${BRAND.ai} in the sidebar — photos and listings land in IMS separately from this hub.`}
         actions={
           <div className="flex flex-wrap gap-2">
             {canAdmin && (
@@ -128,45 +126,36 @@ function ManifestsInner() {
         }
       />
 
-      <div
-        className={cn(
-          "grid gap-4",
-          canAutoList ? "lg:grid-cols-3" : "lg:grid-cols-2"
-        )}
-      >
-        {canAutoList && (
-          <InfinityAiUploadLink
-            className="group block rounded-2xl bg-ink p-5 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-ink/95"
-            onClick={() =>
-              logEvent({
-                section: "manifests",
-                action: "Opened InfinityAI upload from Donor Item Creation",
-                resource: BRAND.ai,
-                resourceHref: INFINITY_AI_UPLOAD_HREF,
-              })
-            }
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-ink">
-                <Rocket className="h-5 w-5" />
-              </div>
-              <InfinityBadge />
-            </div>
-            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-              Primary · {BRAND.autoList}
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">
-              Upload in {BRAND.ai}
-            </h2>
-            <p className="mt-2 max-w-md text-sm text-white/70">
-              Photos → AI listing fields → IMS {BRAND.autoList} queue → channels. On mobile opens
-              the {BRAND.ai} App Store listing; desktop uses the in-app demo queue.
-            </p>
-            <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent group-hover:underline">
-              Open {BRAND.ai} →
-            </span>
-          </InfinityAiUploadLink>
-        )}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Link
+          href="/manifests/new"
+          className="group block rounded-2xl border border-ink/10 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-ink/20"
+          onClick={() =>
+            logEvent({
+              section: "manifests",
+              action: "Opened Manual donor create from Donor Item Creation",
+              resource: "Manual donor create",
+              resourceHref: "/manifests/new",
+            })
+          }
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mist text-ink">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
+            Primary · donation batch
+          </p>
+          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
+            Manual donor create
+          </h2>
+          <p className="mt-2 max-w-md text-sm text-muted">
+            Select supplier, batch barcode, and add products — each unit gets a unique TG-xxxx SKU
+            and printable barcode at create time.
+          </p>
+          <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
+            Manual donor create →
+          </span>
+        </Link>
 
         <HammoqRetailLink
           className="group block rounded-2xl border border-ink/10 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-ink/20"
@@ -190,42 +179,12 @@ function ManifestsInner() {
           </h2>
           <p className="mt-2 max-w-md text-sm text-muted">
             Use {BRAND.retail} on the floor to decide retail-worthy vs ecom-worthy. Ecom items
-            continue into IMS Donor Item Creation / {BRAND.autoList}.
+            continue into IMS Donor Item Creation or {BRAND.ai}.
           </p>
           <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
             Get {BRAND.retail} →
           </span>
         </HammoqRetailLink>
-
-        <Link
-          href="/manifests/new"
-          className="group block rounded-2xl border border-ink/10 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-ink/20"
-          onClick={() =>
-            logEvent({
-              section: "manifests",
-              action: "Opened Manual donor create from Donor Item Creation",
-              resource: "Manual donor create",
-              resourceHref: "/manifests/new",
-            })
-          }
-        >
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-mist text-ink">
-            <ClipboardList className="h-5 w-5" />
-          </div>
-          <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
-            Tertiary · donation batch
-          </p>
-          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
-            Manual donor create
-          </h2>
-          <p className="mt-2 max-w-md text-sm text-muted">
-            Select supplier, batch barcode, and add products — each unit gets a unique TG-xxxx SKU
-            and printable barcode at create time.
-          </p>
-          <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange group-hover:underline">
-            Manual donor create →
-          </span>
-        </Link>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

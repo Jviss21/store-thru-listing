@@ -50,12 +50,13 @@ Seller: Hammoq Inc for both.
 
 ```
 Photos in InfinityAI → AI auto-fill (category, title, attrs…)
-  → listing packet / queue in IMS Auto-List (`/products/auto-list`)
+  → listing packet / queue in IMS Infinity AI (`/infinity-ai`; legacy `/products/auto-list` redirects)
   → channel publish (eBay / ShopGoodwill / …)
 ```
 
 - **Does not** fuse into Hammoq Retail.
-- IMS CTA copy: **Upload in InfinityAI** — mobile → App Store; desktop web demo → `/products/auto-list`.
+- **Own top-level IMS section** (sidebar): Infinity AI — not buried under Donor Item Creation or Admin-only.
+- Primary CTA: **Get InfinityAI** App Store; secondary: in-app queue at `/infinity-ai`.
 
 ### Hammoq Retail → store intake triage
 
@@ -63,10 +64,10 @@ Photos in InfinityAI → AI auto-fill (category, title, attrs…)
 Item at store in Hammoq Retail
   → decide retail-worthy vs ecom-worthy
   → retail → retail production systems / floor
-  → ecom → continue in IMS (Donor Item Creation / Auto-List)
+  → ecom → continue in IMS (Donor Item Creation and/or Infinity AI)
 ```
 
-- **Does not** own Auto-List.
+- **Does not** own Auto-List / Infinity AI.
 - IMS Donor hub links to Hammoq Retail App Store; demo line toggle stores `triage:retail|ecom|undecided` on product tags until a real iOS bridge exists.
 
 ## Sibling / future folders
@@ -91,14 +92,17 @@ Until those land: App Store links + in-app demo surfaces only. No native bridge 
 
 | Surface | CTA | Target |
 |---------|-----|--------|
-| Donor Item Creation hub | Upload in InfinityAI | Mobile: App Store `6746443451`; desktop: `/products/auto-list` |
+| Sidebar / Infinity AI section | Infinity AI | `/infinity-ai` |
+| Infinity AI hub | Get InfinityAI (primary) | App Store `6746443451` |
+| Infinity AI hub | Auto-List queue (secondary) | Same page `/infinity-ai` |
+| Infinity AI hub | Item pipeline | `/workflow` (ecom photo stage) |
+| Donor Item Creation hub | Manual donor create | `/manifests/new` |
 | Donor Item Creation hub | Retail vs ecom | App Store `6460302479` (Hammoq Retail) |
-| Manual donor create | Upload in InfinityAI | Same InfinityAI resolver |
 | Manual donor create | Get Hammoq Retail | App Store `6460302479` |
-| Auto-List page | Get InfinityAI | Same InfinityAI resolver |
-| New product | Upload in InfinityAI | Same InfinityAI resolver |
+| Legacy Auto-List URL | redirect | `/products/auto-list` → `/infinity-ai` |
+| New product | Upload in InfinityAI | Same InfinityAI resolver → `/infinity-ai` or App Store |
 
-Constants: `src/lib/mock-data.ts` (`INFINITY_AI_APP_STORE_URL`, `HAMMOQ_RETAIL_APP_STORE_URL`, `resolveInfinityAiUploadHref`).
+Constants: `src/lib/mock-data.ts` (`INFINITY_AI_APP_STORE_URL`, `HAMMOQ_RETAIL_APP_STORE_URL`, `resolveInfinityAiUploadHref` → `/infinity-ai`).
 Components: `InfinityAiUploadLink`, `HammoqRetailLink` in `src/components/Brand.tsx`.
 
 ## Item pipeline (IMS ops)

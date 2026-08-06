@@ -142,7 +142,8 @@ export function canAccessNav(section: NavSection, role: string, isOps: boolean):
     case "listings":
       return p.viewInventory && r !== "Photographer";
     case "auto-list":
-      return p.runAutoList;
+      // Photographers need Infinity AI (photo app → IMS); Listers+ can publish from the queue.
+      return p.runAutoList || r === "Photographer";
     case "orders":
       return p.manageOrders;
     case "shipments":
@@ -171,7 +172,9 @@ export function sectionForPath(pathname: string): NavSection | null {
   }
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/settings/connections")) return "connections";
-  if (pathname.startsWith("/products/auto-list")) return "auto-list";
+  if (pathname.startsWith("/infinity-ai") || pathname.startsWith("/products/auto-list")) {
+    return "auto-list";
+  }
   if (pathname.startsWith("/manifests")) return "manifests";
   if (pathname.startsWith("/products")) return "products";
   if (pathname.startsWith("/listings")) return "listings";

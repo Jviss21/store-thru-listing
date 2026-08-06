@@ -13,7 +13,6 @@ import {
   LogOut,
   Menu,
   Package,
-  PlusCircle,
   Rocket,
   ScrollText,
   Settings,
@@ -33,19 +32,9 @@ import { useOrg } from "@/components/OrgProvider";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
 import { canAccessNav, canViewMasterEventLog, type NavSection } from "@/lib/roles";
 
-const floorActions = [
-  {
-    href: "/products/auto-list",
-    label: BRAND.autoList,
-    icon: Rocket,
-    hint: "Push to channels",
-    primary: true,
-    section: "auto-list" as NavSection,
-  },
-];
-
 const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavSection }> = [
   { href: "/", label: "Home", icon: Home, section: "home" },
+  { href: "/infinity-ai", label: "Infinity AI", icon: Sparkles, section: "auto-list" },
   { href: "/workflow", label: "Item pipeline", icon: GitBranch, section: "workflow" },
   { href: "/manifests", label: "Donor Item Creation", icon: ClipboardList, section: "manifests" },
   { href: "/products", label: "Products", icon: Package, section: "products" },
@@ -58,6 +47,9 @@ const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavS
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href.startsWith("/listings")) return pathname.startsWith("/listings");
+  if (href === "/infinity-ai") {
+    return pathname.startsWith("/infinity-ai") || pathname.startsWith("/products/auto-list");
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -70,7 +62,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const showAdmin = canAccessNav("admin", role, isOps);
   const showConnections = canAccessNav("connections", role, isOps);
   const visibleNav = nav.filter((item) => canAccessNav(item.section, role, isOps));
-  const visibleFloor = floorActions.filter((a) => canAccessNav(a.section, role, isOps));
+  const showInfinity = canAccessNav("auto-list", role, isOps);
 
   return (
     <div className="flex h-full flex-col bg-white text-ink">
@@ -98,55 +90,27 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      {visibleFloor.length > 0 && (
-        <div className="space-y-2 border-b border-ink/10 p-4">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
-              Infinity AI
-            </p>
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-          </div>
-          {visibleFloor.map((a) => {
-            const Icon = a.icon;
-            return (
-              <Link
-                key={a.href}
-                href={a.href}
-                onClick={onNavigate}
-                className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
-                  a.primary
-                    ? "bg-ink text-white shadow-card hover:bg-ink/90"
-                    : "border border-ink/10 bg-mist/60 hover:border-ink/20 hover:bg-mist"
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                    a.primary ? "bg-accent text-ink" : "bg-white text-ink shadow-sm"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold leading-tight">{a.label}</span>
-                  <span className={cn("block text-[11px]", a.primary ? "text-white/70" : "text-muted")}>
-                    {a.hint}
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-          {canAccessNav("manifests", role, isOps) && (
-            <Link
-              href="/manifests/new"
-              onClick={onNavigate}
-              className="flex items-center gap-2 px-1 pt-1 text-xs font-semibold text-muted hover:text-ink"
-            >
-              <PlusCircle className="h-3.5 w-3.5" />
-              Manual create
-            </Link>
-          )}
+      {showInfinity && (
+        <div className="border-b border-ink/10 p-4">
+          <Link
+            href="/infinity-ai"
+            onClick={onNavigate}
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
+              isActive(pathname, "/infinity-ai")
+                ? "bg-ink text-white shadow-card"
+                : "bg-ink text-white shadow-card hover:bg-ink/90"
+            )}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-ink">
+              <Rocket className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold leading-tight">{BRAND.ai}</span>
+              <span className="block text-[11px] text-white/70">Photo → listings in IMS</span>
+            </span>
+            <Sparkles className="ml-auto h-3.5 w-3.5 shrink-0 text-accent" />
+          </Link>
         </div>
       )}
 
@@ -303,7 +267,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const unread = notifications.filter((n) => n.unread).length;
   const { org, session, isOps } = useOrg();
-  const showAutoListFab = canAccessNav("auto-list", session.role, isOps);
+  const showInfinityFab = canAccessNav("auto-list", session.role, isOps);
 
   if (pathname === "/login" || pathname.startsWith("/ops")) {
     return <>{children}</>;
@@ -359,13 +323,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {showAutoListFab && (
+      {showInfinityFab && (
         <Link
-          href="/products/auto-list"
+          href="/infinity-ai"
           className="fixed bottom-5 right-5 z-30 flex h-14 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-semibold text-accent shadow-float transition hover:scale-[1.02] lg:hidden"
         >
           <Zap className="h-4 w-4" />
-          Auto-List
+          {BRAND.ai}
         </Link>
       )}
     </div>

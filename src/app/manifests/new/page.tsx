@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { Printer, Rocket, Settings, Trash2 } from "lucide-react";
+import { Printer, Settings, Trash2 } from "lucide-react";
 import { BarcodeStub, printUnitBarcode } from "@/components/BarcodeStub";
-import { HammoqRetailLink, InfinityAiUploadLink, InfinityBadge } from "@/components/Brand";
+import { HammoqRetailLink } from "@/components/Brand";
 import { RoleGate } from "@/components/RoleGate";
 import { useOrg } from "@/components/OrgProvider";
 import { Button, Card, Input, Textarea } from "@/components/ui";
@@ -264,31 +264,6 @@ function DonorBatchCreateInner() {
           </Link>
         )}
       </div>
-
-      <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
-        <InfinityBadge />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">
-            Ideal ecom path: upload in {BRAND.ai} → {BRAND.autoList}
-          </p>
-          <p className="text-xs text-muted">
-            This page is manual donation-batch create. Prefer {BRAND.ai} for photo→AI listing, or
-            mark retail triage below when items were sorted on the floor.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <InfinityAiUploadLink>
-            <Button variant="accent" size="sm" type="button">
-              <Rocket className="h-3.5 w-3.5" /> Upload in {BRAND.ai}
-            </Button>
-          </InfinityAiUploadLink>
-          <Link href="/products/auto-list">
-            <Button variant="outline" size="sm" type="button">
-              Try {BRAND.autoList} demo
-            </Button>
-          </Link>
-        </div>
-      </Card>
 
       <Card className="flex flex-wrap items-center gap-3 border-ink/10 bg-mist/50 p-4">
         <div className="min-w-0 flex-1">
