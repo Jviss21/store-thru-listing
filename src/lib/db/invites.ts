@@ -118,8 +118,7 @@ export async function createInvite(opts: {
 }
 
 export async function listPendingInvites(
-  orgId: string,
-  _baseUrl?: string
+  orgId: string
 ): Promise<InviteDto[] | null> {
   if (!isDbReady() || !prisma) return null;
   try {

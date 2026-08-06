@@ -142,7 +142,6 @@ export async function storePhoto(input: {
     createdAt,
   });
 
-  const dataUrl = `data:${contentType};base64,${input.bytes.toString("base64")}`;
   return {
     id,
     orgId: input.orgId,
@@ -153,8 +152,7 @@ export async function storePhoto(input: {
     backend: "memory",
     bytes: input.bytes,
     createdAt,
-    // Clients that want cold-start durability can also persist dataUrl.
-    // Returned separately via upload API as `dataUrl`.
+    // Clients that want cold-start durability can also persist dataUrl via toDataUrl().
   };
 }
 

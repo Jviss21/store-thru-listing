@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const data = await listPendingInvites(orgId, appBaseUrl(request));
+  const data = await listPendingInvites(orgId);
   return NextResponse.json({
     ok: true,
     source: "prisma",
