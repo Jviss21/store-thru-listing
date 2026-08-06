@@ -154,3 +154,66 @@ export async function createProductsBatch(
     return null;
   }
 }
+
+export type ProductPatchInput = {
+  title?: string;
+  status?: string;
+  priceCents?: number;
+  location?: string | null;
+  supplier?: string | null;
+  category?: string | null;
+  description?: string | null;
+  photos?: string[];
+  tags?: string[];
+  barcode?: string | null;
+};
+
+/** Patch product fields (tags/location/status) without breaking Neon when DB is down. */
+export async function updateProduct(
+  orgId: string,
+  productId: string,
+  patch: ProductPatchInput
+): Promise<ProductDto | null> {
+  if (!isDbReady() || !prisma) return null;
+  try {
+    const existing = await prisma.product.findFirst({
+      where: { id: productId, orgId },
+    });
+    if (!existing) return null;
+    const row = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        ...(patch.title !== undefined ? { title: patch.title } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.priceCents !== undefined ? { priceCents: patch.priceCents } : {}),
+        ...(patch.location !== undefined ? { location: patch.location } : {}),
+        ...(patch.supplier !== undefined ? { supplier: patch.supplier } : {}),
+        ...(patch.category !== undefined ? { category: patch.category } : {}),
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+        ...(patch.barcode !== undefined ? { barcode: patch.barcode } : {}),
+        ...(patch.photos !== undefined
+          ? { photosJson: patch.photos.length ? JSON.stringify(patch.photos) : null }
+          : {}),
+        ...(patch.tags !== undefined
+          ? { tagsJson: patch.tags.length ? JSON.stringify(patch.tags) : null }
+          : {}),
+      },
+    });
+    return toDto(row);
+  } catch {
+    return null;
+  }
+}
+
+export async function findProductById(
+  orgId: string,
+  productId: string
+): Promise<ProductDto | null> {
+  if (!isDbReady() || !prisma) return null;
+  try {
+    const row = await prisma.product.findFirst({ where: { id: productId, orgId } });
+    return row ? toDto(row) : null;
+  } catch {
+    return null;
+  }
+}

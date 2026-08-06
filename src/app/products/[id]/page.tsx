@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Download, MapPin } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Download, MapPin, Store } from "lucide-react";
 import {
   ListingEditorForm,
   productToFormState,
@@ -18,20 +18,28 @@ import {
   useSaveFeedback,
 } from "@/components/SaveFeedback";
 import { Button } from "@/components/ui";
+import { ItemPipelinePanel } from "@/components/ItemPipelinePanel";
 import {
   exportEbayListingPack,
   exportListingPacket,
+  getCreatedListings,
   getCreatedProducts,
   getPhotoOverlay,
   saveCreatedProduct,
   setPhotoOverlay,
   type CreatedProduct,
 } from "@/lib/demo-actions";
+import { mockEndOnSale, mockPublishChannels } from "@/lib/channel-sim";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { getProduct, listings } from "@/lib/mock-data";
 import type { Product } from "@/lib/types";
 import { useOrg } from "@/components/OrgProvider";
 import { findShelfLocation } from "@/lib/putaway-store";
+import {
+  buildWorkflowSnapshot,
+  listingsForProduct,
+  productToWorkflowInput,
+} from "@/lib/workflow";
 
 function asProduct(created: CreatedProduct): Product {
   return {
@@ -67,8 +75,17 @@ function asProduct(created: CreatedProduct): Product {
 }
 
 export default function ProductDetailPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-muted">Loading product…</div>}>
+      <ProductDetailInner />
+    </Suspense>
+  );
+}
+
+function ProductDetailInner() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { org } = useOrg();
   const id = String(params.id ?? "");
   const seed = getProduct(id);
@@ -77,6 +94,7 @@ export default function ProductDetailPage() {
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shelfName, setShelfName] = useState<string | null>(null);
+  const [pipelineTick, setPipelineTick] = useState(0);
   const { feedback, justSaved, announce } = useSaveFeedback();
 
   useEffect(() => {
@@ -101,7 +119,34 @@ export default function ProductDetailPage() {
       });
     }
     setReady(true);
-  }, [id, seed, org.id]);
+  }, [id, seed, org.id, pipelineTick]);
+
+  const pipelineListings = useMemo(() => {
+    if (!product) return [];
+    return listingsForProduct(product.id, listings, getCreatedListings());
+  }, [product, pipelineTick]);
+
+  const snapshot = useMemo(() => {
+    if (!product) return null;
+    return buildWorkflowSnapshot(productToWorkflowInput(product), {
+      orgId: org.id,
+      listings: pipelineListings,
+    });
+  }, [product, org.id, pipelineListings]);
+
+  useEffect(() => {
+    if (!ready || !product) return;
+    if (searchParams.get("action") === "simulate-sale") {
+      const result = mockEndOnSale(product.id, "eBay");
+      if (result) {
+        announce(
+          `Sold on eBay (mock). Ended ${result.ended.map((e) => e.channel).join(", ") || "no siblings"}.`
+        );
+        setPipelineTick((t) => t + 1);
+        router.replace(`/products/${encodeURIComponent(product.id)}`);
+      }
+    }
+  }, [ready, product, searchParams, announce, router]);
 
   if (!ready) return <div className="p-8 text-sm text-muted">Loading product…</div>;
   if (!product || !form) {
@@ -116,7 +161,86 @@ export default function ProductDetailPage() {
   }
 
   const productListings = listings.filter((l) => l.productId === product.id);
+  const createdListings = getCreatedListings().filter((l) => l.productId === product.id);
   const isDraft = product.status === "Draft";
+
+  function refreshFromStore() {
+    const local = getCreatedProducts().find((p) => p.id === id);
+    if (local) setProduct(asProduct(local));
+    setPipelineTick((t) => t + 1);
+  }
+
+  function simulatePublish() {
+    // Ensure product exists in created store for mock publish
+    const existing = getCreatedProducts().find((p) => p.id === product!.id);
+    if (!existing && product) {
+      saveCreatedProduct({
+        id: product.id,
+        title: product.title,
+        sku: product.sku,
+        category: product.category,
+        categoryPath: product.categoryPath,
+        supplier: product.supplier,
+        price: product.price,
+        location: product.location,
+        description: product.description ?? "",
+        status: product.status === "Recycled" ? "Draft" : product.status,
+        imageNames: [],
+        imageUrls: product.imageUrls,
+        createdAt: product.createdAt,
+        listedOn: product.listedOn,
+        condition: product.condition,
+        brand: product.brand,
+        strategy: product.strategy,
+        tags: product.tags,
+        upc: product.upc,
+      });
+    }
+    const res = mockPublishChannels(product!.id, ["ShopGoodwill", "eBay"]);
+    if (res) {
+      announce(res.message);
+      refreshFromStore();
+    } else {
+      announce("Could not mock-publish — save the product first.", { error: true });
+    }
+  }
+
+  function simulateSale() {
+    const existing = getCreatedProducts().find((p) => p.id === product!.id);
+    if (!existing && product) {
+      saveCreatedProduct({
+        id: product.id,
+        title: product.title,
+        sku: product.sku,
+        category: product.category,
+        categoryPath: product.categoryPath,
+        supplier: product.supplier,
+        price: product.price,
+        location: product.location,
+        description: product.description ?? "",
+        status: "Active",
+        imageNames: [],
+        imageUrls: product.imageUrls,
+        createdAt: product.createdAt,
+        listedOn: product.listedOn.length ? product.listedOn : ["eBay", "ShopGoodwill"],
+        condition: product.condition,
+        brand: product.brand,
+        strategy: product.strategy,
+        tags: product.tags,
+        upc: product.upc,
+      });
+      mockPublishChannels(product.id, ["ShopGoodwill", "eBay"]);
+    }
+    const result = mockEndOnSale(product!.id, "eBay");
+    if (result) {
+      announce(
+        `Sold on eBay (mock). Ended sibling listings: ${
+          result.ended.map((e) => e.channel).join(", ") || "none"
+        }.`
+      );
+      refreshFromStore();
+    }
+  }
 
   async function save() {
     if (!product || !form) return;
@@ -248,6 +372,32 @@ export default function ProductDetailPage() {
 
       <SaveToast feedback={feedback} />
 
+      {snapshot && (
+        <ItemPipelinePanel
+          snapshot={snapshot}
+          sku={product.sku}
+          primaryOverride={
+            snapshot.stage.id === "listed" || snapshot.stage.id === "strategy"
+              ? undefined
+              : snapshot.stage.id === "photos" || snapshot.stage.id === "qa"
+                ? {
+                    label: "Mock publish SGW + eBay",
+                    onClick: simulatePublish,
+                  }
+                : undefined
+          }
+        />
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={simulatePublish}>
+          <Store className="h-3.5 w-3.5" /> Mock channel list
+        </Button>
+        <Button type="button" variant="accent" size="sm" onClick={simulateSale}>
+          Simulate sold + end siblings
+        </Button>
+      </div>
+
       {isDraft && (
         <div className="rounded-xl border border-gold/40 bg-gold/15 px-4 py-3 text-sm font-medium text-ink">
           Draft product — will not be listed until you create a channel listing.
@@ -279,7 +429,7 @@ export default function ProductDetailPage() {
         </Link>
       </div>
 
-      {productListings.length > 0 && (
+      {productListings.length + createdListings.length > 0 && (
         <div className="rounded-xl border border-ink/10 bg-mist/40 px-4 py-3 text-sm">
           <p className="font-medium">Channel listings</p>
           <ul className="mt-2 flex flex-wrap gap-3">
@@ -291,6 +441,14 @@ export default function ProductDetailPage() {
                 >
                   {l.channel} · {l.status} → Open / Edit
                 </Link>
+              </li>
+            ))}
+            {createdListings.map((l) => (
+              <li key={l.id}>
+                <span className="text-ink">
+                  {l.channel} · {l.status}
+                  <span className="ml-1 text-xs text-muted">(demo)</span>
+                </span>
               </li>
             ))}
           </ul>

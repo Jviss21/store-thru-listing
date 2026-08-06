@@ -66,7 +66,13 @@ export type CreatedListing = {
   title: string;
   sku: string;
   price: number;
-  status: "Queued" | "Active";
+  status:
+    | "Queued"
+    | "Active"
+    | "Sold"
+    | "Delisted"
+    | "Expired"
+    | "Additional QA Required";
   createdAt: string;
 };
 

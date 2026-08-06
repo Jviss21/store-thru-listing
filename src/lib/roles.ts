@@ -15,6 +15,7 @@ export type NavSection =
   | "shipments"
   | "reports"
   | "auto-list"
+  | "workflow"
   | "admin"
   | "connections"
   | "settings"
@@ -133,6 +134,7 @@ export function canAccessNav(section: NavSection, role: string, isOps: boolean):
     case "home":
     case "settings":
     case "notifications":
+    case "workflow":
       return true;
     case "manifests":
     case "products":
@@ -163,6 +165,7 @@ export function canAccessNav(section: NavSection, role: string, isOps: boolean):
 /** Path prefix → nav section for client/middleware guards. */
 export function sectionForPath(pathname: string): NavSection | null {
   if (pathname.startsWith("/ops")) return "ops";
+  if (pathname.startsWith("/workflow")) return "workflow";
   if (pathname.startsWith("/admin/audit") || pathname.startsWith("/reports/events")) {
     return "master-events";
   }

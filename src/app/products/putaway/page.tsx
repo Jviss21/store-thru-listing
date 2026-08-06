@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { MapPin, ScanBarcode, CheckCircle2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { MapPin, ScanBarcode, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button, Card, Input, PageHeader, Badge } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
 import {
@@ -14,12 +14,15 @@ import {
   type PutawayRecord,
 } from "@/lib/putaway-store";
 import { getCreatedProducts } from "@/lib/demo-actions";
+import { advanceProductStage } from "@/lib/channel-sim";
+import { parseTriage } from "@/lib/workflow";
 import { products as seedProducts } from "@/lib/mock-data";
 import { logEvent } from "@/lib/event-log";
 import { RoleGate } from "@/components/RoleGate";
 
 function PutawayInner() {
   const { org, session } = useOrg();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [barcode, setBarcode] = useState(searchParams.get("barcode") ?? "");
@@ -28,6 +31,11 @@ function PutawayInner() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<PutawayRecord[]>([]);
   const [locations, setLocations] = useState(() => inventoryLocationsForOrg(org.id));
+  const [nextHandoff, setNextHandoff] = useState<{
+    productId: string;
+    sku: string;
+    triage: string;
+  } | null>(null);
 
   useEffect(() => {
     setLocations(inventoryLocationsForOrg(org.id));
@@ -120,7 +128,21 @@ function PutawayInner() {
       );
       const row = reload().find((p) => p.id === matchedProduct.id);
       if (row) {
-        saveCreatedProduct({ ...row, location: loc.name, upc: row.upc || code });
+        const triage = parseTriage(row.tags);
+        saveCreatedProduct({
+          ...row,
+          location: loc.name,
+          upc: row.upc || code,
+        });
+        const nextStage = triage === "retail" ? "retail" : "photos";
+        advanceProductStage(matchedProduct.id, nextStage, {
+          location: loc.name,
+        });
+        setNextHandoff({
+          productId: matchedProduct.id,
+          sku: matchedProduct.sku,
+          triage,
+        });
       }
     }
 
@@ -167,6 +189,42 @@ function PutawayInner() {
         >
           {error ?? flash}
         </div>
+      )}
+
+      {nextHandoff && !error && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-accent/30 bg-accent/10 p-4">
+          <div>
+            <p className="text-sm font-semibold text-ink">
+              Putaway complete · {nextHandoff.sku}
+            </p>
+            <p className="text-xs text-muted">
+              {nextHandoff.triage === "retail"
+                ? "Retail triage — out of ecom Auto-List."
+                : "Next: photos + InfinityAI Auto-List (ecom path)."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/products/${nextHandoff.productId}`}>
+              <Button type="button" variant="outline" size="sm">
+                Open product
+              </Button>
+            </Link>
+            {nextHandoff.triage !== "retail" && (
+              <Button
+                type="button"
+                variant="accent"
+                size="sm"
+                onClick={() =>
+                  router.push(
+                    `/products/auto-list?sku=${encodeURIComponent(nextHandoff.sku)}`
+                  )
+                }
+              >
+                Photos / Auto-List <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </Card>
       )}
 
       <Card className="p-5">

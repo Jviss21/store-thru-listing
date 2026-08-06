@@ -6,6 +6,7 @@ import {
   Bell,
   ClipboardList,
   FileBarChart,
+  GitBranch,
   Home,
   Link2,
   List,
@@ -45,6 +46,7 @@ const floorActions = [
 
 const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavSection }> = [
   { href: "/", label: "Home", icon: Home, section: "home" },
+  { href: "/workflow", label: "Item pipeline", icon: GitBranch, section: "workflow" },
   { href: "/manifests", label: "Donor Item Creation", icon: ClipboardList, section: "manifests" },
   { href: "/products", label: "Products", icon: Package, section: "products" },
   { href: "/listings/shopgoodwill", label: "Listings", icon: List, section: "listings" },

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Download, Eye, Pencil, Rocket, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
@@ -15,24 +16,42 @@ import {
   listings,
 } from "@/lib/mock-data";
 import { downloadCsv, stamp } from "@/lib/download";
-import { exportEbayListingPack, exportListingPacket } from "@/lib/demo-actions";
+import {
+  exportEbayListingPack,
+  exportListingPacket,
+  getCreatedProducts,
+  saveCreatedProduct,
+} from "@/lib/demo-actions";
+import { mockPublishChannels, advanceProductStage } from "@/lib/channel-sim";
 import { formatCurrency } from "@/lib/utils";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import { RoleGate } from "@/components/RoleGate";
 import { logEvent } from "@/lib/event-log";
+import { withStageTag } from "@/lib/workflow";
 
 export default function AutoListPage() {
   return (
     <RoleGate path="/products/auto-list">
-      <AutoListInner />
+      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading Auto-List…</div>}>
+        <AutoListInner />
+      </Suspense>
     </RoleGate>
   );
 }
 
 function AutoListInner() {
+  const searchParams = useSearchParams();
+  const focusSku = (searchParams.get("sku") ?? "").trim().toUpperCase();
   const [rows, setRows] = useState(autoListQueue);
   const [selected, setSelected] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [handoff, setHandoff] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusSku) return;
+    const match = autoListQueue.find((r) => r.sku.toUpperCase() === focusSku);
+    if (match) setSelected([match.id]);
+  }, [focusSku]);
 
   function toggle(id: string) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -50,15 +69,66 @@ function AutoListInner() {
   function listSelected() {
     const chosen = rows.filter((r) => selected.includes(r.id));
     if (!chosen.length) return;
-    chosen.forEach((r) => {
-      if (r.channel === "eBay") {
-        exportEbayListingPack({ title: r.title, sku: r.sku, channel: r.channel, price: r.price, productId: r.productId });
-      } else {
-        exportListingPacket({ title: r.title, sku: r.sku, channel: r.channel, price: r.price, productId: r.productId });
+
+    const publishedSkus: string[] = [];
+    for (const r of chosen) {
+      // Seed catalog items: mirror into created store so mock publish can attach listings
+      let product = getCreatedProducts().find((p) => p.id === r.productId || p.sku === r.sku);
+      const seed = getProduct(r.productId);
+      if (!product && seed) {
+        product = saveCreatedProduct({
+          id: seed.id,
+          title: seed.title,
+          sku: seed.sku,
+          category: seed.category,
+          categoryPath: seed.categoryPath,
+          supplier: seed.supplier,
+          price: r.price,
+          location: seed.location,
+          description: seed.description ?? "",
+          status: "Active",
+          imageNames: [],
+          imageUrls: seed.imageUrls,
+          createdAt: seed.createdAt,
+          listedOn: [],
+          condition: seed.condition,
+          brand: seed.brand,
+          strategy: seed.strategy,
+          tags: withStageTag(seed.tags, "qa"),
+          upc: seed.upc,
+        });
       }
-    });
+      if (product) {
+        mockPublishChannels(product.id, [r.channel as "ShopGoodwill" | "eBay"], {
+          price: r.price,
+        });
+        advanceProductStage(product.id, product.strategy ? "listed" : "strategy");
+        publishedSkus.push(product.sku);
+      }
+      if (r.channel === "eBay") {
+        exportEbayListingPack({
+          title: r.title,
+          sku: r.sku,
+          channel: r.channel,
+          price: r.price,
+          productId: r.productId,
+        });
+      } else {
+        exportListingPacket({
+          title: r.title,
+          sku: r.sku,
+          channel: r.channel,
+          price: r.price,
+          productId: r.productId,
+        });
+      }
+    }
+
     setRows((prev) => prev.filter((r) => !selected.includes(r.id)));
-    setToast(`${BRAND.autoList} published ${chosen.length} item(s). Listing packets downloaded.`);
+    setToast(
+      `${BRAND.autoList} published ${chosen.length} item(s) (mock channels + packets). Next: listing strategy.`
+    );
+    setHandoff(publishedSkus[0] ?? null);
     logEvent({
       section: "auto-list",
       action: `Published ${chosen.length} item(s)`,
@@ -139,6 +209,28 @@ function AutoListInner() {
         }
       />
       {toast && <div className="rounded-xl border border-accent/35 bg-accent/10 px-4 py-2 text-sm">{toast}</div>}
+      {handoff && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-accent/30 bg-accent/10 p-4">
+          <p className="text-sm text-ink">
+            Next for <span className="font-mono font-semibold">{handoff}</span>: assign / advance listing
+            strategy (auction → BIN → concurrent → purge).
+          </p>
+          <Link href={`/products?q=${encodeURIComponent(handoff)}`}>
+            <Button type="button" variant="accent" size="sm">
+              Open products
+            </Button>
+          </Link>
+        </Card>
+      )}
+      {focusSku && (
+        <p className="text-sm text-muted">
+          Focusing queue on SKU <span className="font-mono font-semibold text-ink">{focusSku}</span>
+          {" · "}
+          <Link href="/products/putaway" className="text-primary hover:underline">
+            Back to putaway
+          </Link>
+        </p>
+      )}
       <Card className="border-ink/10 bg-mist/40 p-4 text-sm text-muted">
         Floor demo: Auto-List applies the product’s <span className="font-medium text-ink">Strategy</span> (Admin → Listing defaults)
         when building eBay / ShopGoodwill packets — carrier, box, weight, duration, and start/BIN pricing.
@@ -162,7 +254,12 @@ function AutoListInner() {
               const product = getProduct(r.productId);
               const editProduct = productHref(r.productId);
               return (
-                <tr key={r.id} className="border-b hover:bg-mist/40">
+                <tr
+                  key={r.id}
+                  className={`border-b hover:bg-mist/40 ${
+                    focusSku && r.sku.toUpperCase() === focusSku ? "bg-accent/10" : ""
+                  }`}
+                >
                   <td className="px-4 py-3"><input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} /></td>
                   <td className="px-3 py-3"><Link href={editProduct}><ProductImage src={product?.imageUrls[0]} seed={r.productId} alt={r.title} className="h-10 w-10" /></Link></td>
                   <td className="px-3 py-3 font-mono text-xs"><Link href={editProduct} className="text-primary hover:underline">{r.sku}</Link></td>

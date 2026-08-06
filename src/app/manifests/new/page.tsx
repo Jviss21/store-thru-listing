@@ -192,6 +192,7 @@ function DonorBatchCreateInner() {
           `batch:${code}`,
           `barcode:${line.barcode}`,
           retailTriageTag(line.triage),
+          line.triage === "retail" ? "stage:retail" : "stage:putaway",
         ],
         upc: line.barcode,
       });

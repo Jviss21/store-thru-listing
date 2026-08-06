@@ -70,6 +70,13 @@ export default function OrderDetailPage() {
         description={`${order.channel} · ${order.customer}`}
         actions={
           <>
+            {order.fulfillmentStatus !== "Fulfilled" && (
+              <Link href="/orders/pick-lists">
+                <Button type="button" variant="primary">
+                  Pick list
+                </Button>
+              </Link>
+            )}
             <Link href="/shipments/new">
               <Button type="button" variant="accent">
                 New shipment

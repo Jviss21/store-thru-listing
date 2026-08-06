@@ -100,3 +100,7 @@ Until those land: App Store links + in-app demo surfaces only. No native bridge 
 
 Constants: `src/lib/mock-data.ts` (`INFINITY_AI_APP_STORE_URL`, `HAMMOQ_RETAIL_APP_STORE_URL`, `resolveInfinityAiUploadHref`).
 Components: `InfinityAiUploadLink`, `HammoqRetailLink` in `src/components/Brand.tsx`.
+
+## Item pipeline (IMS ops)
+
+End-to-end thrift/resale stages, status tags, and “walk one SKU” demo path: **[WORKFLOW.md](./WORKFLOW.md)**.
