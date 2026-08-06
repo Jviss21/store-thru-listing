@@ -47,6 +47,7 @@ export default withAuth(
         if (
           pathname.startsWith("/_next") ||
           pathname.startsWith("/api/auth") ||
+          pathname.startsWith("/api/password/") ||
           pathname.startsWith("/invite/") ||
           pathname.match(/^\/api\/invites\/[^/]+$/) ||
           pathname === "/login" ||
