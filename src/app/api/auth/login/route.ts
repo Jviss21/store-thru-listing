@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateCredentials } from "@/lib/auth/credentials";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
  * Legacy password gate — prefer NextAuth signIn via /login.
@@ -22,6 +23,19 @@ export async function POST(request: NextRequest) {
     const form = await request.formData().catch(() => null);
     password = String(form?.get("password") ?? "").trim();
     email = String(form?.get("email") ?? "").trim();
+  }
+
+  const ip = clientIp(request);
+  const emailKey = email.toLowerCase() || "anon";
+  const rl = rateLimit(`login-api:${emailKey}:${ip}`, 12, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: `Too many attempts. Try again in ${rl.retryAfterSec}s.` },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      }
+    );
   }
 
   const identity = await authenticateCredentials(email || undefined, password);

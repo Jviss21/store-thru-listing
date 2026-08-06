@@ -1,11 +1,18 @@
 /**
  * Invite repository — create / list pending / accept (User + Membership).
+ * Raw invite tokens are returned only at create time; DB stores SHA-256 hashes.
  */
 
 import { randomBytes } from "crypto";
 import { prisma, isDbReady } from "@/lib/db/client";
 import { hashPassword } from "@/lib/auth/credentials";
 import type { InviteRole } from "@/lib/db/api-auth";
+import {
+  hashInviteToken,
+  newInviteToken,
+  tokenLogSuffix,
+} from "@/lib/invite-token";
+import { validatePassword } from "@/lib/password-policy";
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -14,11 +21,13 @@ export type InviteDto = {
   orgId: string;
   email: string;
   role: string;
-  token: string;
+  /** Omitted in list responses when token is hashed at rest. */
+  token?: string;
   expiresAt: string;
   invitedById: string | null;
   acceptedAt: string | null;
   createdAt: string;
+  /** Only set when raw token is known (create / resend). */
   inviteUrl?: string;
 };
 
@@ -34,28 +43,28 @@ function toDto(
     acceptedAt: Date | null;
     createdAt: Date;
   },
-  baseUrl?: string
+  opts?: { baseUrl?: string; rawToken?: string }
 ): InviteDto {
   const dto: InviteDto = {
     id: row.id,
     orgId: row.orgId,
     email: row.email,
     role: row.role,
-    token: row.token,
     expiresAt: row.expiresAt.toISOString(),
     invitedById: row.invitedById,
     acceptedAt: row.acceptedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };
-  if (baseUrl) {
-    dto.inviteUrl = `${baseUrl.replace(/\/$/, "")}/invite/${row.token}`;
+  if (opts?.rawToken) {
+    dto.token = opts.rawToken;
+    if (opts.baseUrl) {
+      dto.inviteUrl = `${opts.baseUrl.replace(/\/$/, "")}/invite/${opts.rawToken}`;
+    }
   }
   return dto;
 }
 
-export function newInviteToken(): string {
-  return randomBytes(24).toString("hex");
-}
+export { newInviteToken };
 
 export async function createInvite(opts: {
   orgId: string;
@@ -80,25 +89,25 @@ export async function createInvite(opts: {
       data: { expiresAt: new Date() },
     });
 
-    const token = newInviteToken();
+    const rawToken = newInviteToken();
+    const tokenHash = hashInviteToken(rawToken);
     const row = await prisma.invite.create({
       data: {
         orgId: opts.orgId,
         email,
         role: opts.role,
-        token,
+        token: tokenHash,
         expiresAt: new Date(Date.now() + INVITE_TTL_MS),
         invitedById: opts.invitedById ?? null,
       },
     });
 
-    const dto = toDto(row, opts.baseUrl);
-    // Demo email stub — log invite link for operators / Vercel logs
+    const dto = toDto(row, { baseUrl: opts.baseUrl, rawToken });
     console.info("[invite] created", {
       email: dto.email,
       orgId: dto.orgId,
       role: dto.role,
-      inviteUrl: dto.inviteUrl ?? `/invite/${dto.token}`,
+      tokenSuffix: tokenLogSuffix(rawToken),
       expiresAt: dto.expiresAt,
     });
     return dto;
@@ -110,7 +119,7 @@ export async function createInvite(opts: {
 
 export async function listPendingInvites(
   orgId: string,
-  baseUrl?: string
+  _baseUrl?: string
 ): Promise<InviteDto[] | null> {
   if (!isDbReady() || !prisma) return null;
   try {
@@ -122,10 +131,28 @@ export async function listPendingInvites(
       },
       orderBy: { createdAt: "desc" },
     });
-    return rows.map((r) => toDto(r, baseUrl));
+    // Hashed at rest — no rebuildable inviteUrl; UI uses Resend to mint a new link.
+    return rows.map((r) => toDto(r));
   } catch {
     return null;
   }
+}
+
+async function findInviteRowByRawToken(rawToken: string) {
+  if (!prisma) return null;
+  const tokenHash = hashInviteToken(rawToken);
+  const byHash = await prisma.invite.findUnique({
+    where: { token: tokenHash },
+    include: { org: true },
+  });
+  if (byHash) return byHash;
+
+  // Legacy plaintext tokens (pre-hash deploy) — still honor until expiry
+  const byPlain = await prisma.invite.findUnique({
+    where: { token: rawToken },
+    include: { org: true },
+  });
+  return byPlain;
 }
 
 export async function getInviteByToken(token: string): Promise<
@@ -137,10 +164,7 @@ export async function getInviteByToken(token: string): Promise<
 > {
   if (!isDbReady() || !prisma) return null;
   try {
-    const row = await prisma.invite.findUnique({
-      where: { token },
-      include: { org: true },
-    });
+    const row = await findInviteRowByRawToken(token);
     if (!row) return null;
     let status: "pending" | "accepted" | "expired" = "pending";
     if (row.acceptedAt) status = "accepted";
@@ -170,12 +194,11 @@ export async function acceptInvite(opts: {
   const name = opts.name.trim();
   const password = opts.password;
   if (name.length < 2) return { ok: false, error: "Name is required" };
-  if (password.length < 8) {
-    return { ok: false, error: "Password must be at least 8 characters" };
-  }
+  const pwd = validatePassword(password);
+  if (!pwd.ok) return { ok: false, error: pwd.error };
 
   try {
-    const invite = await prisma.invite.findUnique({ where: { token: opts.token } });
+    const invite = await findInviteRowByRawToken(opts.token);
     if (!invite) return { ok: false, error: "Invite not found" };
     if (invite.acceptedAt) return { ok: false, error: "Invite already accepted" };
     if (invite.expiresAt.getTime() < Date.now()) {
@@ -224,6 +247,7 @@ export async function acceptInvite(opts: {
       });
     }
 
+    // Single-use: mark accepted (cannot be reused)
     await prisma.invite.update({
       where: { id: invite.id },
       data: { acceptedAt: new Date() },
@@ -248,5 +272,18 @@ export async function acceptInvite(opts: {
   } catch (e) {
     console.error("[invite] accept failed", e);
     return { ok: false, error: "Could not accept invite" };
+  }
+}
+
+export async function getOrgName(orgId: string): Promise<string | null> {
+  if (!isDbReady() || !prisma) return null;
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true },
+    });
+    return org?.name ?? null;
+  } catch {
+    return null;
   }
 }

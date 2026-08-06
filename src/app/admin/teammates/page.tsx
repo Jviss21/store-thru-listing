@@ -20,10 +20,14 @@ type PendingInvite = {
   id: string;
   email: string;
   role: string;
-  token: string;
   expiresAt: string;
   createdAt: string;
   inviteUrl?: string;
+};
+
+type EmailStatus = {
+  emailSent: boolean;
+  emailMessage: string;
 };
 
 export default function AdminTeammatesPage() {
@@ -36,13 +40,22 @@ export default function AdminTeammatesPage() {
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
+  const [lastEmailStatus, setLastEmailStatus] = useState<EmailStatus | null>(null);
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
   const [copied, setCopied] = useState(false);
 
   const loadPending = useCallback(async () => {
     try {
       const res = await fetch(`/api/invites?orgId=${encodeURIComponent(org.id)}`);
-      const json = (await res.json()) as { ok?: boolean; data?: PendingInvite[] };
+      const json = (await res.json()) as {
+        ok?: boolean;
+        data?: PendingInvite[];
+        emailConfigured?: boolean;
+      };
       if (json.ok && Array.isArray(json.data)) setPending(json.data);
+      if (typeof json.emailConfigured === "boolean") {
+        setEmailConfigured(json.emailConfigured);
+      }
     } catch {
       /* demo resilience */
     }
@@ -63,41 +76,51 @@ export default function AdminTeammatesPage() {
     );
   }, [state, tab]);
 
-  async function sendInvite() {
-    const email = inviteEmail.trim();
+  async function sendInvite(forEmail?: string, forRole?: AdminRole) {
+    const email = (forEmail ?? inviteEmail).trim();
+    const role = forRole ?? inviteRole;
     if (!email) return;
     setInviteBusy(true);
     setInviteError(null);
     setCopied(false);
+    setLastEmailStatus(null);
     try {
       const res = await fetch("/api/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role: inviteRole, orgId: org.id }),
+        body: JSON.stringify({ email, role, orgId: org.id }),
       });
       const json = (await res.json()) as {
         ok: boolean;
         error?: string;
         inviteUrl?: string;
-        data?: PendingInvite;
+        emailSent?: boolean;
+        emailMessage?: string;
+        emailConfigured?: boolean;
+        data?: PendingInvite & { id?: string };
       };
       if (!json.ok) {
         setInviteError(json.error || "Could not create invite");
         setInviteBusy(false);
         return;
       }
-      const url =
-        json.inviteUrl ||
-        json.data?.inviteUrl ||
-        (json.data?.token
-          ? `${window.location.origin}/invite/${json.data.token}`
-          : null);
+      if (typeof json.emailConfigured === "boolean") {
+        setEmailConfigured(json.emailConfigured);
+      }
+      const url = json.inviteUrl || json.data?.inviteUrl || null;
       setLastInviteUrl(url);
-      setInviteEmail("");
+      setLastEmailStatus({
+        emailSent: Boolean(json.emailSent),
+        emailMessage:
+          json.emailMessage ||
+          (json.emailSent
+            ? "Invite email sent."
+            : "Email not configured — copy the invite link."),
+      });
+      if (!forEmail) setInviteEmail("");
       await loadPending();
       setTab("pending");
 
-      // Mirror into local IMS teammates list for demo continuity
       if (state) {
         const handle =
           email.split("@")[0]?.replace(/[^a-z0-9_]/gi, "").toLowerCase() || "user";
@@ -110,7 +133,7 @@ export default function AdminTeammatesPage() {
                 name: handle,
                 email,
                 handle,
-                role: inviteRole,
+                role,
                 status: "Invited",
                 lastActiveAt: new Date().toISOString(),
                 online: false,
@@ -166,9 +189,17 @@ export default function AdminTeammatesPage() {
 
       <SectionCard>
         <h2 className="mb-3 text-sm font-semibold text-ink">Invite teammate</h2>
+        {emailConfigured === false ? (
+          <p className="mb-3 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+            Email delivery is not configured on this server. Invites still create a one-time link
+            you can copy. To send real email, set <code className="font-mono">RESEND_API_KEY</code>{" "}
+            and <code className="font-mono">EMAIL_FROM</code> in Vercel /{" "}
+            <code className="font-mono">.env.local</code>.
+          </p>
+        ) : null}
         <div className="mb-4 flex flex-col gap-2 sm:flex-row">
           <Input
-            placeholder="email@testgoodwill.example"
+            placeholder="email@example.com"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
           />
@@ -188,14 +219,19 @@ export default function AdminTeammatesPage() {
           </Button>
         </div>
         {inviteError ? <p className="mb-3 text-sm text-red-700">{inviteError}</p> : null}
-        {lastInviteUrl ? (
-          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-3 py-3 text-sm">
-            <p className="font-semibold text-ink">Invite link (copy &amp; share)</p>
-            <p className="mt-1 break-all font-mono text-xs text-ink">{lastInviteUrl}</p>
-            <p className="mt-1 text-xs text-muted">
-              Email delivery is stubbed in demo — share this link directly. Real email (e.g. Resend)
-              is optional when configured.
+        {lastInviteUrl && lastEmailStatus ? (
+          <div
+            className={`mb-4 rounded-lg border px-3 py-3 text-sm ${
+              lastEmailStatus.emailSent
+                ? "border-emerald-300/80 bg-emerald-50"
+                : "border-amber-300/80 bg-amber-50"
+            }`}
+          >
+            <p className="font-semibold text-ink">
+              {lastEmailStatus.emailSent ? "Email sent" : "Email not sent — copy link"}
             </p>
+            <p className="mt-1 text-xs text-ink/80">{lastEmailStatus.emailMessage}</p>
+            <p className="mt-2 break-all font-mono text-xs text-ink">{lastInviteUrl}</p>
             <Button
               type="button"
               variant="outline"
@@ -236,7 +272,7 @@ export default function AdminTeammatesPage() {
                 <th className="pb-2 font-semibold">Email</th>
                 <th className="pb-2 font-semibold">Role</th>
                 <th className="pb-2 font-semibold">Expires</th>
-                <th className="pb-2 font-semibold">Invite link</th>
+                <th className="pb-2 font-semibold">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -247,29 +283,23 @@ export default function AdminTeammatesPage() {
                   </td>
                 </tr>
               ) : (
-                pending.map((inv) => {
-                  const url =
-                    inv.inviteUrl ||
-                    (typeof window !== "undefined"
-                      ? `${window.location.origin}/invite/${inv.token}`
-                      : `/invite/${inv.token}`);
-                  return (
-                    <tr key={inv.id} className="border-t border-ink/5 odd:bg-mist/30">
-                      <td className="py-2.5 font-medium text-ink">{inv.email}</td>
-                      <td className="py-2.5">{inv.role}</td>
-                      <td className="py-2.5 text-muted">{relativeTime(inv.expiresAt)}</td>
-                      <td className="py-2.5">
-                        <button
-                          type="button"
-                          className="text-sm font-semibold text-ink underline-offset-2 hover:underline"
-                          onClick={() => void copyLink(url)}
-                        >
-                          Copy link
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                pending.map((inv) => (
+                  <tr key={inv.id} className="border-t border-ink/5 odd:bg-mist/30">
+                    <td className="py-2.5 font-medium text-ink">{inv.email}</td>
+                    <td className="py-2.5">{inv.role}</td>
+                    <td className="py-2.5 text-muted">{relativeTime(inv.expiresAt)}</td>
+                    <td className="py-2.5">
+                      <button
+                        type="button"
+                        disabled={inviteBusy}
+                        className="text-sm font-semibold text-ink underline-offset-2 hover:underline disabled:opacity-50"
+                        onClick={() => void sendInvite(inv.email, inv.role as AdminRole)}
+                      >
+                        Resend invite
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

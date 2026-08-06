@@ -735,39 +735,10 @@ function deepMergeIms(base: AdminImsState, patch: Partial<AdminImsState>): Admin
   };
 }
 
-export function passwordRequirements(password: string) {
-  return [
-    {
-      id: "length",
-      label: "Be a minimum of 12 characters in length",
-      ok: password.length >= 12,
-    },
-    {
-      id: "upper",
-      label: "Contain at least 1 uppercase letter",
-      ok: /[A-Z]/.test(password),
-    },
-    {
-      id: "lower",
-      label: "Contain at least 1 lowercase letter",
-      ok: /[a-z]/.test(password),
-    },
-    {
-      id: "number",
-      label: "Contain at least 1 number",
-      ok: /[0-9]/.test(password),
-    },
-    {
-      id: "special",
-      label: "Contain at least 1 special character",
-      ok: /[^A-Za-z0-9]/.test(password),
-    },
-  ] as const;
-}
-
-export function passwordMeetsAll(password: string) {
-  return passwordRequirements(password).every((r) => r.ok);
-}
+export {
+  passwordMeetsAll,
+  passwordRequirements,
+} from "@/lib/password-policy";
 
 /** Normalize SKU prefix (letters/digits only, uppercased). */
 export function normalizeSkuPrefix(prefix: string) {

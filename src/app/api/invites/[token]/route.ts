@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { acceptInvite, getInviteByToken } from "@/lib/db/invites";
 import { dbMode, isDbReady } from "@/lib/db/client";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 type Params = { params: { token: string } };
 
 /** Public: fetch invite metadata for accept page. */
-export async function GET(_request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const ip = clientIp(request);
+  const rl = rateLimit(`invite-get:${ip}`, 60, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      }
+    );
+  }
+
   if (!isDbReady()) {
     return NextResponse.json(
       { ok: false, error: "Database unavailable", dbMode: dbMode() },
@@ -31,6 +44,18 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 /** Public: accept invite — set password, create/update user + membership. */
 export async function POST(request: NextRequest, { params }: Params) {
+  const ip = clientIp(request);
+  const rl = rateLimit(`invite-accept:${ip}`, 15, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: `Too many attempts. Try again in ${rl.retryAfterSec}s.` },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      }
+    );
+  }
+
   if (!isDbReady()) {
     return NextResponse.json(
       { ok: false, error: "Database unavailable", dbMode: dbMode() },

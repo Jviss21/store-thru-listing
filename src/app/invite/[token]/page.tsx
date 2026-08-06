@@ -1,11 +1,17 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { Check, X } from "lucide-react";
 import { BRAND } from "@/lib/mock-data";
 import { Button, Input } from "@/components/ui";
+import {
+  passwordMeetsAll,
+  passwordRequirements,
+} from "@/lib/password-policy";
+import { cn } from "@/lib/utils";
 
 type InviteMeta = {
   email: string;
@@ -28,6 +34,9 @@ function AcceptInviteInner() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  const reqs = useMemo(() => passwordRequirements(password), [password]);
+  const passwordOk = passwordMeetsAll(password);
 
   useEffect(() => {
     if (!token) return;
@@ -64,8 +73,10 @@ function AcceptInviteInner() {
       setError("Passwords do not match");
       return;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (!passwordOk) {
+      setError(
+        "Password must be at least 12 characters and include uppercase, lowercase, a number, and a special character."
+      );
       return;
     }
     setLoading(true);
@@ -187,10 +198,24 @@ function AcceptInviteInner() {
                 className="mt-1"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                minLength={8}
+                minLength={12}
                 required
                 autoComplete="new-password"
               />
+              <ul className="mt-2 space-y-1">
+                {reqs.map((r) => (
+                  <li
+                    key={r.id}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs",
+                      r.ok ? "text-emerald-700" : password ? "text-coral" : "text-muted"
+                    )}
+                  >
+                    {r.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                    {r.label}
+                  </li>
+                ))}
+              </ul>
             </div>
             <div>
               <label htmlFor="confirm" className="text-sm font-medium text-ink">
@@ -202,13 +227,13 @@ function AcceptInviteInner() {
                 className="mt-1"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                minLength={8}
+                minLength={12}
                 required
                 autoComplete="new-password"
               />
             </div>
             {error ? <p className="text-sm text-red-700">{error}</p> : null}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || !passwordOk}>
               {loading ? "Creating account…" : "Accept & join"}
             </Button>
           </form>

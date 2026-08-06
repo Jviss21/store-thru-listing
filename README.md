@@ -71,6 +71,10 @@ Password for all: `testgoodwill` (or `DEMO_PASSWORD`).
 | `DEMO_PASSWORD` | Recommended | Shared pilot password |
 | `DATABASE_URL` | Optional prod | Postgres pooled URL (Neon sets this) |
 | `DATABASE_URL_UNPOOLED` | With Neon | Direct URL for `db push` / migrate |
+| `RESEND_API_KEY` | For invite email | [Resend](https://resend.com) API key — without it, invites return a copyable link only |
+| `EMAIL_FROM` | With Resend | Verified sender, e.g. `Hammoq <invites@yourdomain.com>` |
+
+See [`.env.example`](./.env.example) for the full list (SMTP optional alternative).
 
 ## Scripts
 

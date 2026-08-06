@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { authenticateCredentials, canSwitchToOrg } from "@/lib/auth/credentials";
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
 import { roleForOrg, findSeedUserByEmail } from "@/lib/db/seed-data";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 14 },
@@ -16,6 +17,12 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        const emailKey = (credentials?.email ?? "").trim().toLowerCase() || "anon";
+        const rl = rateLimit(`login:${emailKey}`, 12, 60_000);
+        if (!rl.ok) {
+          console.warn("[auth] login rate limited", { emailKey });
+          return null;
+        }
         const identity = await authenticateCredentials(
           credentials?.email,
           credentials?.password ?? ""

@@ -131,6 +131,9 @@ From [`.env.example`](./.env.example):
 | `NEXTAUTH_SECRET` | JWT signing secret |
 | `DATABASE_URL` | Postgres pooled connection (Prisma app queries) |
 | `DATABASE_URL_UNPOOLED` | Postgres direct URL (migrate / `db push`) |
+| `RESEND_API_KEY` | Resend API key for invite (+ password-help) emails |
+| `EMAIL_FROM` | Verified From address for Resend/SMTP |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Optional SMTP instead of Resend (needs `nodemailer`) |
 | `NEXT_PUBLIC_MARKETPLACE_MODE` | `mock` (default) or `live` |
 | `MARKETPLACE_MODE` | Optional server-side fallback for marketplace mode |
 | `SHOPGOODWILL_CLIENT_ID` / `_SECRET` / `_API_BASE_URL` | Phase 2 SGW (optional) |

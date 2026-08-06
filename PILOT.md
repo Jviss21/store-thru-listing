@@ -46,6 +46,8 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 | `DEMO_PASSWORD` | Recommended | Pilot password (default `testgoodwill`) |
 | `DATABASE_URL` | Optional | Postgres (pooled) for Prisma; omit → seed-module auth |
 | `DATABASE_URL_UNPOOLED` | With Neon | Direct Postgres URL for `db push` / migrate |
+| `RESEND_API_KEY` | For real invite email | Resend API key |
+| `EMAIL_FROM` | With Resend | Verified sender address |
 
 ### What’s real vs mock
 
@@ -53,7 +55,7 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 |-------|--------|
 | Auth / session / org memberships | **Real** (NextAuth + seed or Prisma) |
 | Org switch + Ops impersonation | **Real** (JWT + cookies; audit when DB ready) |
-| Teammate invites | **Real** (Prisma `Invite`; `/admin/teammates` + `/invite/[token]`; copyable link; email stubbed/logged) |
+| Teammate invites | **Real** (Prisma `Invite`; hashed tokens; `/admin/teammates` + `/invite/[token]`; Resend email when `RESEND_API_KEY` set; otherwise honest copy-link UI) |
 | Donor create products / manifests | **Prefer Postgres** when `dbMode: prisma` — falls back to localStorage mock |
 | Admin IMS settings | **Prefer Postgres** `OrgSettings.adminImsJson` on save; localStorage cache |
 | Products list | **DB ∪ mock** (Prisma rows when present, else seed/mock) |
@@ -65,7 +67,7 @@ Auto-List only (no Auto-Draft). Test Goodwill is one of N orgs. Hammoq navy/gold
 - Schema: extended `Product`, `Manifest`/`ManifestLine`, `OrderLine`, `OrgSettings`, `Invite`
 - Repos: `src/lib/db/{products,manifests,invites,org-settings}.ts`
 - APIs: `/api/manifests`, `/api/invites`, `/api/invites/[token]`, `/api/org/settings`, `/api/products` POST
-- **Still mock:** full listings/orders cutover, marketplace live, durable photo storage, invite email delivery (Resend optional)
+- **Still mock:** full listings/orders cutover, marketplace live; full TOTP MFA (Reset MFA stub remains); self-serve password-reset tokens (light `/api/auth/forgot-password` + Admin re-invite)
 
 ### Phase 2 — IN PROGRESS (marketplace stubs)
 
