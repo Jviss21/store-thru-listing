@@ -40,7 +40,7 @@ export function buildSeedUsers(): SeedUser[] {
       handle: isTestGw ? "jdoe" : `admin${i}`,
       isOps: false,
       primaryOrgId: org.id,
-      memberships: [{ orgId: org.id, role: isTestGw ? "Ops Lead" : "Admin" }],
+      memberships: [{ orgId: org.id, role: isTestGw ? "Lister" : "Admin" }],
     };
   });
 

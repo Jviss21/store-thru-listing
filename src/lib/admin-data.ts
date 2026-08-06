@@ -127,7 +127,7 @@ export const ADMIN_USERS: AdminUser[] = [
     name: CURRENT_USER.name,
     email: CURRENT_USER.email,
     handle: CURRENT_USER.handle,
-    role: "Ops Lead",
+    role: CURRENT_USER.role as AdminRole,
     status: "Active",
     lastActiveAt: minsAgo(1),
     online: true,

@@ -127,8 +127,8 @@ function LoginForm() {
             {wantsOps ? "" : ` · Ops: ${OPS_EMAIL}`}
           </p>
           <p className="text-[11px] leading-relaxed">
-            Role demos (Test Goodwill): morgan.hale@… Admin · jane.smith@… Lister ·
-            bob.wilson@… Photographer · chris.taylor@… Viewer
+            Role demos (Test Goodwill): john.doe@… Lister · morgan.hale@… Admin ·
+            jane.smith@… Lister · bob.wilson@… Photographer · chris.taylor@… Viewer
           </p>
         </div>
       </div>

@@ -88,6 +88,28 @@ function ProductDetailInner() {
   const searchParams = useSearchParams();
   const { org } = useOrg();
   const id = String(params.id ?? "");
+
+  const reservedDest = useMemo(() => {
+    const reserved: Record<string, string> = {
+      putaway: "/products/scan",
+      scan: "/products/scan",
+      "auto-list": "/infinity-ai",
+      "auto-draft": "/products/auto-draft",
+      "express-list": "/products/express-list",
+      "scan-book": "/products/scan-book",
+      draft: "/products/draft",
+      new: "/products/new",
+    };
+    return reserved[id] ?? null;
+  }, [id]);
+
+  // Hardening: never treat known static product sub-routes as product ids.
+  useEffect(() => {
+    if (!reservedDest) return;
+    const q = searchParams.toString();
+    router.replace(q ? `${reservedDest}?${q}` : reservedDest);
+  }, [reservedDest, router, searchParams]);
+
   const seed = getProduct(id);
   const [product, setProduct] = useState<Product | null>(seed ?? null);
   const [form, setForm] = useState<ListingFormState | null>(null);
@@ -147,6 +169,10 @@ function ProductDetailInner() {
       }
     }
   }, [ready, product, searchParams, announce, router]);
+
+  if (reservedDest) {
+    return <div className="p-8 text-sm text-muted">Redirecting…</div>;
+  }
 
   if (!ready) return <div className="p-8 text-sm text-muted">Loading product…</div>;
   if (!product || !form) {
@@ -421,7 +447,7 @@ function ProductDetailInner() {
           </div>
         </div>
         <Link
-          href={`/products/putaway?barcode=${encodeURIComponent(product.upc || product.sku)}`}
+          href={`/products/scan?barcode=${encodeURIComponent(product.upc || product.sku)}`}
         >
           <Button type="button" variant="outline" size="sm">
             Scan / putaway

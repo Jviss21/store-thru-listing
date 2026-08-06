@@ -214,7 +214,7 @@ function WorkflowInner() {
           1. Donor create
         </Link>
         <span className="text-muted">→</span>
-        <Link href="/products/putaway" className="text-primary hover:underline">
+        <Link href="/products/scan" className="text-primary hover:underline">
           2. Putaway
         </Link>
         <span className="text-muted">→</span>

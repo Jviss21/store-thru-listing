@@ -130,11 +130,16 @@ export default function PickListsPage() {
               {lists.map((row) => {
                 const prog = pickListProgress(row);
                 return (
-                  <tr key={row.id} className="border-b hover:bg-accent/8">
+                  <tr
+                    key={row.id}
+                    className="cursor-pointer border-b hover:bg-accent/8"
+                    onClick={() => router.push(`/orders/pick-lists/${row.id}`)}
+                  >
                     <td className="px-5 py-3">
                       <Link
                         href={`/orders/pick-lists/${row.id}`}
                         className="font-semibold text-ink hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {row.id}
                       </Link>

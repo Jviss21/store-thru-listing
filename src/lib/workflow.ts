@@ -308,7 +308,7 @@ export function buildWorkflowSnapshot(
     case "donor":
       next = {
         label: "Putaway this SKU",
-        href: `/products/putaway?barcode=${barcode}`,
+        href: `/products/scan?barcode=${barcode}`,
         hint: "Scan barcode → assign shelf",
         primary: true,
       };
@@ -316,7 +316,7 @@ export function buildWorkflowSnapshot(
     case "putaway":
       next = {
         label: "Scan / putaway",
-        href: `/products/putaway?barcode=${barcode}`,
+        href: `/products/scan?barcode=${barcode}`,
         hint: putawayLocation ? `Current: ${putawayLocation}` : "Not on shelf yet",
         primary: true,
       };

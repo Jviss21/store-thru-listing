@@ -132,7 +132,7 @@ export const CURRENT_USER = {
   name: "John Doe",
   email: "john.doe@testgoodwill.example",
   handle: "jdoe",
-  role: "Ops Lead",
+  role: "Lister",
 };
 
 export const SUPPLIERS = Array.from({ length: 12 }, (_, i) => `Supplier ${i + 1}`);

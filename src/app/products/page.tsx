@@ -159,7 +159,7 @@ function ProductsInner() {
         }`}
         actions={
           <>
-            <Link href="/products/putaway">
+            <Link href="/products/scan">
               <Button variant="outline" type="button">
                 Scan / putaway
               </Button>

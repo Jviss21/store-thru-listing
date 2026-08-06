@@ -238,7 +238,7 @@ function DonorBatchCreateInner() {
     setSaving(false);
     const firstBarcode = lines[0]?.barcode;
     if (firstBarcode) {
-      router.push(`/products/putaway?barcode=${encodeURIComponent(firstBarcode)}`);
+      router.push(`/products/scan?barcode=${encodeURIComponent(firstBarcode)}`);
     } else {
       router.push(`/manifests/${manifestId}`);
     }
@@ -415,7 +415,7 @@ function DonorBatchCreateInner() {
                       batch={batchBarcode.trim() || undefined}
                     />
                     <Link
-                      href={`/products/putaway?barcode=${encodeURIComponent(line.barcode)}`}
+                      href={`/products/scan?barcode=${encodeURIComponent(line.barcode)}`}
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-primary hover:bg-mist"
                     >
                       Putaway
