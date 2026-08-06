@@ -17,10 +17,10 @@ import {
   useSaveFeedback,
 } from "@/components/SaveFeedback";
 import { Button, Card } from "@/components/ui";
-import { InfinityBadge } from "@/components/Brand";
+import { InfinityAiUploadLink, InfinityBadge } from "@/components/Brand";
 import { exportListingPacket, saveCreatedListing, saveCreatedProduct } from "@/lib/demo-actions";
 import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
-import { BRAND, CATEGORY_PATHS, INFINITY_AI_UPLOAD_HREF } from "@/lib/mock-data";
+import { BRAND, CATEGORY_PATHS } from "@/lib/mock-data";
 import { useOrg } from "@/components/OrgProvider";
 
 function NewProductInner() {
@@ -209,12 +209,9 @@ function NewProductInner() {
         <p className="min-w-0 flex-1 text-sm">
           Ideal path: upload products in {BRAND.ai} and push with {BRAND.autoList}.
         </p>
-        <Link
-          href={INFINITY_AI_UPLOAD_HREF}
-          className="text-sm font-semibold text-brand-orange hover:underline"
-        >
+        <InfinityAiUploadLink className="text-sm font-semibold text-brand-orange hover:underline">
           Upload in {BRAND.ai}
-        </Link>
+        </InfinityAiUploadLink>
       </Card>
       <ListingEditorForm value={form} onChange={setForm} orgId={org.id} />
       <SaveConfirmBar show={justSaved} message="Draft saved successfully" />

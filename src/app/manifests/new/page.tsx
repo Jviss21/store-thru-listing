@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Printer, Rocket, Settings, Trash2 } from "lucide-react";
 import { BarcodeStub, printUnitBarcode } from "@/components/BarcodeStub";
-import { InfinityBadge } from "@/components/Brand";
+import { HammoqRetailLink, InfinityAiUploadLink, InfinityBadge } from "@/components/Brand";
 import { RoleGate } from "@/components/RoleGate";
 import { useOrg } from "@/components/OrgProvider";
 import { Button, Card, Input, Textarea } from "@/components/ui";
@@ -21,7 +21,15 @@ import {
   saveCreatedProduct,
 } from "@/lib/demo-actions";
 import { logEvent } from "@/lib/event-log";
-import { BRAND, CATEGORY_PATHS, CURRENT_USER, SUPPLIERS } from "@/lib/mock-data";
+import {
+  BRAND,
+  CATEGORY_PATHS,
+  CURRENT_USER,
+  HAMMOQ_RETAIL_APP_STORE_URL,
+  SUPPLIERS,
+  retailTriageTag,
+  type RetailTriage,
+} from "@/lib/mock-data";
 import { canAccessAdminConsole } from "@/lib/roles";
 import type { Manifest } from "@/lib/types";
 
@@ -30,6 +38,8 @@ type Line = {
   title: string;
   sku: string;
   barcode: string;
+  /** Demo stand-in until Hammoq Retail iOS bridge lands. */
+  triage: RetailTriage;
 };
 
 function DonorBatchCreateInner() {
@@ -81,6 +91,7 @@ function DonorBatchCreateInner() {
       title: title.trim(),
       sku,
       barcode,
+      triage: "undecided",
     };
     setLines((prev) => [...prev, next]);
     setTitle("");
@@ -106,6 +117,10 @@ function DonorBatchCreateInner() {
 
   function removeLine(id: string) {
     setLines((prev) => prev.filter((l) => l.id !== id));
+  }
+
+  function setLineTriage(id: string, triage: RetailTriage) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, triage } : l)));
   }
 
   async function save() {
@@ -172,7 +187,12 @@ function DonorBatchCreateInner() {
         createdAt: now,
         listedOn: [],
         condition: "Used - Good",
-        tags: ["Donor", `batch:${code}`, `barcode:${line.barcode}`],
+        tags: [
+          "Donor",
+          `batch:${code}`,
+          `barcode:${line.barcode}`,
+          retailTriageTag(line.triage),
+        ],
         upc: line.barcode,
       });
     }
@@ -247,24 +267,50 @@ function DonorBatchCreateInner() {
       <Card className="flex flex-wrap items-center gap-3 border-accent/25 bg-accent/[0.06] p-4">
         <InfinityBadge />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">Ideal path: {BRAND.autoList} onboarding</p>
+          <p className="text-sm font-semibold text-ink">
+            Ideal ecom path: upload in {BRAND.ai} → {BRAND.autoList}
+          </p>
           <p className="text-xs text-muted">
-            Request a demo for full store→ecomm onboarding. This page is the manual donation-batch
-            create with per-unit SKU / barcode generation.
+            This page is manual donation-batch create. Prefer {BRAND.ai} for photo→AI listing, or
+            mark retail triage below when items were sorted on the floor.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href="https://hammoq.com/contact" target="_blank" rel="noopener noreferrer">
+          <InfinityAiUploadLink>
             <Button variant="accent" size="sm" type="button">
-              Request a demo
+              <Rocket className="h-3.5 w-3.5" /> Upload in {BRAND.ai}
             </Button>
-          </a>
+          </InfinityAiUploadLink>
           <Link href="/products/auto-list">
             <Button variant="outline" size="sm" type="button">
-              <Rocket className="h-3.5 w-3.5" /> Try {BRAND.autoList}
+              Try {BRAND.autoList} demo
             </Button>
           </Link>
         </div>
+      </Card>
+
+      <Card className="flex flex-wrap items-center gap-3 border-ink/10 bg-mist/50 p-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-ink">Retail triage · {BRAND.retail}</p>
+          <p className="text-xs text-muted">
+            Use {BRAND.retail} at the store to decide retail-worthy vs ecom-worthy. Ecom continues
+            in IMS; retail stays on the floor systems. Universal links TBD — App Store until then.
+          </p>
+        </div>
+        <HammoqRetailLink
+          onClick={() =>
+            logEvent({
+              section: "manifests",
+              action: "Opened Hammoq Retail App Store from manual donor create",
+              resource: BRAND.retail,
+              resourceHref: HAMMOQ_RETAIL_APP_STORE_URL,
+            })
+          }
+        >
+          <Button variant="outline" size="sm" type="button">
+            Get {BRAND.retail}
+          </Button>
+        </HammoqRetailLink>
       </Card>
 
       <Card className="p-6">
@@ -371,6 +417,20 @@ function DonorBatchCreateInner() {
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <label className="sr-only" htmlFor={`triage-${line.id}`}>
+                      Retail triage
+                    </label>
+                    <select
+                      id={`triage-${line.id}`}
+                      className="h-8 rounded-md border border-ink/15 bg-white px-2 text-xs font-medium text-ink"
+                      value={line.triage}
+                      onChange={(e) => setLineTriage(line.id, e.target.value as RetailTriage)}
+                      title="Retail triage (demo until Hammoq Retail bridge)"
+                    >
+                      <option value="undecided">Undecided</option>
+                      <option value="retail">Retail</option>
+                      <option value="ecom">Ecom</option>
+                    </select>
                     <BarcodeStub
                       compact
                       sku={line.barcode}

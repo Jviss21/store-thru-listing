@@ -6,7 +6,14 @@ import { Download, Eye, Pencil, Rocket, Sparkles } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { ProductImage } from "@/components/ProductImage";
-import { BRAND, ORG_SLUG, autoListQueue, getProduct, listings } from "@/lib/mock-data";
+import {
+  BRAND,
+  INFINITY_AI_APP_STORE_URL,
+  ORG_SLUG,
+  autoListQueue,
+  getProduct,
+  listings,
+} from "@/lib/mock-data";
 import { downloadCsv, stamp } from "@/lib/download";
 import { exportEbayListingPack, exportListingPacket } from "@/lib/demo-actions";
 import { formatCurrency } from "@/lib/utils";
@@ -89,19 +96,26 @@ function AutoListInner() {
             Upload products in {BRAND.ai}
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-white/70">
-            {BRAND.autoList} is how teams run the ideal store→ecomm workflow. Select ready items
-            below and push them to channels with {BRAND.ai}.
+            {BRAND.ai} (iOS) fuses into this {BRAND.autoList} queue — photos → AI fields → channel
+            publish. Mobile opens the App Store; desktop uses this demo surface.
           </p>
         </div>
-        <Button
-          variant="accent"
-          type="button"
-          disabled={!selected.length}
-          onClick={listSelected}
-          className="shrink-0"
-        >
-          <Rocket className="h-4 w-4" /> Upload with {BRAND.autoList}
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <a href={INFINITY_AI_APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+            <Button variant="accent" type="button" className="shrink-0">
+              Get {BRAND.ai}
+            </Button>
+          </a>
+          <Button
+            variant="outline"
+            type="button"
+            disabled={!selected.length}
+            onClick={listSelected}
+            className="shrink-0 border-white/30 bg-transparent text-white hover:bg-white/10"
+          >
+            <Rocket className="h-4 w-4" /> Upload with {BRAND.autoList}
+          </Button>
+        </div>
       </div>
 
       <PageHeader

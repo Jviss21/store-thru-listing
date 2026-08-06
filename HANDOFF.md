@@ -6,7 +6,14 @@
 
 This document is the single starting point. Deeper phase notes live in [PILOT.md](./PILOT.md) and [LAUNCH.md](./LAUNCH.md). Repo overview: [README.md](./README.md).
 
-**IMS vs Retail:** This repo/folder is **IMS-only** (`store-thru-listing`). **Retail** lives in a separate sibling folder/repo — do not mix handoffs:
+**IMS vs sibling products:** This repo/folder is **IMS-only** (`store-thru-listing`). Four products stack later as add-ons — see [INTEGRATIONS.md](./INTEGRATIONS.md). Do not merge other product source here:
+
+| Product | Folder | Role |
+|---------|--------|------|
+| **IMS** | `store-thru-listing` (this) | Ecom operations |
+| **InfinityAI** | Separate (TBD) — App Store id `6746443451` | Fills **Auto-List** into IMS |
+| **Retail production systems** | Future separate folder | Store retail ops |
+| **Hammoq Retail** | Sibling `..\hammoq-retail` — App Store id `6460302479` | Store triage retail vs ecom + retail AI |
 
 `C:\Users\Jared Visser\Documents\HAMMOQ\Hammoq AI Build\hammoq-retail`
 
@@ -14,7 +21,7 @@ This document is the single starting point. Deeper phase notes live in [PILOT.md
 
 ## 1. What this product is
 
-**store-thru-listing** is a **Test Goodwill / 10-org pilot demo** of a store-through-listing IMS (inventory management system), powered by **hammoq** and **Infinity AI** (Auto-List only — no Auto-Draft).
+**store-thru-listing** is a **Test Goodwill / 10-org pilot demo** of a store-through-listing IMS (inventory management system), powered by **hammoq**. **InfinityAI** (separate iOS app) feeds **Auto-List only** — no Auto-Draft. **Hammoq Retail** (separate) handles store retail-vs-ecom triage before ecom continues here.
 
 It walks the floor-to-channel path:
 
@@ -87,8 +94,9 @@ Three product surfaces share one Next.js 14 app:
 - 10 pilot orgs + seeded users (including Test Goodwill role demos)
 - **Neon Postgres live on Vercel** (Production + Preview): schema push + seed done; auth/session backed by Prisma (`dbMode: "prisma"`)
 - Marketplace client stubs (ShopGoodwill / eBay) with mock/live env switch (`NEXT_PUBLIC_MARKETPLACE_MODE=mock` in prod)
-- Brand / Infinity AI positioning: **Auto-List only** — Item Creation primary path is Auto-List (`/products/auto-list`) with full manual listing form as secondary
+- Brand / InfinityAI positioning: **Auto-List only** — primary path is InfinityAI → Auto-List (`/products/auto-list`); full manual listing form is secondary. See [INTEGRATIONS.md](./INTEGRATIONS.md).
 - Formal Product handoff (`HANDOFF.md`) + Desktop zip packaging script
+- Product stack doc (`INTEGRATIONS.md`): IMS / InfinityAI / Retail production / Hammoq Retail folder rules + App Store CTA map
 
 ---
 
@@ -106,7 +114,7 @@ Be explicit with stakeholders: **this is a high-fidelity demo, not a production 
 | **Photos / files** | No durable object storage for product images yet (URLs/json stub on Product) |
 | **Carrier / printers / scanners** | Label APIs, printer profiles, barcode workflows not production-wired |
 | **Legal / reliability** | ToS/Privacy/DPA, staging, observability, backups — open |
-| **Retail product** | Separate codebase at `..\hammoq-retail` — out of scope for this IMS handoff |
+| **Retail product** | Separate codebase at `..\hammoq-retail` — out of scope for this IMS handoff. InfinityAI is also a separate app (Auto-List fusion only). See [INTEGRATIONS.md](./INTEGRATIONS.md) |
 
 See [LAUNCH.md](./LAUNCH.md) for the longer production checklist.
 
@@ -157,6 +165,7 @@ Useful scripts: `db:push`, `db:seed`, `db:studio`, `lint`, `build`.
 |-----|-----|
 | **This file — `HANDOFF.md`** | Formal pass-off for Product |
 | [README.md](./README.md) | Quick start, links, seeded users |
+| [INTEGRATIONS.md](./INTEGRATIONS.md) | **4-product stack**, App Store CTAs, InfinityAI → Auto-List / Hammoq Retail triage, folder rules |
 | [PILOT.md](./PILOT.md) | Phase 0–2 plan, real vs mock matrix, Admin URL map |
 | [LAUNCH.md](./LAUNCH.md) | Beyond-demo production checklist |
 
@@ -164,8 +173,8 @@ Useful scripts: `db:push`, `db:seed`, `db:studio`, `lint`, `build`.
 
 ## 10. Honesty statement (copy for stakeholders)
 
-> **store-thru-listing is demo-ready and send-ready for Product early review:** live on Vercel, GitHub linked, Auto-List primary Item Creation, roles and Admin/Ops surfaces in place, marketplace flows in **mock** mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`). Domain SoR + teammate invites have landed for donor products / OrgSettings / invites.  
-> **It is not yet a full production IMS** for onboarding twenty real listers: listings/orders UI and photos are still largely mock, **marketplace live is deferred for developers**, and Ops is a thin pilot console — not a full multi-org control plane. **Retail is a separate repo** (`hammoq-retail`).
+> **store-thru-listing is demo-ready and send-ready for Product early review:** live on Vercel, GitHub linked, Auto-List primary Item Creation (InfinityAI → Auto-List; not Hammoq Retail), roles and Admin/Ops surfaces in place, marketplace flows in **mock** mode, and **auth/org membership on Prisma + Neon** (`dbMode: "prisma"`). Domain SoR + teammate invites have landed for donor products / OrgSettings / invites.  
+> **It is not yet a full production IMS** for onboarding twenty real listers: listings/orders UI and photos are still largely mock, **marketplace live is deferred for developers**, and Ops is a thin pilot console — not a full multi-org control plane. **Sibling products stay separate:** InfinityAI, Hammoq Retail (`hammoq-retail`), and future retail production systems — see [INTEGRATIONS.md](./INTEGRATIONS.md).
 
 ---
 

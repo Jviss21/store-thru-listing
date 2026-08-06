@@ -17,15 +17,47 @@ export const ORG_NAME = "Test Goodwill";
 export const ORG_SLUG = "test-goodwill";
 export const BRAND = {
   product: "hammoq",
-  ai: "Infinity AI",
+  /** Official iOS app display name (App Store id 6746443451). */
+  ai: "InfinityAI",
   autoList: "Auto-List",
+  /** Official iOS retail triage app (App Store id 6460302479). */
+  retail: "Hammoq Retail",
 };
 
+/** InfinityAI — photos → AI listing → IMS Auto-List (App Store). */
+export const INFINITY_AI_APP_STORE_URL =
+  "https://apps.apple.com/us/app/infinityai/id6746443451";
+
+/** Hammoq Retail — store intake triage retail vs ecom (App Store). */
+export const HAMMOQ_RETAIL_APP_STORE_URL =
+  "https://apps.apple.com/us/app/hammoq-retail/id6460302479";
+
 /**
- * In-app Infinity AI upload / Auto-List surface.
- * No external Infinity AI app URL is defined in this repo — use this path for CTAs.
+ * Desktop / web demo surface for Auto-List queue.
+ * Mobile CTAs should prefer {@link INFINITY_AI_APP_STORE_URL}.
  */
 export const INFINITY_AI_UPLOAD_HREF = "/products/auto-list";
+
+/** True when the UA looks like a phone/tablet (client-only). */
+export function isMobileClient(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+/**
+ * Primary InfinityAI → Auto-List CTA target:
+ * App Store on mobile; in-app Auto-List demo on desktop.
+ */
+export function resolveInfinityAiUploadHref(): string {
+  return isMobileClient() ? INFINITY_AI_APP_STORE_URL : INFINITY_AI_UPLOAD_HREF;
+}
+
+/** Retail / ecom triage tags stored on donor products until iOS bridge lands. */
+export type RetailTriage = "retail" | "ecom" | "undecided";
+
+export function retailTriageTag(triage: RetailTriage): string {
+  return `triage:${triage}`;
+}
 
 /** Strategy names — definitions live in `listing-strategies.ts`. */
 export const STRATEGIES = STRATEGY_NAMES;
