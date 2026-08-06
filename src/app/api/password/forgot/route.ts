@@ -3,12 +3,9 @@ import { isEmailConfigured, sendEmail } from "@/lib/email";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
- * Light password-reset stub.
- * When email is configured: acknowledges request without revealing whether the
- * address exists, and emails a "contact your admin / use a new invite" note
- * until a full reset-token table lands.
- * When not configured: honest 503-style message (still 200 to avoid email oracle
- * on configured path only — here we tell the truth for operators).
+ * Light password-reset stub (outside /api/auth/* so NextAuth catch-all does not own it).
+ * When email is configured: sends "ask admin / re-invite" instructions.
+ * When not: honest error — never pretends email was sent.
  */
 export async function POST(request: NextRequest) {
   const ip = clientIp(request);
