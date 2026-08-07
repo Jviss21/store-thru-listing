@@ -1,5 +1,6 @@
 /**
  * Manifest / DonorBatch repository.
+ * Internal Prisma model name remains `Manifest`; user-facing copy is "Donor Item Creation".
  */
 
 import { prisma, isDbReady } from "@/lib/db/client";

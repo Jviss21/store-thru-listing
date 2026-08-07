@@ -42,7 +42,7 @@ export const WORKFLOW_STAGES: WorkflowStage[] = [
   },
   {
     id: "donor",
-    label: "Donor / manifest create",
+    label: "Donor Item Creation",
     shortLabel: "Donor",
     order: 2,
     description: "Batch + SKU/barcode print via Donor Item Creation.",

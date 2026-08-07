@@ -78,10 +78,37 @@ Item at store in Hammoq Retail
 
 | Path | Status |
 |------|--------|
-| `..\hammoq-backend` | **Hammoq Backend Admin** — customers, staff, flags, audit (port 3001). See its README. |
+| `..\hammoq-backend` | **Hammoq Backend** — staff console + domain API / Prisma SoR (port 3001). See its README + `DATA_POINTS.md`. |
 | `..\hammoq-retail` | Retail **placeholder** stub — leave mostly alone; docs/CTAs may cross-link |
 | InfinityAI folder | **TBD** — built separately; not in this workspace |
 | Retail production systems | **Future** separate folder |
+
+## UI feature → backend data point (required)
+
+**Critical ongoing rule:** when this IMS UI adds a feature that persists or manages data, also update **hammoq-backend**:
+
+1. Register the entity/fields in `../hammoq-backend/DATA_POINTS.md` + `src/data-points/catalog.ts`
+2. Add/extend `/api/v1/...` (or staff `/api/...`) and Prisma/`src/lib/db` as needed
+3. Keep Vercel IMS working: mirror first; only set `API_BASE_URL` when ready to call the backend
+
+Cursor rule: `.cursor/rules/backend-data-points.mdc`
+
+### How IMS calls hammoq-backend (gradual cutover)
+
+```env
+# unset = use same-origin /api/* (current Vercel behavior)
+API_BASE_URL=http://localhost:3001
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+```
+
+| Mode | Behavior |
+|------|----------|
+| `API_BASE_URL` unset | IMS Next routes under `/api/*` (live deploy unchanged) |
+| `API_BASE_URL` set | Clients should call `{API_BASE_URL}/api/v1/...` for domain CRUD |
+
+Shared Neon: same `DATABASE_URL` / `DATABASE_URL_UNPOOLED` on both apps (or a Neon branch for backend experiments).
+
+Health check: `GET {API_BASE_URL}/api/v1/health`
 
 ## Future APIs / deep links (not built yet)
 
@@ -115,15 +142,6 @@ Components: `InfinityAiUploadLink`, `HammoqRetailLink` in `src/components/Brand.
 
 End-to-end thrift/resale stages, status tags, and “walk one SKU” demo path: **[WORKFLOW.md](./WORKFLOW.md)**.
 
-## Brand tokens
-
-Shared Hammoq palette (navy `#0D1B34`, gold `#F0B429`, orange `#E87A1A`, rust `#C94A2A`). Full CSS variable / Tailwind map: **[BRAND.md](./BRAND.md)**.
-
-| Surface | Token file |
-|---------|------------|
-| IMS | `src/app/globals.css` + `tailwind.config.ts` |
-| Fake eBay / Hammoq Market | `..\..\Online Marketplace\web\src\app\globals.css` (same hexes; legacy `forest`/`amber` aliases) |
-
 ## Fake eBay = Hammoq Market
 
 Until real eBay (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_RU_NAME / EBAY_ENV) is connected, IMS treats **eBay publish** as a push to **Hammoq Market** (Online Marketplace / web).
@@ -133,7 +151,7 @@ Until real eBay (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_RU_NAME / EBAY_ENV) 
 | **Base URL (production)** | https://web-rose-two-83.vercel.app (alias https://web-hammoq.vercel.app) |
 | **Local Market** | http://localhost:3002 |
 | **Channel API** | POST /api/v1/listings · POST .../sold · POST .../delist · GET .../:externalId |
-| **IMS env** | FAKE_EBAY_API_URL + FAKE_EBAY_API_KEY + FAKE_EBAY_STORE_SLUG (aliases: MARKETPLACE_CHANNEL_URL / MARKETPLACE_CHANNEL_API_KEY) |
+| **IMS env** | FAKE_EBAY_API_URL + FAKE_EBAY_API_KEY (aliases: MARKETPLACE_CHANNEL_URL / MARKETPLACE_CHANNEL_API_KEY) |
 | **Demo API key** | hmq_demo_testgoodwill_west_devkey (Market seed / README) |
 
 ### How to trigger a push
@@ -142,11 +160,25 @@ Until real eBay (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_RU_NAME / EBAY_ENV) 
 2. IMS POSTs to /api/marketplaces/ebay/publish, which upserts on Hammoq Market as Fake eBay.
 3. **Simulate sold + end siblings** calls /api/marketplaces/ebay/sold → Market .../sold (removes from storefront).
 
-Real eBay stays gated: if all EBAY_* vars are set, Fake eBay is skipped and the live/stub eBay client is used instead.
+Real eBay stays gated: if all of `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` / `EBAY_RU_NAME` / `EBAY_ENV` are set, Fake eBay is skipped and the **live** Inventory client is used instead.
 
-Photo URLs: Market requires absolute `https://` image URLs. Relative paths are rewritten to absolute using `NEXTAUTH_URL`, `VERCEL_URL`, or `NEXT_PUBLIC_APP_URL` when set; otherwise relative photos are skipped and a placeholder is used.
+Code: `src/lib/api/marketplaces/hammoq-market.ts`, `ebay.ts`, `ebay-oauth.ts`, `ebay-inventory.ts`, `src/lib/channel-sim.ts`.
 
-Code: src/lib/api/marketplaces/hammoq-market.ts, ebay.ts, src/lib/channel-sim.ts.
+### Real eBay scaffolding
+
+When the four core `EBAY_*` vars are set:
+
+| Piece | Path / notes |
+|--|--|
+| OAuth scopes | `api_scope`, `sell.inventory`, `sell.account`, `sell.fulfillment` — `ebay-oauth.ts` |
+| Authorize URL | `buildEbayAuthorizeUrl` → Connect button redirects when mode=`live` |
+| Callback | `GET /api/marketplaces/callback/ebay` — code exchange + encrypted refresh token in `MarketplaceConnection.oauthRefreshTokenEnc` |
+| Inventory publish | `publishEbayInventoryListing` — location → item → offer → publishOffer |
+| Policies | `EBAY_FULFILLMENT/PAYMENT/RETURN_POLICY_ID` or first Account API policy |
+| Account deletion | `GET/POST /api/marketplaces/ebay/account-deletion` (SHA256 challenge; ECDSA TODO) |
+| Notifications | `GET/POST /api/marketplaces/ebay/notifications` (challenge + ack/log; ECDSA TODO) |
+
+Optional: `EBAY_USER_REFRESH_TOKEN` for headless Inventory without interactive OAuth.
 
 ## Customer go-live runbook (Fake eBay — today)
 
@@ -161,7 +193,6 @@ Set for **Production** (and Preview if you test PRs):
 FAKE_EBAY_API_URL=https://web-rose-two-83.vercel.app
 FAKE_EBAY_API_KEY=hmq_demo_testgoodwill_west_devkey
 FAKE_EBAY_STORE_SLUG=test-goodwill-west
-NEXTAUTH_URL=https://store-thru-listing.vercel.app
 ```
 
 Do **not** set `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` / `EBAY_RU_NAME` / `EBAY_ENV` yet — those switch the client off Fake eBay onto real eBay (still stubbed).
@@ -173,7 +204,7 @@ Redeploy after saving env vars.
 1. **Admin invite** — Ops/Admin → invite user by email. If Resend is unset, copy the invite link from the UI and send it manually.
 2. **Donor create** — Donor Item Creation → Manual donor create (`/manifests/new`). Triage **ecom** → Create (SKU + barcode).
 3. **Putaway** — `/products/putaway` → scan/assign shelf.
-4. **Photos** — attach photos on the product (or Infinity AI upload).
+4. **Photos** — attach photos on the product (or Infinity AI queue).
 5. **List to Fake eBay** — open product → **Mock channel list** (or Infinity AI publish with eBay). Toast should mention Hammoq Market / Fake eBay. Confirm on Market shop: https://web-rose-two-83.vercel.app/shop
 6. **Sold / end** — **Simulate sold + end siblings** → Market listing marked sold / removed from storefront.
 7. **Fulfill** — Orders → pick list → pack → Shipments → create label (stub OK for today).

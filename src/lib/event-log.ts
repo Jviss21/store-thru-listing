@@ -271,14 +271,14 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       resource: "Shipments export",
       resourceHref: "/shipments",
     },
-    // Donor Item Creation (manifests)
+    // Donor Item Creation (internal section id: manifests)
     {
       at: minsAgo(22),
       section: "manifests",
       user: "jsmith",
       userName: "Jane Smith",
       action: "Marked item missing",
-      resource: "Manifest MF-5701",
+      resource: "Donor batch MF-5701",
       resourceHref: "/manifests",
     },
     {
@@ -287,7 +287,7 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       user: "bwilson",
       userName: "Bob Wilson",
       action: "Received intake batch",
-      resource: "Manifest MF-5690",
+      resource: "Donor batch MF-5690",
       resourceHref: "/manifests",
     },
     {
@@ -296,7 +296,7 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       user: "jdoe",
       userName: "John Doe",
       action: "Created item batch",
-      resource: "Manifest MF-5712",
+      resource: "Donor batch MF-5712",
       resourceHref: "/manifests/new",
     },
     {
@@ -305,7 +305,7 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       user: "slee",
       userName: "Sara Lee",
       action: "Status → Partially Processed",
-      resource: "Manifest MF-5682",
+      resource: "Donor batch MF-5682",
       resourceHref: "/manifests",
     },
     {
@@ -313,8 +313,8 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       section: "manifests",
       user: "ajones",
       userName: "Alice Jones",
-      action: "Exported manifests CSV",
-      resource: "Manifests export",
+      action: "Exported donor items CSV",
+      resource: "Donor Item Creation export",
       resourceHref: "/manifests",
     },
     // Auto-List

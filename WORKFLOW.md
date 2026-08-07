@@ -11,7 +11,7 @@ Canonical thrift/resale pipeline in this repo — statuses and next-action CTAs 
 | # | Stage | Product tag | Where |
 |---|--------|-------------|--------|
 | 1 | Store intake / triage | `triage:retail\|ecom\|undecided` | Hammoq Retail + donor line triage |
-| 2 | Donor / manifest create | `stage:putaway` (or `stage:retail`) | `/manifests/new` |
+| 2 | Donor Item Creation | `stage:putaway` (or `stage:retail`) | `/manifests/new` |
 | 3 | Putaway | → `stage:photos` | `/products/putaway` |
 | 4 | Photo + Auto-List | `stage:photos` → `qa` / `strategy` | InfinityAI + `/products/auto-list` |
 | 5 | QA / Queued | `stage:qa` · listing `Queued` / `Additional QA Required` | Listings |

@@ -107,7 +107,7 @@ export default function AdminProductsSettingsPage() {
           <option value="Supplier + sequential">Supplier + sequential</option>
         </SelectField>
         <FieldHelp>
-          SKUs begin with the supplier abbreviation and end with numbers for manifests.
+          SKUs begin with the supplier abbreviation and end with numbers for donor item batches.
         </FieldHelp>
         <div className="mt-4 rounded-xl border border-dashed border-ink/15 bg-mist/50 px-4 py-3 text-center">
           <p className="font-mono text-xs tracking-[0.3em] text-ink">||||| |||| |||||</p>

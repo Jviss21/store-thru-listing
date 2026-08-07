@@ -7,6 +7,8 @@ export type ManifestStatus =
   | "Processed"
   | "Missing";
 
+/** Internal type name remains Manifest; UI copy is "Donor Item Creation" / "donor batch". */
+
 export type ItemReviewStatus =
   | "Not processed"
   | "Accepted"

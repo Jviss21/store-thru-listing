@@ -9,6 +9,7 @@ export { createMockApiClient } from "./mock-client";
 export { createLiveApiClient } from "./live-client";
 export { getMarketplaceMode, isLiveMarketplaceMode } from "./config";
 export type { MarketplaceMode } from "./config";
+export { getApiBaseUrl, apiUrl, usesRemoteBackend } from "./base-url";
 export {
   createEbayClient,
   createShopGoodwillClient,
@@ -16,6 +17,7 @@ export {
   listMarketplaceStatuses,
   markFakeEbaySold,
   getHammoqMarketConfig,
+  realEbayConfigured,
 } from "./marketplaces";
 
 export {

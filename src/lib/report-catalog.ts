@@ -30,7 +30,7 @@ export const IN_APP_REPORTS: ReportNavItem[] = [
   },
   {
     href: "/reports/manifests",
-    label: "Manifests",
+    label: "Donor Item Creation",
     description: "Supplier acceptance, sell-thru, and user rollups.",
   },
   {
@@ -88,8 +88,8 @@ export const DOWNLOAD_REPORTS: ReportNavItem[] = [
   },
   {
     href: "/reports/downloads/manifest-items",
-    label: "Manifest / intake items",
-    description: "Intake batch items created within a date range.",
+    label: "Donor intake items",
+    description: "Donor Item Creation batch items created within a date range.",
   },
   {
     href: "/reports/downloads/shipments",

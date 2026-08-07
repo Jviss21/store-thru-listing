@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
   if (!created) {
     return NextResponse.json(
-      { ok: false, error: "Could not create manifest (duplicate SKU or batch?)", fallback: "mock" },
+      { ok: false, error: "Could not create donor batch (duplicate SKU or batch?)", fallback: "mock" },
       { status: 500 }
     );
   }

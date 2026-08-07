@@ -17,7 +17,7 @@ const LINKS = [
   {
     href: "/reports/suppliers/intake",
     title: "All intake items",
-    description: "Manifest / intake line items with status and acceptor.",
+    description: "Donor intake line items with status and acceptor.",
     icon: ClipboardList,
   },
   {

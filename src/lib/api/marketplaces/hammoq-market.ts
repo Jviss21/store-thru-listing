@@ -114,40 +114,8 @@ function absolutePublicUrl(baseUrl: string, publicUrl: string | undefined, listi
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-/** Public origin for turning relative photo paths into absolute https URLs. */
-export function getPublicAppOrigin(): string | null {
-  const explicit =
-    process.env.NEXTAUTH_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    "";
-  if (explicit) return trimSlash(explicit);
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) {
-    const host = vercel.replace(/^https?:\/\//i, "");
-    return `https://${host}`;
-  }
-  return null;
-}
-
-/**
- * Market requires absolute http(s) image URLs.
- * Relative paths (e.g. /api/photos/...) are rewritten when NEXTAUTH_URL / VERCEL_URL / NEXT_PUBLIC_APP_URL is set.
- */
 function ensureImageUrls(input: HammoqPublishInput): string[] {
-  const origin = getPublicAppOrigin();
-  const urls: string[] = [];
-  for (const raw of input.imageUrls || []) {
-    if (typeof raw !== "string") continue;
-    const u = raw.trim();
-    if (!u) continue;
-    if (/^https?:\/\//i.test(u)) {
-      urls.push(u);
-      continue;
-    }
-    if (origin && u.startsWith("/")) {
-      urls.push(`${origin}${u}`);
-    }
-  }
+  const urls = (input.imageUrls || []).filter((u) => typeof u === "string" && /^https?:\/\//i.test(u));
   if (urls.length) return urls;
   const label = encodeURIComponent((input.sku || input.externalId || "item").slice(0, 24));
   return [`https://placehold.co/800x800/2f4a35/f7faf7/png?text=${label}`];

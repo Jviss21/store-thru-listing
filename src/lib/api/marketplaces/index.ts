@@ -21,6 +21,25 @@ export {
   soldOnHammoqMarket,
   getHammoqMarketListing,
 } from "./hammoq-market";
+export {
+  realEbayConfigured,
+  missingRealEbayEnv,
+  buildEbayAuthorizeUrl,
+  exchangeEbayAuthCode,
+  refreshEbayAccessToken,
+  getEbayUserAccessToken,
+  storeEbayRefreshToken,
+  loadEbayRefreshToken,
+  clearEbayConnectionsByAccountId,
+  EBAY_OAUTH_SCOPES,
+} from "./ebay-oauth";
+export {
+  publishEbayInventoryListing,
+  updateEbayInventoryListing,
+  endEbayInventoryListing,
+  formatEbayExternalId,
+  parseEbayExternalId,
+} from "./ebay-inventory";
 
 export function getMarketplaceClient(channel: MarketplaceChannel): MarketplaceClient {
   return channel === "ShopGoodwill" ? createShopGoodwillClient() : createEbayClient();

@@ -559,7 +559,7 @@ export function defaultAdminImsState(): AdminImsState {
       {
         id: "role-driver",
         name: "Driver",
-        description: "Can pickup manifests",
+        description: "Can pickup donor item batches",
         teammateCount: 0,
         kind: "default",
       },

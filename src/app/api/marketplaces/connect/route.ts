@@ -44,6 +44,23 @@ export async function POST(request: Request) {
       data: {
         configured: false,
         missingEnv: status.missingEnv,
+        mode: status.mode,
+      },
+    });
+  }
+
+  // Fake eBay (Hammoq Market) — no OAuth; publish path is already live.
+  if (status.mode === "fake") {
+    return NextResponse.json({
+      ok: true,
+      data: {
+        configured: true,
+        missingEnv: [] as string[],
+        mode: "fake" as const,
+        authorizeUrl: null,
+        state: null,
+        message:
+          "Fake eBay (Hammoq Market) is active — no OAuth required. Use Mock channel list / publish.",
       },
     });
   }
@@ -59,6 +76,7 @@ export async function POST(request: Request) {
     data: {
       configured: true,
       missingEnv: [] as string[],
+      mode: status.mode,
       authorizeUrl: oauth.data.authorizeUrl,
       state: oauth.data.state,
     },

@@ -179,8 +179,8 @@ Add new pages by appending to `ADMIN_NAV_GROUPS` in `src/lib/admin-nav.ts` and c
 | General | `/admin/settings` | Company / timezone |
 | General | `/admin/notifications` | Digest frequency + preview |
 | General | `/admin/suppliers` | Supplier abbreviations |
-| Manifests | `/admin/item-authentication` | Luxury hold rules |
-| Manifests | `/admin/manifests` | Rejection responses |
+| Donor Item Creation | `/admin/item-authentication` | Luxury hold rules |
+| Donor Item Creation | `/admin/manifests` → `/admin/donor-item-creation` | Rejection responses |
 | Products | `/admin/categories` | Org categories + eBay US taxonomy mapping |
 | Products | `/admin/images` | Watermark / crop defaults |
 | Products | `/admin/listing-strategies` | Alias of listing-defaults |

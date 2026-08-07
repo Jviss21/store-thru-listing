@@ -7,6 +7,19 @@ import { useOrg } from "@/components/OrgProvider";
 import type { MarketplaceConnectionState } from "@/lib/api";
 import { relativeTime } from "@/lib/utils";
 
+function extractAuthorizeUrl(notes: string): string | null {
+  const m = notes.match(/Authorize at:\s*(\S+)/);
+  return m?.[1] && m[1] !== "(url" && m[1] !== "(url pending)" ? m[1] : null;
+}
+
+function modeFromNotes(notes: string): "fake" | "live" | "stub" {
+  const lower = notes.toLowerCase();
+  if (lower.includes("fake mode") || lower.includes("hammoq market")) return "fake";
+  if (lower.includes("stub mode") || lower.includes("missing env")) return "stub";
+  if (lower.includes("live mode") || lower.includes("oauth")) return "live";
+  return "stub";
+}
+
 export default function AdminMarketplacesPage() {
   const { org, api, hydrated } = useOrg();
   const [connections, setConnections] = useState<MarketplaceConnectionState[]>([]);
@@ -30,14 +43,25 @@ export default function AdminMarketplacesPage() {
 
   async function connect(channel: "ShopGoodwill" | "eBay") {
     setBusy(channel);
-    toast(`Opening ${channel} OAuth (demo stub)…`);
-    await new Promise((r) => setTimeout(r, 500));
     const res = await api.connections.connect(org.id, channel);
     setBusy(null);
-    if (res.ok) {
-      await reload();
-      toast(`${channel} connected.`);
-    } else toast(res.error);
+    if (!res.ok) {
+      toast(res.error);
+      return;
+    }
+    const authorizeUrl = extractAuthorizeUrl(res.data.notes);
+    const mode = modeFromNotes(res.data.notes);
+    if (mode === "live" && authorizeUrl && channel === "eBay") {
+      toast(`Redirecting to ${channel} OAuth…`);
+      window.location.href = authorizeUrl;
+      return;
+    }
+    await reload();
+    toast(
+      mode === "fake"
+        ? `${channel} ready (fake — no OAuth).`
+        : `${channel} connected.`
+    );
   }
 
   async function disconnect(channel: "ShopGoodwill" | "eBay") {
@@ -56,7 +80,7 @@ export default function AdminMarketplacesPage() {
     setBusy(null);
     if (res.ok) {
       await reload();
-      toast("Demo sync completed.");
+      toast("Sync completed.");
     } else toast(res.error);
   }
 
@@ -69,8 +93,8 @@ export default function AdminMarketplacesPage() {
       <div>
         <h2 className="font-display text-2xl font-bold text-ink">Marketplace connections</h2>
         <p className="mt-1 text-sm text-muted">
-          ShopGoodwill and eBay account status for {org.name}. Connect uses a stub OAuth flow;
-          state persists per org in localStorage.{" "}
+          ShopGoodwill and eBay for {org.name}. Mode badges: fake (Hammoq Market), live (real
+          OAuth), stub (missing keys).{" "}
           <Link href="/settings/connections" className="font-semibold text-ink underline-offset-2 hover:underline">
             Customer settings view
           </Link>
@@ -86,6 +110,7 @@ export default function AdminMarketplacesPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         {connections.map((c) => {
           const connected = c.status === "Connected";
+          const mode = modeFromNotes(c.notes);
           return (
             <Card key={c.id} className="space-y-4 p-5">
               <div className="flex items-start justify-between gap-3">
@@ -93,18 +118,23 @@ export default function AdminMarketplacesPage() {
                   <h3 className="font-display text-lg font-bold text-ink">{c.channel}</h3>
                   <p className="mt-0.5 text-sm text-muted">{c.accountName}</p>
                 </div>
-                <Badge
-                  tone={
-                    connected ? "green" : c.status === "Needs attention" ? "orange" : "red"
-                  }
-                >
-                  {c.status}
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge
+                    tone={
+                      connected ? "green" : c.status === "Needs attention" ? "orange" : "red"
+                    }
+                  >
+                    {c.status}
+                  </Badge>
+                  <Badge tone={mode === "live" ? "green" : mode === "fake" ? "orange" : "red"}>
+                    {mode}
+                  </Badge>
+                </div>
               </div>
               <dl className="grid gap-2 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">Account ID</dt>
-                  <dd className="font-mono text-xs text-ink">{c.accountId}</dd>
+                  <dd className="font-mono text-xs text-ink">{c.accountId || "—"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">Last sync</dt>
@@ -144,7 +174,13 @@ export default function AdminMarketplacesPage() {
                     disabled={busy !== null}
                     onClick={() => connect(c.channel)}
                   >
-                    {busy === c.channel ? "Connecting…" : `Connect ${c.channel}`}
+                    {busy === c.channel
+                      ? "Connecting…"
+                      : mode === "live"
+                        ? `Connect ${c.channel} (OAuth)`
+                        : mode === "fake"
+                          ? `Enable ${c.channel} (fake)`
+                          : `Connect ${c.channel}`}
                   </Button>
                 )}
               </div>

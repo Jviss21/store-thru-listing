@@ -1,10 +1,14 @@
 /**
  * Live API client — keeps mock data for products/orders/ops while routing
- * marketplace connection actions through ShopGoodwill / eBay stubs (via API).
+ * marketplace connection actions through ShopGoodwill / eBay (via API).
+ *
+ * Modes for eBay: fake (Hammoq Market) | live (real OAuth) | stub (missing keys).
  */
 
 import { createMockApiClient } from "./mock-client";
 import type { ApiClient, ApiResult, MarketplaceConnectionState } from "./types";
+
+type ChannelMode = "stub" | "live" | "fake";
 
 async function jsonResult<T>(res: Response): Promise<ApiResult<T>> {
   try {
@@ -32,6 +36,12 @@ function connectionFromStub(
   };
 }
 
+function modeLabel(mode: ChannelMode | undefined): string {
+  if (mode === "fake") return "fake (Hammoq Market)";
+  if (mode === "live") return "live (real eBay)";
+  return "stub";
+}
+
 /**
  * Compose mock domain data with live marketplace connection adapters.
  * When marketplace keys are missing, connect/sync return NOT_CONFIGURED clearly.
@@ -45,8 +55,13 @@ export function createLiveApiClient(): ApiClient {
       async list(orgId) {
         const res = await fetch(`/api/marketplaces/status?orgId=${encodeURIComponent(orgId)}`);
         const status = await jsonResult<{
-          shopgoodwill: { configured: boolean; missingEnv: string[] };
-          ebay: { configured: boolean; missingEnv: string[] };
+          shopgoodwill: { configured: boolean; missingEnv: string[]; mode?: ChannelMode };
+          ebay: {
+            configured: boolean;
+            missingEnv: string[];
+            mode?: ChannelMode;
+            fakeEbayBaseUrl?: string | null;
+          };
         }>(res);
 
         const base = await mock.connections.list(orgId);
@@ -59,13 +74,21 @@ export function createLiveApiClient(): ApiClient {
           data: base.data.map((c) => {
             const cfg =
               c.channel === "ShopGoodwill" ? status.data.shopgoodwill : status.data.ebay;
+            const mode = cfg.mode || (cfg.configured ? "live" : "stub");
             const missing = cfg.missingEnv.join(", ") || "none";
-            return {
-              ...c,
-              notes: cfg.configured
-                ? `Live mode — ${c.channel} credentials present. ${c.notes}`
-                : `Live mode stub — missing env: ${missing}. UI still works; real OAuth blocked until keys are set.`,
-            };
+            let notes: string;
+            if (mode === "fake") {
+              const baseUrl =
+                c.channel === "eBay"
+                  ? (status.data.ebay.fakeEbayBaseUrl || "Hammoq Market")
+                  : "channel";
+              notes = `Fake mode — ${c.channel} publishes to ${baseUrl}. No OAuth.`;
+            } else if (mode === "live" && cfg.configured) {
+              notes = `Live mode — ${c.channel} credentials present. Connect starts real OAuth.`;
+            } else {
+              notes = `Stub mode — missing env: ${missing}. Real OAuth blocked until keys are set.`;
+            }
+            return { ...c, notes };
           }),
         };
       },
@@ -77,10 +100,12 @@ export function createLiveApiClient(): ApiClient {
           body: JSON.stringify({ orgId, channel }),
         });
         const result = await jsonResult<{
-          authorizeUrl?: string;
-          state?: string;
+          authorizeUrl?: string | null;
+          state?: string | null;
           configured: boolean;
           missingEnv: string[];
+          mode?: ChannelMode;
+          message?: string;
         }>(res);
 
         if (!result.ok) {
@@ -99,7 +124,46 @@ export function createLiveApiClient(): ApiClient {
           };
         }
 
-        // OAuth URL available — mark connected in UI stub until callback is wired
+        const mode = result.data.mode || "live";
+
+        // Fake: mark connected locally — no OAuth redirect
+        if (mode === "fake") {
+          const mockConnect = await mock.connections.connect(orgId, channel);
+          if (mockConnect.ok) {
+            return {
+              ok: true,
+              data: {
+                ...mockConnect.data,
+                notes:
+                  result.data.message ||
+                  `Fake mode (${modeLabel(mode)}) — no OAuth. Publish via Mock channel list.`,
+              },
+            };
+          }
+          return {
+            ok: true,
+            data: connectionFromStub(channel, {
+              status: "Connected",
+              syncEnabled: true,
+              lastSyncAt: new Date().toISOString(),
+              notes: result.data.message || "Fake mode — no OAuth.",
+            }),
+          };
+        }
+
+        // Live: return authorize URL for the UI to redirect
+        if (result.data.authorizeUrl) {
+          return {
+            ok: true,
+            data: connectionFromStub(channel, {
+              status: "Not connected",
+              syncEnabled: false,
+              notes: `OAuth ready. Authorize at: ${result.data.authorizeUrl}`,
+              accountName: `${channel} (OAuth pending)`,
+            }),
+          };
+        }
+
         const mockConnect = await mock.connections.connect(orgId, channel);
         if (mockConnect.ok) {
           return {
@@ -141,7 +205,7 @@ export function createLiveApiClient(): ApiClient {
             data: {
               ...mockSync.data,
               lastSyncAt: result.data.syncedAt,
-              notes: `Live stub sync: ${result.data.count} listings @ ${result.data.syncedAt}`,
+              notes: `Sync: ${result.data.count} listings @ ${result.data.syncedAt}`,
             },
           };
         }
@@ -151,7 +215,7 @@ export function createLiveApiClient(): ApiClient {
             status: "Connected",
             syncEnabled: true,
             lastSyncAt: result.data.syncedAt,
-            notes: `Live stub sync complete (${result.data.count}).`,
+            notes: `Sync complete (${result.data.count}).`,
           }),
         };
       },

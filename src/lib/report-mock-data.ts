@@ -295,7 +295,7 @@ export function buildEventLogs(start: string, end: string): EventLogReportRow[] 
           : kind === 1
             ? `Product #${41758000 + n}`
             : kind === 2
-              ? `Manifest #${5702800 + n}`
+              ? `Donor batch #${5702800 + n}`
               : `User #${23000 + (n % 200)}`;
       const href =
         kind === 0

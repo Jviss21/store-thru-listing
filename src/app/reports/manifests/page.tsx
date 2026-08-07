@@ -42,15 +42,15 @@ export default function ManifestsReportPage() {
   return (
     <ReportPageFrame>
       <AnalyticalReportHeader
-        title="Manifest report"
-        about="Supplier rollups for intake acceptance/rejection, sell-thru, revenue, plus manifests by supplier and by user."
+        title="Donor Item Creation report"
+        about="Supplier rollups for intake acceptance/rejection, sell-thru, revenue, plus donor items by supplier and by user."
         description="Item creation metrics for Test Goodwill."
         range={range}
         setRange={setRange}
         flash={flash}
         onDownload={() =>
           downloadReportRows(
-            "manifest-acceptance",
+            "donor-intake-acceptance",
             acceptance as unknown as Record<string, unknown>[],
             setFlash
           )
@@ -60,7 +60,7 @@ export default function ManifestsReportPage() {
 
       <section className="space-y-3">
         <h2 className="font-display text-lg font-bold text-ink">
-          Manifest acceptance / rejection rate
+          Donor Item Creation acceptance / rejection rate
         </h2>
         <DataTable minWidth="1280px">
           <thead>
@@ -109,15 +109,15 @@ export default function ManifestsReportPage() {
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-display text-lg font-bold text-ink">Manifests by supplier</h2>
+            <h2 className="font-display text-lg font-bold text-ink">Donor items by supplier</h2>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() =>
                 downloadReportRows(
-                  "manifests-by-supplier",
-                  bySupplierBars.map((r) => ({ supplier: r.label, manifestCount: r.value })),
+                  "donor-items-by-supplier",
+                  bySupplierBars.map((r) => ({ supplier: r.label, batchCount: r.value })),
                   setFlash
                 )
               }
@@ -130,15 +130,19 @@ export default function ManifestsReportPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-display text-lg font-bold text-ink">Manifests by user</h2>
+            <h2 className="font-display text-lg font-bold text-ink">Donor items by user</h2>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() =>
                 downloadReportRows(
-                  "manifests-by-user",
-                  byUser as unknown as Record<string, unknown>[],
+                  "donor-items-by-user",
+                  byUser.map((r) => ({
+                    username: r.username,
+                    batchCount: r.manifestCount,
+                    itemCount: r.manifestItemCount,
+                  })) as unknown as Record<string, unknown>[],
                   setFlash
                 )
               }
@@ -150,7 +154,7 @@ export default function ManifestsReportPage() {
             <thead>
               <tr>
                 <Th>Username</Th>
-                <Th align="right">Manifest count</Th>
+                <Th align="right">Batch count</Th>
                 <Th align="right">Item count</Th>
               </tr>
             </thead>

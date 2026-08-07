@@ -11,7 +11,7 @@ export type MarketplaceListingInput = {
   quantity?: number;
   imageUrls?: string[];
   externalId?: string;
-  /** Optional catalog fields ? used by Fake eBay ? Hammoq Market */
+  /** Optional catalog fields — used by Fake eBay → Hammoq Market */
   category?: string;
   condition?: string;
   brand?: string | null;

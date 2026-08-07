@@ -86,7 +86,12 @@ function ManifestsInner() {
     <div className="space-y-5">
       <PageHeader
         title="Donor Item Creation"
-        description={`Manual donation batches with SKU / barcode create. For ecom photos, use ${BRAND.ai} in the sidebar — photos and listings land in IMS separately from this hub.`}
+        description={`Create and manage donation intake batches with SKU / barcode labels. For ecom photos, use ${BRAND.ai} in the sidebar — photos and listings land in IMS separately from this hub.`}
+        howTo={[
+          "Open or create a batch, then add units and print barcodes.",
+          "Filter by status or supplier; select rows to update status or export CSV.",
+          "After create, scan units on Products → Scan / putaway, then continue via Infinity AI for photos.",
+        ]}
         actions={
           <div className="flex flex-wrap gap-2">
             {canAdmin && (
@@ -114,8 +119,8 @@ function ManifestsInner() {
                 exportManifestsCsv();
                 logEvent({
                   section: "manifests",
-                  action: "Exported manifests CSV",
-                  resource: "Manifests export",
+                  action: "Exported donor items CSV",
+                  resource: "Donor Item Creation export",
                   resourceHref: "/manifests",
                 });
               }}
@@ -408,7 +413,7 @@ function ManifestsInner() {
         </div>
       )}
 
-      <SectionEventLog section="manifests" />
+      <SectionEventLog section="manifests" title="Event log" />
     </div>
   );
 }

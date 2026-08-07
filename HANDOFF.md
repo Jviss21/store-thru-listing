@@ -25,7 +25,7 @@ This document is the single starting point. Deeper phase notes live in [PILOT.md
 
 It walks the floor-to-channel path:
 
-> intake / manifests → products → photo & listing editors → ShopGoodwill & eBay listings → orders & shipments → customer Admin settings → Hammoq Ops control plane
+> intake / Donor Item Creation → products → photo & listing editors → ShopGoodwill & eBay listings → orders & shipments → customer Admin settings → Hammoq Ops control plane
 
 Primary demo org: **Test Goodwill**. Nine additional pilot orgs exist for multi-tenant / Ops demos.
 
@@ -87,7 +87,7 @@ Three product surfaces share one Next.js 14 app:
 ## 5. What’s DONE
 
 - GitHub ↔ Vercel production deploy (`store-thru-listing.vercel.app`)
-- Broad UI coverage of floor IMS: manifests, products, Auto-List queue, listing editors (category-driven eBay specifics + strategies), photo editor, orders, shipments, reports, connections stubs
+- Broad UI coverage of floor IMS: Donor Item Creation, products, Auto-List queue, listing editors (category-driven eBay specifics + strategies), photo editor, orders, shipments, reports, connections stubs
 - Role-aware auth + org switcher; Ops impersonation
 - Customer Admin IMS settings suite under `/admin` (persists per-org in `localStorage`)
 - Hammoq Ops console `/ops` (org health, flags, impersonate)

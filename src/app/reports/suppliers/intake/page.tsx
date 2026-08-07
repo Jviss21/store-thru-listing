@@ -28,7 +28,7 @@ export default function SupplierIntakeItemsPage() {
       </p>
       <AnalyticalReportHeader
         title="All intake items"
-        description="Manifest / intake line items for the selected range."
+        description="Donor intake line items for the selected range."
         range={range}
         setRange={setRange}
         flash={flash}

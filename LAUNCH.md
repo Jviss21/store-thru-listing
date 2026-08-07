@@ -13,7 +13,7 @@ This app is a **10-org pilot** with **Phase 1 auth** (NextAuth credentials) and 
 ## Remaining production requirements
 
 ### Data & inventory
-- [ ] Persist products / manifests / listings in Postgres (schema ready)
+- [ ] Persist products / donor batches (Prisma `Manifest`) / listings in Postgres (schema ready)
 - [ ] Real orders, refunds, and shipment records with sync from channels
 - [ ] Durable file storage for product photos and listing assets
 
