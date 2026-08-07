@@ -403,41 +403,6 @@ export default function HomePage() {
         </Link>
       </section>
 
-      <section className="animate-rise-delay-3">
-        <Card className="flex flex-wrap items-center justify-between gap-4 border-ink/10 bg-mist/50 p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
-              <Package className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                Item pipeline
-              </p>
-              <p className="mt-1 font-display text-lg font-bold text-ink">
-                Walk one SKU top-to-bottom
-              </p>
-              <p className="mt-0.5 max-w-xl text-sm text-muted">
-                Intake → donor → putaway → photos/Auto-List → QA → strategy → channels → pick/pack →
-                ship → sold (end siblings).
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/workflow">
-              <Button type="button" variant="accent">
-                Open pipeline
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/manifests/new">
-              <Button type="button" variant="outline">
-                New donor batch
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      </section>
-
       <section className="flex flex-wrap items-center gap-3">
         <div className="mr-auto flex items-center gap-2 text-sm text-muted">
           <Users className="h-4 w-4" />

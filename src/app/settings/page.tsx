@@ -73,6 +73,12 @@ export default function SettingsPage() {
             >
               Marketplace connections →
             </Link>
+            <Link
+              href="/workflow"
+              className="text-sm font-semibold text-muted underline-offset-2 hover:underline"
+            >
+              Item pipeline →
+            </Link>
           </div>
         }
       />
@@ -85,6 +91,19 @@ export default function SettingsPage() {
         <Link href="/settings/account">
           <Button type="button" variant="accent">
             Open account settings
+          </Button>
+        </Link>
+      </Card>
+
+      <Card className="max-w-xl space-y-3 p-5">
+        <p className="font-display text-lg font-bold text-ink">Item pipeline</p>
+        <p className="text-sm text-muted">
+          Walk one SKU top-to-bottom: intake → donor → putaway → photos/Auto-List → QA → strategy →
+          channels → pick/pack → ship → sold.
+        </p>
+        <Link href="/workflow">
+          <Button type="button" variant="outline">
+            Open Item pipeline
           </Button>
         </Link>
       </Card>
