@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button, Card, Badge } from "@/components/ui";
 import { Sparkline } from "@/components/Sparkline";
+import { HomeSalesChart } from "@/components/HomeSalesChart";
 import {
   BRAND,
   dashboardStats,
@@ -31,6 +32,19 @@ import {
 import { formatDisplayDateLong, inclusiveDayCount } from "@/lib/report-dates";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { useOrg } from "@/components/OrgProvider";
+
+function formatSoldAt(iso: string, hourly: boolean) {
+  const d = new Date(iso);
+  if (hourly) {
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+  return d.toLocaleDateString();
+}
 
 const dateFieldClass =
   "h-9 w-full min-w-0 rounded-lg border border-white/15 bg-white/10 px-2.5 text-sm text-white outline-none [color-scheme:dark] focus:border-accent/60 focus:ring-2 focus:ring-accent/30";
@@ -143,8 +157,10 @@ export default function HomePage() {
                   </div>
                   <p className="text-[11px] text-white/45">
                     {customDayCount === 1
-                      ? "1 calendar day inclusive"
-                      : `${customDayCount} calendar days inclusive`}
+                      ? "1 calendar day · chart by hour"
+                      : customDayCount === 2
+                        ? "2 calendar days · chart by hour"
+                        : `${customDayCount} calendar days inclusive · chart by day`}
                   </p>
                 </div>
               ) : null}
@@ -167,6 +183,15 @@ export default function HomePage() {
               {m.rangeLabel} · {formatNumber(m.paidOrders)} paid orders ·{" "}
               {formatNumber(m.unitsSold)} units sold
             </p>
+          </div>
+
+          <div className="mt-6">
+            <HomeSalesChart
+              key={metricsKey}
+              values={m.salesSpark}
+              labels={m.sparkLabels}
+              granularity={m.sparkGranularity}
+            />
           </div>
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -214,7 +239,9 @@ export default function HomePage() {
                   <th className="px-3 py-3 font-semibold">Title</th>
                   <th className="px-3 py-3 font-semibold">Channel</th>
                   <th className="px-3 py-3 font-semibold text-right">Sold</th>
-                  <th className="px-4 py-3 font-semibold text-right">Date</th>
+                  <th className="px-4 py-3 font-semibold text-right">
+                    {m.sparkGranularity === "hour" ? "Sold at" : "Date"}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -234,7 +261,7 @@ export default function HomePage() {
                       {formatCurrency(row.soldPrice)}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-muted">
-                      {new Date(row.soldAt).toLocaleDateString()}
+                      {formatSoldAt(row.soldAt, m.sparkGranularity === "hour")}
                     </td>
                   </tr>
                 ))}
