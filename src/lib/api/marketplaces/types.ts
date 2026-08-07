@@ -11,6 +11,12 @@ export type MarketplaceListingInput = {
   quantity?: number;
   imageUrls?: string[];
   externalId?: string;
+  /** Optional catalog fields — used by Fake eBay → Hammoq Market */
+  category?: string;
+  condition?: string;
+  brand?: string | null;
+  size?: string | null;
+  color?: string | null;
 };
 
 export type MarketplaceListingResult = {
@@ -31,7 +37,7 @@ export type MarketplaceClientStatus = {
   channel: MarketplaceChannel;
   configured: boolean;
   missingEnv: string[];
-  mode: "stub" | "live";
+  mode: "stub" | "live" | "fake";
 };
 
 /** Channel-specific marketplace operations (Phase 2). */
@@ -49,3 +55,5 @@ export type MarketplaceClient = {
   endListing(orgId: string, externalId: string): Promise<ApiResult<MarketplaceListingResult>>;
   syncListings(orgId: string): Promise<ApiResult<{ syncedAt: string; count: number }>>;
 };
+
+

@@ -14,6 +14,8 @@ export {
   createShopGoodwillClient,
   getMarketplaceClient,
   listMarketplaceStatuses,
+  markFakeEbaySold,
+  getHammoqMarketConfig,
 } from "./marketplaces";
 
 export {
@@ -57,7 +59,7 @@ import { createMockApiClient } from "./mock-client";
 import type { ApiClient } from "./types";
 
 /**
- * Factory — mock by default; set NEXT_PUBLIC_MARKETPLACE_MODE=live
+ * Factory â€” mock by default; set NEXT_PUBLIC_MARKETPLACE_MODE=live
  * (or MARKETPLACE_MODE=live) to route connections through marketplace stubs.
  */
 export function createApiClient(): ApiClient {
@@ -70,4 +72,5 @@ export function getApiClient(): ApiClient {
   if (!client) client = createApiClient();
   return client;
 }
+
 

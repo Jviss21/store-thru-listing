@@ -12,7 +12,15 @@ export type {
 } from "./types";
 
 export { createShopGoodwillClient } from "./shopgoodwill";
-export { createEbayClient } from "./ebay";
+export { createEbayClient, markFakeEbaySold } from "./ebay";
+export {
+  getHammoqMarketConfig,
+  fakeEbayMissingEnv,
+  publishToHammoqMarket,
+  delistOnHammoqMarket,
+  soldOnHammoqMarket,
+  getHammoqMarketListing,
+} from "./hammoq-market";
 
 export function getMarketplaceClient(channel: MarketplaceChannel): MarketplaceClient {
   return channel === "ShopGoodwill" ? createShopGoodwillClient() : createEbayClient();
