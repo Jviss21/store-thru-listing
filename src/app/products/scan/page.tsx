@@ -129,11 +129,14 @@ function PutawayInner() {
       const row = reload().find((p) => p.id === matchedProduct.id);
       if (row) {
         const triage = parseTriage(row.tags);
-        saveCreatedProduct({
-          ...row,
-          location: loc.name,
-          upc: row.upc || code,
-        });
+        saveCreatedProduct(
+          {
+            ...row,
+            location: loc.name,
+            upc: row.upc || code,
+          },
+          { skipEvent: true }
+        );
         const nextStage = triage === "retail" ? "retail" : "photos";
         advanceProductStage(matchedProduct.id, nextStage, {
           location: loc.name,
@@ -153,6 +156,8 @@ function PutawayInner() {
       resourceHref: matchedProduct
         ? `/products/${matchedProduct.id}`
         : "/products/scan",
+      entityId: matchedProduct?.id ?? record.barcode,
+      detail: `Location ${loc.name}`,
       orgId: org.id,
       user: session.handle || undefined,
       userName: session.name || undefined,

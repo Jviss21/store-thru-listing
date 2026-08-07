@@ -4,6 +4,7 @@ import { authenticateCredentials, canSwitchToOrg } from "@/lib/auth/credentials"
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
 import { roleForOrg, findSeedUserByEmail } from "@/lib/db/seed-data";
 import { rateLimit } from "@/lib/rate-limit";
+import { recordAuditEvent } from "@/lib/db/audit";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 14 },
@@ -21,13 +22,30 @@ export const authOptions: NextAuthOptions = {
         const rl = rateLimit(`login:${emailKey}`, 12, 60_000);
         if (!rl.ok) {
           console.warn("[auth] login rate limited", { emailKey });
+          void recordAuditEvent({
+            action: "auth.login_rate_limited",
+            meta: { email: emailKey },
+          });
           return null;
         }
         const identity = await authenticateCredentials(
           credentials?.email,
           credentials?.password ?? ""
         );
-        if (!identity) return null;
+        if (!identity) {
+          void recordAuditEvent({
+            orgId: findSeedUserByEmail(emailKey)?.primaryOrgId ?? DEFAULT_ORG_ID,
+            action: "auth.login_failed",
+            meta: { email: emailKey },
+          });
+          return null;
+        }
+        void recordAuditEvent({
+          orgId: identity.orgId,
+          userId: identity.userId,
+          action: "auth.login_succeeded",
+          meta: { email: identity.email, handle: identity.handle },
+        });
         return {
           id: identity.userId,
           email: identity.email,

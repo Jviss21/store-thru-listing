@@ -9,6 +9,7 @@ import {
   cloneStrategies,
 } from "@/lib/listing-strategies";
 import { loadAdminState, saveAdminState, type AdminPersistedState } from "@/lib/admin-settings";
+import { logEvent } from "@/lib/event-log";
 
 export default function AdminListingDefaultsPage() {
   const [state, setState] = useState<AdminPersistedState | null>(null);
@@ -48,6 +49,13 @@ export default function AdminListingDefaultsPage() {
   function persist() {
     if (!state) return;
     saveAdminState(state);
+    logEvent({
+      section: "admin",
+      action: "Saved listing defaults",
+      resource: "Listing defaults",
+      resourceHref: "/admin/listing-defaults",
+      entityId: selectedId || undefined,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }

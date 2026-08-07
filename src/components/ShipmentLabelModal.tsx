@@ -5,6 +5,8 @@ import { Button } from "@/components/ui";
 import { downloadBlob, downloadText } from "@/lib/download";
 import type { Shipment } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import { logEvent } from "@/lib/event-log";
+import { loadSession } from "@/lib/session";
 
 function labelText(shipment: Shipment) {
   return [
@@ -112,6 +114,18 @@ export function ShipmentLabelModal({
 ${img}
 </div></body></html>`);
     w.document.close();
+    const session = loadSession();
+    logEvent({
+      section: "shipments",
+      action: "Printed shipping label",
+      resource: `Shipment ${shipment.shipmentNumber}`,
+      resourceHref: "/shipments",
+      entityId: shipment.id || shipment.shipmentNumber,
+      detail: `${shipment.carrier} · ${shipment.trackingNumber}`,
+      user: session.handle || undefined,
+      userName: session.name || undefined,
+      orgId: session.activeOrgId,
+    });
   }
 
   return (

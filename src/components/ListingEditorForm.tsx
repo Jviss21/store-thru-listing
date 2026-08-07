@@ -37,6 +37,7 @@ import {
 } from "@/lib/listing-strategies";
 import { uploadDurablePhotos, urlToDataUrl } from "@/lib/photos";
 import { rotateImage90Cw } from "@/lib/image-edit";
+import { logEvent } from "@/lib/event-log";
 import {
   BOX_PADDINGS,
   CARRIERS,
@@ -689,6 +690,17 @@ export function ListingEditorForm({
         mainImageIndex: value.imageUrls.length === 0 ? 0 : value.mainImageIndex,
       });
       if (value.imageUrls.length === 0) setPreviewIdx(0);
+      logEvent({
+        section: "products",
+        action: urls.length === 1 ? "Uploaded photo" : `Uploaded ${urls.length} photos`,
+        resource: productId ? `Product ${productId}` : value.sku || "Draft product",
+        resourceHref: productId
+          ? `/products/${encodeURIComponent(productId)}`
+          : "/products/new",
+        entityId: productId || value.sku || undefined,
+        detail: "Durable photo storage",
+        orgId: orgId || undefined,
+      });
       announcePhoto(
         urls.length === 1
           ? "Photo uploaded to durable storage."

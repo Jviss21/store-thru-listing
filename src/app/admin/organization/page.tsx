@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, Input, Badge } from "@/components/ui";
 import { LOCATIONS, ORG_PROFILE } from "@/lib/admin-data";
 import { loadAdminState, saveAdminState, type AdminPersistedState } from "@/lib/admin-settings";
+import { logEvent } from "@/lib/event-log";
 
 export default function AdminOrganizationPage() {
   const [state, setState] = useState<AdminPersistedState | null>(null);
@@ -22,6 +23,14 @@ export default function AdminOrganizationPage() {
     };
     saveAdminState(next);
     setState(next);
+    logEvent({
+      section: "admin",
+      action: "Saved organization settings",
+      resource: next.orgName,
+      resourceHref: "/admin/organization",
+      entityId: next.orgSlug,
+      detail: `Slug ${next.orgSlug}`,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }

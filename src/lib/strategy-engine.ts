@@ -379,6 +379,8 @@ export function advanceStrategy(
     action: `Strategy advanced · ${nxt.label}`,
     resource: `Listing ${nextRun.sku}`,
     resourceHref: `/listings/${listingId}`,
+    entityId: listingId,
+    detail: cur ? `${cur.label} → ${nxt.label}` : nxt.label,
     user: session.handle || undefined,
     userName: session.name || undefined,
     orgId,
@@ -448,6 +450,22 @@ export function simulateStrategyDays(
 
   state.runs[listingId] = run;
   saveStrategyRuns(orgId, state);
+
+  const session = loadSession();
+  logEvent({
+    section: "listings",
+    action: `Simulated +${days} day(s)`,
+    resource: `Listing ${run.sku}`,
+    resourceHref: `/listings/${listingId}`,
+    entityId: listingId,
+    detail:
+      advanced > 0
+        ? `Auto-advanced ${advanced} step(s)`
+        : "Still on current step",
+    user: session.handle || undefined,
+    userName: session.name || undefined,
+    orgId,
+  });
 
   return {
     run,

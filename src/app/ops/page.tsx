@@ -18,6 +18,32 @@ import type { OrgHealth, SyncError } from "@/lib/api";
 import { getOrgById, type OrgSyncStatus } from "@/lib/orgs";
 import { OPS_EMAIL } from "@/lib/db/seed-data";
 import { cn, relativeTime } from "@/lib/utils";
+import { logEvent } from "@/lib/event-log";
+
+const IMPERSONATE_KEY = "stl-ops-impersonating";
+
+type ImpersonationState = {
+  targetOrgId: string;
+  previousOrgId: string;
+  startedAt: string;
+};
+
+function readImpersonation(): ImpersonationState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(IMPERSONATE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as ImpersonationState;
+  } catch {
+    return null;
+  }
+}
+
+function writeImpersonation(state: ImpersonationState | null) {
+  if (typeof window === "undefined") return;
+  if (!state) sessionStorage.removeItem(IMPERSONATE_KEY);
+  else sessionStorage.setItem(IMPERSONATE_KEY, JSON.stringify(state));
+}
 
 function statusTone(s: OrgSyncStatus): "green" | "orange" | "red" | "neutral" {
   if (s === "healthy") return "green";
@@ -35,6 +61,7 @@ export default function OpsConsolePage() {
   const [errors, setErrors] = useState<SyncError[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
   const [dbMode, setDbMode] = useState<string>("");
+  const [impersonating, setImpersonating] = useState<ImpersonationState | null>(null);
 
   const reload = useCallback(async () => {
     const res = await api.ops.listOrgHealth();
@@ -44,6 +71,7 @@ export default function OpsConsolePage() {
   useEffect(() => {
     if (!hydrated || !isOps) return;
     void reload();
+    setImpersonating(readImpersonation());
     void fetch("/api/me")
       .then((r) => r.json())
       .then((j) => {
@@ -63,6 +91,7 @@ export default function OpsConsolePage() {
   }, [selectedId, isOps, api]);
 
   async function impersonate(orgId: string) {
+    const previousOrgId = session.activeOrgId || org.id;
     setActiveOrgId(orgId);
     await update({ orgId });
     await fetch("/api/ops/impersonate", {
@@ -71,8 +100,54 @@ export default function OpsConsolePage() {
       body: JSON.stringify({ orgId }),
     });
     const name = getOrgById(orgId)?.name ?? "org";
+    const state: ImpersonationState = {
+      targetOrgId: orgId,
+      previousOrgId,
+      startedAt: new Date().toISOString(),
+    };
+    writeImpersonation(state);
+    setImpersonating(state);
+    logEvent({
+      section: "auth",
+      action: "Impersonation started",
+      resource: name,
+      resourceHref: "/ops",
+      entityId: orgId,
+      detail: `From ${getOrgById(previousOrgId)?.name ?? previousOrgId}`,
+      orgId,
+      user: session.handle || "ops",
+      userName: session.name || undefined,
+    });
     setFlash(`Impersonating ${name} — routing to home.`);
     setTimeout(() => router.push("/"), 400);
+  }
+
+  async function endImpersonation() {
+    const current = readImpersonation();
+    const restoreOrgId = current?.previousOrgId || session.membershipOrgIds[0] || org.id;
+    const endedOrgId = current?.targetOrgId || session.activeOrgId;
+    setActiveOrgId(restoreOrgId);
+    await update({ orgId: restoreOrgId });
+    await fetch("/api/ops/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ end: true, orgId: endedOrgId, previousOrgId: restoreOrgId }),
+    });
+    writeImpersonation(null);
+    setImpersonating(null);
+    logEvent({
+      section: "auth",
+      action: "Impersonation ended",
+      resource: getOrgById(endedOrgId)?.name ?? endedOrgId,
+      resourceHref: "/ops",
+      entityId: endedOrgId,
+      detail: `Restored ${getOrgById(restoreOrgId)?.name ?? restoreOrgId}`,
+      orgId: restoreOrgId,
+      user: session.handle || "ops",
+      userName: session.name || undefined,
+    });
+    setFlash("Impersonation ended.");
+    setTimeout(() => setFlash(null), 2000);
   }
 
   async function toggleFlag(
@@ -149,6 +224,19 @@ export default function OpsConsolePage() {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Badge tone="yellow">Staff</Badge>
             <span className="text-xs text-white/60">{session.email}</span>
+            {impersonating ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="accent"
+                onClick={() => void endImpersonation()}
+              >
+                End impersonation
+                {getOrgById(impersonating.targetOrgId)
+                  ? ` · ${getOrgById(impersonating.targetOrgId)!.name}`
+                  : ""}
+              </Button>
+            ) : null}
             <Link
               href="/"
               className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10"

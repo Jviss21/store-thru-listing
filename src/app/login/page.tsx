@@ -5,7 +5,9 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BRAND } from "@/lib/mock-data";
 import { Button, Input } from "@/components/ui";
-import { OPS_EMAIL, PILOT_PASSWORD, SEED_USERS } from "@/lib/db/seed-data";
+import { OPS_EMAIL, PILOT_PASSWORD, SEED_USERS, findSeedUserByEmail } from "@/lib/db/seed-data";
+import { logEvent } from "@/lib/event-log";
+import { DEFAULT_ORG_ID } from "@/lib/orgs";
 
 function LoginForm() {
   const router = useRouter();
@@ -31,6 +33,10 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    const trimmedEmail = email.trim().toLowerCase();
+    const seed = findSeedUserByEmail(trimmedEmail);
+    const orgId = seed?.primaryOrgId || DEFAULT_ORG_ID;
+    const handle = seed?.handle || trimmedEmail.split("@")[0] || "unknown";
     try {
       const res = await signIn("credentials", {
         email: email.trim(),
@@ -38,13 +44,44 @@ function LoginForm() {
         redirect: false,
       });
       if (res?.error) {
+        logEvent({
+          section: "auth",
+          action: "Login failed",
+          resource: trimmedEmail || "unknown",
+          resourceHref: "/login",
+          entityId: seed?.id,
+          detail: "Incorrect email or password",
+          user: handle,
+          userName: seed?.name,
+          orgId,
+        });
         setError("Incorrect email or password. Use a pilot account and the shared password.");
         setLoading(false);
         return;
       }
+      logEvent({
+        section: "auth",
+        action: "Login succeeded",
+        resource: trimmedEmail || "unknown",
+        resourceHref: "/",
+        entityId: seed?.id,
+        detail: wantsOps ? "Ops sign-in" : "Credentials sign-in",
+        user: handle,
+        userName: seed?.name,
+        orgId,
+      });
       router.replace(next.startsWith("/") ? next : "/");
       router.refresh();
     } catch {
+      logEvent({
+        section: "auth",
+        action: "Login failed",
+        resource: trimmedEmail || "unknown",
+        resourceHref: "/login",
+        detail: "Unexpected error during sign-in",
+        user: handle,
+        orgId,
+      });
       setError("Something went wrong. Try again.");
       setLoading(false);
     }

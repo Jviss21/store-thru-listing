@@ -108,24 +108,34 @@ export function getCreatedListings() {
   return readStore().listings;
 }
 
-export function saveCreatedProduct(product: CreatedProduct) {
+export function saveCreatedProduct(
+  product: CreatedProduct,
+  opts?: { skipEvent?: boolean }
+) {
   const store = readStore();
   store.products = [product, ...store.products.filter((p) => p.id !== product.id)];
   writeStore(store);
-  const session = loadSession();
-  logEvent({
-    section: "products",
-    action: product.status === "Draft" ? "Saved draft product" : "Saved product",
-    resource: `Product ${product.sku}`,
-    resourceHref: `/products/${encodeURIComponent(product.id)}`,
-    user: session.handle || undefined,
-    userName: session.name || undefined,
-    orgId: session.activeOrgId,
-  });
+  if (!opts?.skipEvent) {
+    const session = loadSession();
+    logEvent({
+      section: "products",
+      action: product.status === "Draft" ? "Saved draft product" : "Saved product",
+      resource: `Product ${product.sku}`,
+      resourceHref: `/products/${encodeURIComponent(product.id)}`,
+      entityId: product.id,
+      detail: product.location ? `Location ${product.location}` : undefined,
+      user: session.handle || undefined,
+      userName: session.name || undefined,
+      orgId: session.activeOrgId,
+    });
+  }
   return product;
 }
 
-export function saveCreatedListing(listing: CreatedListing) {
+export function saveCreatedListing(
+  listing: CreatedListing,
+  opts?: { skipEvent?: boolean }
+) {
   const store = readStore();
   store.listings = [listing, ...store.listings.filter((l) => l.id !== listing.id)];
   const product = store.products.find((p) => p.id === listing.productId);
@@ -134,17 +144,21 @@ export function saveCreatedListing(listing: CreatedListing) {
     product.status = "Active";
   }
   writeStore(store);
-  const session = loadSession();
-  logEvent({
-    section: "listings",
-    action: listing.status === "Queued" ? "Queued listing" : "Saved listing",
-    resource: `Listing ${listing.sku} · ${listing.channel}`,
-    resourceHref:
-      listing.channel === "eBay" ? "/listings/ebay" : "/listings/shopgoodwill",
-    user: session.handle || undefined,
-    userName: session.name || undefined,
-    orgId: session.activeOrgId,
-  });
+  if (!opts?.skipEvent) {
+    const session = loadSession();
+    logEvent({
+      section: "listings",
+      action: listing.status === "Queued" ? "Queued listing" : "Saved listing",
+      resource: `Listing ${listing.sku} · ${listing.channel}`,
+      resourceHref:
+        listing.channel === "eBay" ? "/listings/ebay" : "/listings/shopgoodwill",
+      entityId: listing.id,
+      detail: listing.status,
+      user: session.handle || undefined,
+      userName: session.name || undefined,
+      orgId: session.activeOrgId,
+    });
+  }
   return listing;
 }
 
@@ -180,6 +194,8 @@ export function saveCreatedManifest(manifest: Manifest) {
     action: "Created donor item batch",
     resource: manifest.code,
     resourceHref: `/manifests/${encodeURIComponent(manifest.id)}`,
+    entityId: manifest.id,
+    detail: `${manifest.productCount} product(s) · ${manifest.supplier}`,
     user: session.handle || undefined,
     userName: session.name || undefined,
     orgId: session.activeOrgId,
@@ -194,6 +210,18 @@ export function updateCreatedProductPhotos(productId: string, imageUrls: string[
   product.imageUrls = imageUrls;
   product.imageNames = imageNames;
   writeStore(store);
+  const session = loadSession();
+  logEvent({
+    section: "products",
+    action: `Uploaded ${imageUrls.length} photo(s)`,
+    resource: `Product ${product.sku}`,
+    resourceHref: `/products/${encodeURIComponent(productId)}`,
+    entityId: productId,
+    detail: imageNames.slice(0, 3).join(", ") || undefined,
+    user: session.handle || undefined,
+    userName: session.name || undefined,
+    orgId: session.activeOrgId,
+  });
   return product;
 }
 

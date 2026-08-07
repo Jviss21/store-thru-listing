@@ -12,6 +12,7 @@ import {
   passwordRequirements,
 } from "@/lib/password-policy";
 import { cn } from "@/lib/utils";
+import { logEvent } from "@/lib/event-log";
 
 type InviteMeta = {
   email: string;
@@ -91,6 +92,19 @@ function AcceptInviteInner() {
         setError(json.error || "Could not accept invite");
         setLoading(false);
         return;
+      }
+      if (meta) {
+        logEvent({
+          section: "auth",
+          action: "Invite accepted",
+          resource: meta.email,
+          resourceHref: "/login",
+          entityId: meta.orgId,
+          detail: `Joined ${meta.orgName} as ${meta.role}`,
+          user: meta.email.split("@")[0] || "invitee",
+          userName: name.trim() || undefined,
+          orgId: meta.orgId,
+        });
       }
       setDone(true);
       const email = json.data?.email || meta?.email;

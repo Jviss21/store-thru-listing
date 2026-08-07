@@ -34,7 +34,7 @@ import { normalizeRole } from "@/lib/roles";
 export default function InfinityAiPage() {
   return (
     <RoleGate path="/infinity-ai">
-      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading {BRAND.ai}…</div>}>
+      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading {BRAND.ai}â€¦</div>}>
         <InfinityAiInner />
       </Suspense>
     </RoleGate>
@@ -72,7 +72,7 @@ function InfinityAiInner() {
     return match ? `/listings/${encodeURIComponent(match.id)}` : productHref(productId);
   }
 
-  function listSelected() {
+  async function listSelected() {
     if (!canPublish) return;
     const chosen = rows.filter((r) => selected.includes(r.id));
     if (!chosen.length) return;
@@ -82,30 +82,33 @@ function InfinityAiInner() {
       let product = getCreatedProducts().find((p) => p.id === r.productId || p.sku === r.sku);
       const seed = getProduct(r.productId);
       if (!product && seed) {
-        product = saveCreatedProduct({
-          id: seed.id,
-          title: seed.title,
-          sku: seed.sku,
-          category: seed.category,
-          categoryPath: seed.categoryPath,
-          supplier: seed.supplier,
-          price: r.price,
-          location: seed.location,
-          description: seed.description ?? "",
-          status: "Active",
-          imageNames: [],
-          imageUrls: seed.imageUrls,
-          createdAt: seed.createdAt,
-          listedOn: [],
-          condition: seed.condition,
-          brand: seed.brand,
-          strategy: seed.strategy,
-          tags: withStageTag(seed.tags, "qa"),
-          upc: seed.upc,
-        });
+        product = saveCreatedProduct(
+          {
+            id: seed.id,
+            title: seed.title,
+            sku: seed.sku,
+            category: seed.category,
+            categoryPath: seed.categoryPath,
+            supplier: seed.supplier,
+            price: r.price,
+            location: seed.location,
+            description: seed.description ?? "",
+            status: "Active",
+            imageNames: [],
+            imageUrls: seed.imageUrls,
+            createdAt: seed.createdAt,
+            listedOn: [],
+            condition: seed.condition,
+            brand: seed.brand,
+            strategy: seed.strategy,
+            tags: withStageTag(seed.tags, "qa"),
+            upc: seed.upc,
+          },
+          { skipEvent: true }
+        );
       }
       if (product) {
-        mockPublishChannels(product.id, [r.channel as "ShopGoodwill" | "eBay"], {
+        await mockPublishChannels(product.id, [r.channel as "ShopGoodwill" | "eBay"], {
           price: r.price,
         });
         advanceProductStage(product.id, product.strategy ? "listed" : "strategy");
@@ -132,7 +135,7 @@ function InfinityAiInner() {
 
     setRows((prev) => prev.filter((r) => !selected.includes(r.id)));
     setToast(
-      `${BRAND.autoList} published ${chosen.length} item(s) (mock channels + packets). Next: listing strategy.`
+      `${BRAND.autoList} published ${chosen.length} item(s) (channels + packets; eBay → Fake eBay/Hammoq Market when configured). Next: listing strategy.`
     );
     setHandoff(publishedSkus[0] ?? null);
     logEvent({
@@ -140,6 +143,8 @@ function InfinityAiInner() {
       action: `Published ${chosen.length} item(s)`,
       resource: "Infinity AI / Auto-List run",
       resourceHref: "/infinity-ai",
+      entityId: publishedSkus.join(",") || undefined,
+      detail: publishedSkus.slice(0, 5).join(", ") || undefined,
     });
     setSelected([]);
   }
@@ -154,16 +159,16 @@ function InfinityAiInner() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-                Primary · photograph in {BRAND.ai}
+                Primary Â· photograph in {BRAND.ai}
               </p>
               <InfinityBadge />
             </div>
             <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Photo in {BRAND.ai} → appears here
+              Photo in {BRAND.ai} â†’ appears here
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/70">
               Use the {BRAND.ai} iOS app on the floor. Photos and AI listing fields land in this IMS
-              queue — then {BRAND.autoList} pushes to channels. This is the main ecom photo path;
+              queue â€” then {BRAND.autoList} pushes to channels. This is the main ecom photo path;
               Donor Item Creation stays separate for manual batches.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
@@ -190,7 +195,7 @@ function InfinityAiInner() {
                   type="button"
                   className="border-white/30 bg-transparent text-white hover:bg-white/10"
                 >
-                  <GitBranch className="h-4 w-4" /> Item pipeline · ecom photo stage
+                  <GitBranch className="h-4 w-4" /> Item pipeline Â· ecom photo stage
                 </Button>
               </Link>
             </div>
@@ -199,8 +204,8 @@ function InfinityAiInner() {
       </div>
 
       <PageHeader
-        title={`${BRAND.ai} · ${BRAND.autoList} queue`}
-        description={`Items that arrived from ${BRAND.ai} / ${BRAND.autoList}. Ready packets use each product’s Listing Strategy for weight, dims, shipping, and channel defaults.`}
+        title={`${BRAND.ai} Â· ${BRAND.autoList} queue`}
+        description={`Items that arrived from ${BRAND.ai} / ${BRAND.autoList}. Ready packets use each productâ€™s Listing Strategy for weight, dims, shipping, and channel defaults.`}
         actions={
           <>
             <InfinityBadge />
@@ -228,7 +233,7 @@ function InfinityAiInner() {
                 variant="primary"
                 type="button"
                 disabled={!selected.length}
-                onClick={listSelected}
+                onClick={() => void listSelected()}
               >
                 <Rocket className="h-4 w-4" /> Try Auto-List + download
               </Button>
@@ -244,7 +249,7 @@ function InfinityAiInner() {
         <Card className="flex flex-wrap items-center justify-between gap-3 border-accent/30 bg-accent/10 p-4">
           <p className="text-sm text-ink">
             Next for <span className="font-mono font-semibold">{handoff}</span>: assign / advance listing
-            strategy (auction → BIN → concurrent → purge).
+            strategy (auction â†’ BIN â†’ concurrent â†’ purge).
           </p>
           <Link href={`/products?q=${encodeURIComponent(handoff)}`}>
             <Button type="button" variant="accent" size="sm">
@@ -260,8 +265,8 @@ function InfinityAiInner() {
       )}
 
       <Card className="border-ink/10 bg-mist/40 p-4 text-sm text-muted">
-        Floor path: photograph in <span className="font-medium text-ink">{BRAND.ai}</span> → queue
-        below → {BRAND.autoList} applies Strategy (Admin → Listing defaults) when building eBay /
+        Floor path: photograph in <span className="font-medium text-ink">{BRAND.ai}</span> â†’ queue
+        below â†’ {BRAND.autoList} applies Strategy (Admin â†’ Listing defaults) when building eBay /
         ShopGoodwill packets.
       </Card>
 
@@ -360,3 +365,4 @@ function InfinityAiInner() {
     </div>
   );
 }
+

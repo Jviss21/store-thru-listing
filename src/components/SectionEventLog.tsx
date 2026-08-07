@@ -87,6 +87,7 @@ export function SectionEventLog({
                     <th className="px-3 py-2 font-semibold">User</th>
                     <th className="px-3 py-2 font-semibold">Action</th>
                     <th className="px-3 py-2 font-semibold">Resource</th>
+                    <th className="px-3 py-2 font-semibold">Detail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -111,6 +112,12 @@ export function SectionEventLog({
                         ) : (
                           <span className="text-ink/80">{r.resource}</span>
                         )}
+                      </td>
+                      <td
+                        className="max-w-[180px] truncate px-3 py-2.5 text-muted"
+                        title={r.detail || r.entityId || ""}
+                      >
+                        {r.detail || r.entityId || "—"}
                       </td>
                     </tr>
                   ))}

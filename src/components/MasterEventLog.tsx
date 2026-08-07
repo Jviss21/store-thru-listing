@@ -17,6 +17,7 @@ import { relativeTime } from "@/lib/utils";
 
 const SECTIONS: Array<EventSection | "all"> = [
   "all",
+  "auth",
   "products",
   "listings",
   "orders",
@@ -59,7 +60,7 @@ export function MasterEventLog({
     return rows.filter((r) => {
       if (section !== "all" && r.section !== section) return false;
       if (!q.trim()) return true;
-      const hay = `${r.user} ${r.userName ?? ""} ${r.action} ${r.resource} ${r.section}`.toLowerCase();
+      const hay = `${r.user} ${r.userName ?? ""} ${r.action} ${r.resource} ${r.detail ?? ""} ${r.entityId ?? ""} ${r.section}`.toLowerCase();
       return hay.includes(q.trim().toLowerCase());
     });
   }, [rows, section, q]);
@@ -83,6 +84,8 @@ export function MasterEventLog({
                 user: r.user,
                 action: r.action,
                 resource: r.resource,
+                entityId: r.entityId ?? "",
+                detail: r.detail ?? "",
               }))
             );
             setFlash("Master event log CSV downloaded.");
@@ -133,6 +136,7 @@ export function MasterEventLog({
               <th className="px-3 py-2.5 font-semibold">Section</th>
               <th className="px-3 py-2.5 font-semibold">Action</th>
               <th className="px-3 py-2.5 font-semibold">Resource</th>
+              <th className="px-3 py-2.5 font-semibold">Detail</th>
             </tr>
           </thead>
           <tbody>
@@ -158,6 +162,9 @@ export function MasterEventLog({
                   ) : (
                     r.resource
                   )}
+                </td>
+                <td className="max-w-[220px] truncate px-3 py-3 text-muted" title={r.detail || r.entityId || ""}>
+                  {r.detail || r.entityId || "—"}
                 </td>
               </tr>
             ))}

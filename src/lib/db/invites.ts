@@ -13,6 +13,7 @@ import {
   tokenLogSuffix,
 } from "@/lib/invite-token";
 import { validatePassword } from "@/lib/password-policy";
+import { recordAuditEvent } from "@/lib/db/audit";
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -109,6 +110,20 @@ export async function createInvite(opts: {
       role: dto.role,
       tokenSuffix: tokenLogSuffix(rawToken),
       expiresAt: dto.expiresAt,
+    });
+    await prisma.auditEvent.create({
+      data: {
+        orgId: dto.orgId,
+        userId: opts.invitedById ?? null,
+        action: "invite.created",
+        metaJson: JSON.stringify({
+          email: dto.email,
+          role: dto.role,
+          expiresAt: dto.expiresAt,
+        }),
+      },
+    }).catch(() => {
+      /* non-fatal */
     });
     return dto;
   } catch (e) {
@@ -252,13 +267,11 @@ export async function acceptInvite(opts: {
       data: { acceptedAt: new Date() },
     });
 
-    await prisma.auditEvent.create({
-      data: {
-        orgId: invite.orgId,
-        userId,
-        action: "invite.accepted",
-        metaJson: JSON.stringify({ email: invite.email, role: invite.role }),
-      },
+    await recordAuditEvent({
+      orgId: invite.orgId,
+      userId,
+      action: "invite.accepted",
+      meta: { email: invite.email, role: invite.role },
     });
 
     return {

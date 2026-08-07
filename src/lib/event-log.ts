@@ -1,12 +1,14 @@
 /**
  * Org-scoped IMS event log — section panels + Admin/Ops master trail.
  * Persists append-only rows in localStorage; merges with seeded mock history.
+ * Best-effort dual-write to Postgres AuditEvent via POST /api/audit (non-blocking).
  */
 
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
 import { loadSession } from "@/lib/session";
 
 export type EventSection =
+  | "auth"
   | "products"
   | "listings"
   | "orders"
@@ -24,6 +26,10 @@ export type EventLogEntry = {
   action: string;
   resource: string;
   resourceHref?: string;
+  /** Business entity id (SKU, order id, shipment #, etc.) when known. */
+  entityId?: string;
+  /** Extra context (channel, location, reason) — not for trivial UI toggles. */
+  detail?: string;
   user: string;
   userName?: string;
 };
@@ -32,6 +38,7 @@ export const EVENT_LOG_CHANGED = "stl-event-log-changed";
 export const EVENT_LOG_STORAGE_PREFIX = "stl-event-log:";
 
 export const EVENT_SECTION_LABELS: Record<EventSection, string> = {
+  auth: "Auth",
   products: "Products",
   listings: "Listings",
   orders: "Orders",
@@ -42,15 +49,19 @@ export const EVENT_SECTION_LABELS: Record<EventSection, string> = {
   reports: "Reports",
 };
 
-type LogEventInput = {
+export type LogEventInput = {
   section: EventSection;
   action: string;
   resource: string;
   resourceHref?: string;
+  entityId?: string;
+  detail?: string;
   user?: string;
   userName?: string;
   orgId?: string;
   at?: string;
+  /** Skip Postgres dual-write (e.g. seed hydration). */
+  skipPersist?: boolean;
 };
 
 function storageKey(orgId: string) {
@@ -350,6 +361,27 @@ export function buildSeedEvents(orgId: string): EventLogEntry[] {
       resource: "Strategy · Standard Box",
       resourceHref: "/admin/listing-defaults",
     },
+    // Auth
+    {
+      at: minsAgo(15),
+      section: "auth",
+      user: "jdoe",
+      userName: "John Doe",
+      action: "Login succeeded",
+      resource: "john.doe@testgoodwill.example",
+      resourceHref: "/login",
+      entityId: "user-jdoe-tg",
+    },
+    {
+      at: hoursAgo(2),
+      section: "auth",
+      user: "ops",
+      userName: "Hammoq Ops",
+      action: "Impersonation started",
+      resource: "Test Goodwill",
+      resourceHref: "/ops",
+      detail: "Switched active org for support",
+    },
     // Admin
     {
       at: minsAgo(40),
@@ -467,6 +499,33 @@ function mergeEvents(orgId: string): EventLogEntry[] {
   return merged.sort(sortNewest);
 }
 
+function mirrorToPostgres(entry: EventLogEntry) {
+  if (typeof window === "undefined") return;
+  try {
+    void fetch("/api/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        section: entry.section,
+        action: entry.action,
+        resource: entry.resource,
+        resourceHref: entry.resourceHref,
+        entityId: entry.entityId,
+        detail: entry.detail,
+        orgId: entry.orgId,
+        user: entry.user,
+        userName: entry.userName,
+        at: entry.at,
+      }),
+      keepalive: true,
+    }).catch(() => {
+      /* localStorage remains source of truth for UI */
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 export function logEvent(input: LogEventInput): EventLogEntry {
   const session = typeof window !== "undefined" ? loadSession() : null;
   const orgId = input.orgId || session?.activeOrgId || DEFAULT_ORG_ID;
@@ -478,6 +537,8 @@ export function logEvent(input: LogEventInput): EventLogEntry {
     action: input.action,
     resource: input.resource,
     resourceHref: input.resourceHref,
+    entityId: input.entityId,
+    detail: input.detail,
     user: input.user || session?.handle || "unknown",
     userName: input.userName || session?.name,
   };
@@ -485,6 +546,9 @@ export function logEvent(input: LogEventInput): EventLogEntry {
   if (typeof window !== "undefined") {
     const existing = readPersisted(orgId);
     writePersisted(orgId, [entry, ...existing]);
+    if (!input.skipPersist) {
+      mirrorToPostgres(entry);
+    }
   }
 
   return entry;

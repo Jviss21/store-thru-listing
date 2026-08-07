@@ -103,6 +103,8 @@ export function saveCreatedShipment(input: NewShipmentInput): Shipment {
     action: `Created ${row.carrier} label`,
     resource: `Shipment ${row.shipmentNumber}`,
     resourceHref: "/shipments",
+    entityId: row.id,
+    detail: `Order ${row.orderNumber} · ${row.trackingNumber}`,
     user: input.createdBy || session.handle || undefined,
     userName: session.name || undefined,
     orgId: session.activeOrgId,

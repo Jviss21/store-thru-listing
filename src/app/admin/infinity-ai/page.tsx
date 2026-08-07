@@ -5,6 +5,7 @@ import { Button, Card, Input, Badge } from "@/components/ui";
 import { InfinityBadge } from "@/components/Brand";
 import { BRAND } from "@/lib/mock-data";
 import { loadAdminState, saveAdminState, type AdminPersistedState } from "@/lib/admin-settings";
+import { logEvent } from "@/lib/event-log";
 
 export default function AdminInfinityAiPage() {
   const [state, setState] = useState<AdminPersistedState | null>(null);
@@ -25,6 +26,13 @@ export default function AdminInfinityAiPage() {
   function persist() {
     if (!state) return;
     saveAdminState(state);
+    logEvent({
+      section: "admin",
+      action: "Saved Infinity AI / Auto-List settings",
+      resource: BRAND.ai,
+      resourceHref: "/admin/infinity-ai",
+      detail: `Confidence ${state.ai.confidenceThreshold}% · min photos ${state.ai.requirePhotoMin}`,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
