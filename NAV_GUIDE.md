@@ -126,6 +126,20 @@ Sidebar + Home map for **store-thru-listing** (Hammoq IMS). Roles come from `src
 
 ---
 
+### Event log
+| | |
+| --- | --- |
+| **Route** | `/logs` |
+| **Who** | Any role with inventory view (all standard roles + Ops) |
+| **Shows** | Org-wide activity trail across all sections (same data as Admin master log) |
+
+**What you can do**
+- Filter by section or date; search user / action / resource
+- Follow resource links back into the workflow
+- Download CSV; Admin / Ops can also open **Master event log** at `/admin/audit`
+
+---
+
 ## Footer sidebar
 
 ### Alerts
@@ -141,30 +155,18 @@ Sidebar + Home map for **store-thru-listing** (Hammoq IMS). Roles come from `src
 
 ---
 
-### Event log
-| | |
-| --- | --- |
-| **Route** | `/admin/audit` |
-| **Who** | **Admin** org role or Hammoq Ops only (not Ops Lead / Lister / …) |
-| **Shows** | Master cross-system audit trail for the active org |
-
-**What you can do**
-- Filter / scan recent actions across sections
-- Use section activity panels elsewhere if you lack master-log access
-
----
-
 ### Admin
 | | |
 | --- | --- |
-| **Route** | `/admin` |
-| **Who** | Admin, Ops Lead (+ Ops) |
+| **Route** | `/admin` (Master event log: `/admin/audit`) |
+| **Who** | Admin, Ops Lead (+ Ops); master log is Admin / Hammoq Ops only |
 | **Shows** | Org health overview + Admin sidebar IA (team, channels, strategies, shipping, …) |
 
 **What you can do**
 - Manage teammates, roles, suppliers, categories, listing strategies
 - Configure ShopGoodwill / eBay / all marketplace connections
 - Tune inventory locations, shipping boxes, print settings, Infinity AI admin
+- Open **Master event log** (Admin / Ops) — same trail as floor **Event log** with admin chrome
 
 ---
 
@@ -192,6 +194,7 @@ Sidebar + Home map for **store-thru-listing** (Hammoq IMS). Roles come from `src
 **What you can do**
 - Open Edit Account (profile, role, ShopGoodwill login)
 - Open **Item pipeline** (SKU walkthrough at `/workflow`)
+- Open **View event log** → `/logs`
 - Toggle Auto-List preferences; connect printers under Printer settings
 
 ---
@@ -234,6 +237,7 @@ Sidebar + Home map for **store-thru-listing** (Hammoq IMS). Roles come from `src
 | Listings | ✓ | ✓ | ✓ | — | ✓ | ✓ |
 | Orders / Shipments | ✓ | ✓ | — | — | — | ✓ |
 | Reports | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Event log (`/logs`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Admin / Connections | ✓ | ✓ | — | — | — | ✓ |
-| Event log (master) | ✓ | — | — | — | — | ✓ |
+| Master event log (`/admin/audit`) | ✓ | — | — | — | — | ✓ |
 | Hammoq Ops | — | — | — | — | — | ✓ |

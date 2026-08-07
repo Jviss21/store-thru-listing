@@ -14,7 +14,7 @@ import {
 import { useOrg } from "@/components/OrgProvider";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import { logEvent } from "@/lib/event-log";
-import { canViewMasterEventLog } from "@/lib/roles";
+import { canViewMasterEventLog, canViewOrgEventLog } from "@/lib/roles";
 import { isHammoqStaffEmail } from "@/lib/session";
 
 export default function SettingsPage() {
@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<DemoSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
+  const showOrgLog = canViewOrgEventLog(session.role, isOps);
   const showMasterLog = canViewMasterEventLog(session.role, isOps);
 
   useEffect(() => {
@@ -115,18 +116,27 @@ export default function SettingsPage() {
         </Link>
       </Card>
 
-      {showMasterLog ? (
-        <Card className="max-w-xl space-y-3 border-ink/15 p-5">
-          <p className="font-display text-lg font-bold text-ink">Master event log</p>
+      {showOrgLog ? (
+        <Card className="max-w-xl space-y-3 border-accent/30 bg-accent/10 p-5">
+          <p className="font-display text-lg font-bold text-ink">Event log</p>
           <p className="text-sm text-muted">
-            Cross-system audit trail for this org (Admin and Hammoq Ops). Section Event log panels
-            still appear at the bottom of each floor page for everyone with access.
+            Org-wide activity across every section — who did what, when. Also linked from the
+            sidebar as <span className="font-semibold text-ink">Event log</span>.
           </p>
-          <Link href="/admin/audit">
-            <Button type="button" variant="outline">
-              Open Master event log
+          <Link href="/logs">
+            <Button type="button" variant="accent">
+              View event log
             </Button>
           </Link>
+          {showMasterLog ? (
+            <p className="text-xs text-muted">
+              Admin / Ops can also open the{" "}
+              <Link href="/admin/audit" className="font-semibold underline-offset-2 hover:underline">
+                Master event log
+              </Link>{" "}
+              under Admin.
+            </p>
+          ) : null}
         </Card>
       ) : null}
 

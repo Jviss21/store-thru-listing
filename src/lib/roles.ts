@@ -1,7 +1,8 @@
 /**
  * Role-based UI / route visibility for store-thru-listing.
  * Kept free of heavy mock-data imports so middleware can use it on the Edge.
- * Master event log: Admin role or Hammoq Ops (isOps) only — not Ops Lead / Lister / etc.
+ * Org event log (`/logs`): any role with inventory access.
+ * Master event log (`/admin/audit`, `/reports/events`): Admin or Hammoq Ops only.
  */
 
 export type AdminRole = "Admin" | "Ops Lead" | "Lister" | "Photographer" | "Viewer";
@@ -21,6 +22,7 @@ export type NavSection =
   | "settings"
   | "notifications"
   | "ops"
+  | "event-log"
   | "master-events";
 
 type Perm = {
@@ -121,6 +123,12 @@ export function canViewMasterEventLog(role: string, isOps: boolean): boolean {
   return isOps || normalizeRole(role) === "Admin";
 }
 
+/** Org-wide floor event log (`/logs`) — any role with inventory access. */
+export function canViewOrgEventLog(role: string, isOps: boolean): boolean {
+  if (isOps) return true;
+  return ROLE_PERMISSIONS[normalizeRole(role)].viewInventory;
+}
+
 export function canAccessAdminConsole(role: string, isOps: boolean): boolean {
   return isOps || isAdminCapable(role);
 }
@@ -154,6 +162,8 @@ export function canAccessNav(section: NavSection, role: string, isOps: boolean):
       return isAdminCapable(r);
     case "connections":
       return p.manageConnections;
+    case "event-log":
+      return canViewOrgEventLog(r, false);
     case "master-events":
       return canViewMasterEventLog(r, false);
     case "ops":
@@ -167,6 +177,7 @@ export function canAccessNav(section: NavSection, role: string, isOps: boolean):
 export function sectionForPath(pathname: string): NavSection | null {
   if (pathname.startsWith("/ops")) return "ops";
   if (pathname.startsWith("/workflow")) return "workflow";
+  if (pathname.startsWith("/logs")) return "event-log";
   if (pathname.startsWith("/admin/audit") || pathname.startsWith("/reports/events")) {
     return "master-events";
   }

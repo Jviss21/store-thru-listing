@@ -8,7 +8,7 @@ export default function AdminAuditPage() {
     <RoleGate requireMasterLog path="/admin/audit">
       <MasterEventLog
         title="Master event log"
-        description="Full cross-system audit trail for this org. Admin and Hammoq Ops only — Ops Lead and listing roles use section Event log panels at the bottom of each floor page."
+        description="Full cross-system audit trail for this org (Admin and Hammoq Ops). Same data as Event log on the floor — filter by section, date, or search. Floor roles use /logs or section Event log panels."
       />
     </RoleGate>
   );

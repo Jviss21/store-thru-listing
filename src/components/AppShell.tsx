@@ -29,7 +29,7 @@ import { BRAND, notifications } from "@/lib/mock-data";
 import DemoBanner from "@/components/DemoBanner";
 import { useOrg } from "@/components/OrgProvider";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
-import { canAccessNav, canViewMasterEventLog, type NavSection } from "@/lib/roles";
+import { canAccessNav, type NavSection } from "@/lib/roles";
 
 const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavSection }> = [
   { href: "/", label: "Home", icon: Home, section: "home" },
@@ -40,6 +40,7 @@ const nav: Array<{ href: string; label: string; icon: typeof Home; section: NavS
   { href: "/orders", label: "Orders", icon: ShoppingCart, section: "orders" },
   { href: "/shipments", label: "Shipments", icon: Truck, section: "shipments" },
   { href: "/reports", label: "Reports", icon: FileBarChart, section: "reports" },
+  { href: "/logs", label: "Event log", icon: ScrollText, section: "event-log" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -56,7 +57,6 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const unread = notifications.filter((n) => n.unread).length;
   const { org, session, isOps } = useOrg();
   const role = session.role;
-  const showMasterLog = canViewMasterEventLog(role, isOps);
   const showAdmin = canAccessNav("admin", role, isOps);
   const showConnections = canAccessNav("connections", role, isOps);
   const visibleNav = nav.filter((item) => canAccessNav(item.section, role, isOps));
@@ -152,26 +152,6 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </span>
           )}
         </Link>
-        {showMasterLog && (
-          <Link
-            href="/admin/audit"
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
-              pathname.startsWith("/admin/audit") || pathname.startsWith("/reports/events")
-                ? "bg-ink text-accent shadow-sm"
-                : "text-ink/80 hover:bg-mist hover:text-ink"
-            )}
-          >
-            <ScrollText
-              className={cn(
-                "h-4 w-4",
-                pathname.startsWith("/admin/audit") ? "text-accent" : "text-muted"
-              )}
-            />
-            Master event log
-          </Link>
-        )}
         {showAdmin && (
           <Link
             href="/admin"

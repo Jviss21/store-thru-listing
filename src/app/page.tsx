@@ -33,6 +33,7 @@ import { formatDisplayDateLong, inclusiveDayCount } from "@/lib/report-dates";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { useOrg } from "@/components/OrgProvider";
 import { SectionEventLog } from "@/components/SectionEventLog";
+import { canViewOrgEventLog } from "@/lib/roles";
 
 function formatSoldAt(iso: string, hourly: boolean) {
   const d = new Date(iso);
@@ -55,7 +56,8 @@ export default function HomePage() {
   const [customRange, setCustomRange] = useState<HomeCustomRange>(() => defaultCustomRange());
   const m = getHomeMetrics(period, customRange);
   const s = dashboardStats;
-  const { org } = useOrg();
+  const { org, session, isOps } = useOrg();
+  const showEventLog = canViewOrgEventLog(session.role, isOps);
   const metricsKey =
     period === "custom"
       ? `custom-${customRange.start}-${customRange.end}`
@@ -484,6 +486,13 @@ export default function HomePage() {
           <Users className="h-4 w-4" />
           <span>Tools</span>
         </div>
+        {showEventLog ? (
+          <Link href="/logs">
+            <Button variant="accent" size="md" type="button">
+              View event log
+            </Button>
+          </Link>
+        ) : null}
         <Link href="/products/auto-list">
           <Button variant="outline" size="md" type="button">
             <Rocket className="h-4 w-4" />

@@ -43,7 +43,7 @@ export default function AdminOverviewPage() {
         <ol className="mt-2 max-w-2xl list-decimal space-y-0.5 pl-4 text-sm text-muted">
           <li>Use the Admin sidebar sections (Team, Channels, Products & Listing, …).</li>
           <li>Start with Teammates / Roles, then channel connections and listing strategies.</li>
-          <li>Master event log (Admin only) shows the full cross-system audit trail.</li>
+          <li>Master event log (Admin only) shows the full cross-system audit trail; floor Event log is at /logs for all inventory roles.</li>
         </ol>
       </div>
 
