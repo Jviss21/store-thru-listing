@@ -14,6 +14,7 @@ import {
   ToggleRow,
 } from "@/components/admin/AdminForm";
 import { useAdminIms } from "@/components/admin/useAdminIms";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import {
   formatDonorBarcode,
   lastIssuedDonorSku,
@@ -249,6 +250,8 @@ export default function AdminDonorItemCreationPage() {
           />
         </div>
       </SectionCard>
+
+      <SectionEventLog section="admin" title="Donor Item Creation activity" />
     </div>
   );
 }

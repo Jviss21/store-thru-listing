@@ -2,10 +2,46 @@
 
 import { useState } from "react";
 import { Button, Card, Input, PageHeader, Badge } from "@/components/ui";
+import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { logEvent } from "@/lib/event-log";
 
 export default function PrinterSettingsPage() {
+  const { org } = useOrg();
   const [printer, setPrinter] = useState("Label Printer — Station 2");
   const [connected, setConnected] = useState(false);
+
+  function connect() {
+    setConnected(true);
+    logEvent({
+      section: "admin",
+      action: "Connected printer",
+      resource: printer,
+      resourceHref: "/settings/printer",
+      orgId: org.id,
+    });
+  }
+
+  function disconnect() {
+    setConnected(false);
+    logEvent({
+      section: "admin",
+      action: "Disconnected printer",
+      resource: printer,
+      resourceHref: "/settings/printer",
+      orgId: org.id,
+    });
+  }
+
+  function printTest() {
+    logEvent({
+      section: "admin",
+      action: "Printed test label",
+      resource: printer,
+      resourceHref: "/settings/printer",
+      orgId: org.id,
+    });
+  }
 
   return (
     <div className="space-y-5">
@@ -33,17 +69,19 @@ export default function PrinterSettingsPage() {
           </select>
         </div>
         <div className="flex gap-2">
-          <Button type="button" onClick={() => setConnected(true)}>
+          <Button type="button" onClick={connect}>
             Connect
           </Button>
-          <Button variant="outline" type="button" onClick={() => setConnected(false)}>
+          <Button variant="outline" type="button" onClick={disconnect}>
             Disconnect
           </Button>
-          <Button variant="outline" type="button" disabled={!connected}>
+          <Button variant="outline" type="button" disabled={!connected} onClick={printTest}>
             Print test label
           </Button>
         </div>
       </Card>
+
+      <SectionEventLog section="admin" title="Printer activity" />
     </div>
   );
 }

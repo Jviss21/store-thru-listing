@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Card, Badge, PageHeader } from "@/components/ui";
+import { GcpConnectionPanel } from "@/components/GcpConnectionPanel";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import type { MarketplaceConnectionState } from "@/lib/api";
+import { logEvent } from "@/lib/event-log";
 import { relativeTime } from "@/lib/utils";
 
 export default function SettingsConnectionsPage() {
@@ -37,6 +40,13 @@ export default function SettingsConnectionsPage() {
     setBusy(null);
     if (res.ok) {
       await reload();
+      logEvent({
+        section: "admin",
+        action: `Connected ${channel}`,
+        resource: `${channel} connection`,
+        resourceHref: "/settings/connections",
+        orgId: org.id,
+      });
       toast(`${channel} connected for ${org.name}.`);
     } else {
       toast(res.error);
@@ -49,6 +59,13 @@ export default function SettingsConnectionsPage() {
     setBusy(null);
     if (res.ok) {
       await reload();
+      logEvent({
+        section: "admin",
+        action: `Disconnected ${channel}`,
+        resource: `${channel} connection`,
+        resourceHref: "/settings/connections",
+        orgId: org.id,
+      });
       toast(`${channel} disconnected.`);
     } else {
       toast(res.error);
@@ -61,6 +78,13 @@ export default function SettingsConnectionsPage() {
     setBusy(null);
     if (res.ok) {
       await reload();
+      logEvent({
+        section: "admin",
+        action: `Synced ${channel}`,
+        resource: `${channel} connection`,
+        resourceHref: "/settings/connections",
+        orgId: org.id,
+      });
       toast(`${channel} sync completed (demo).`);
     } else {
       toast(res.error);
@@ -71,7 +95,7 @@ export default function SettingsConnectionsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Marketplace connections"
-        description={`Connect ShopGoodwill and eBay for ${org.name}. OAuth is stubbed for the pilot — state persists in this browser.`}
+        description={`Connect ShopGoodwill and eBay for ${org.name}, and check Google Cloud photo hosting. OAuth is stubbed for the pilot — marketplace state persists in this browser.`}
         actions={
           <Link href="/admin/marketplaces" className="text-sm font-semibold text-muted hover:text-ink">
             Admin view →
@@ -84,6 +108,8 @@ export default function SettingsConnectionsPage() {
           {flash}
         </div>
       )}
+
+      <GcpConnectionPanel />
 
       {!hydrated ? (
         <p className="text-sm text-muted">Loading connections…</p>
@@ -157,6 +183,8 @@ export default function SettingsConnectionsPage() {
           })}
         </div>
       )}
+
+      <SectionEventLog section="admin" title="Connections activity" />
     </div>
   );
 }
