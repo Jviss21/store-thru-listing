@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Card, Badge, PageHeader } from "@/components/ui";
-import { GcpConnectionPanel } from "@/components/GcpConnectionPanel";
 import { useOrg } from "@/components/OrgProvider";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import type { MarketplaceConnectionState } from "@/lib/api";
@@ -95,7 +94,7 @@ export default function SettingsConnectionsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Marketplace connections"
-        description={`Connect ShopGoodwill and eBay for ${org.name}, and check Google Cloud photo hosting. OAuth is stubbed for the pilot — marketplace state persists in this browser.`}
+        description={`Connect ShopGoodwill and eBay for ${org.name}. OAuth is stubbed for the pilot — marketplace state persists in this browser.`}
         actions={
           <Link href="/admin/marketplaces" className="text-sm font-semibold text-muted hover:text-ink">
             Admin view →
@@ -108,8 +107,6 @@ export default function SettingsConnectionsPage() {
           {flash}
         </div>
       )}
-
-      <GcpConnectionPanel />
 
       {!hydrated ? (
         <p className="text-sm text-muted">Loading connections…</p>
