@@ -1,6 +1,13 @@
 "use client";
 
-import { DATE_PRESETS, type DatePresetId, rangeForPreset } from "@/lib/report-dates";
+import {
+  DATE_PRESETS,
+  formatInclusiveRangeLabel,
+  inclusiveDayCount,
+  normalizeDateRange,
+  type DatePresetId,
+  rangeForPreset,
+} from "@/lib/report-dates";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui";
 
@@ -13,6 +20,16 @@ export function DatePresetBar({
   onChange: (next: { start: string; end: string; preset: DatePresetId | "custom" }) => void;
   className?: string;
 }) {
+  const normalized = normalizeDateRange(value.start, value.end);
+  const dayCount = inclusiveDayCount(normalized.start, normalized.end);
+  const rangeSummary = formatInclusiveRangeLabel(normalized.start, normalized.end, {
+    long: true,
+  });
+
+  function setCustom(start: string, end: string) {
+    onChange({ ...normalizeDateRange(start, end), preset: "custom" });
+  }
+
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap gap-1.5">
@@ -41,29 +58,32 @@ export function DatePresetBar({
       <div className="flex flex-wrap items-end gap-3">
         <label className="block min-w-[140px] flex-1">
           <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted">
-            Start
+            From
           </span>
           <Input
             type="date"
-            value={value.start}
-            onChange={(e) =>
-              onChange({ start: e.target.value, end: value.end, preset: "custom" })
-            }
+            value={normalized.start}
+            max={normalized.end}
+            onChange={(e) => setCustom(e.target.value, normalized.end)}
           />
         </label>
         <label className="block min-w-[140px] flex-1">
           <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted">
-            End
+            To
           </span>
           <Input
             type="date"
-            value={value.end}
-            onChange={(e) =>
-              onChange({ start: value.start, end: e.target.value, preset: "custom" })
-            }
+            value={normalized.end}
+            min={normalized.start}
+            onChange={(e) => setCustom(normalized.start, e.target.value)}
           />
         </label>
       </div>
+      <p className="text-xs text-muted">
+        {rangeSummary}
+        {" · "}
+        {dayCount === 1 ? "1 calendar day inclusive" : `${dayCount} calendar days inclusive`}
+      </p>
     </div>
   );
 }

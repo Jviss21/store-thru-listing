@@ -24,9 +24,11 @@ import {
   HOME_PERIODS,
   defaultCustomRange,
   getHomeMetrics,
+  normalizeCustomRange,
   type HomeCustomRange,
   type HomePeriod,
 } from "@/lib/home-metrics";
+import { formatDisplayDateLong, inclusiveDayCount } from "@/lib/report-dates";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { useOrg } from "@/components/OrgProvider";
 
@@ -45,12 +47,13 @@ export default function HomePage() {
       : period;
 
   function updateCustom(next: Partial<HomeCustomRange>) {
-    setCustomRange((prev) => ({
-      start: next.start ?? prev.start,
-      end: next.end ?? prev.end,
-    }));
+    setCustomRange((prev) =>
+      normalizeCustomRange(next.start ?? prev.start, next.end ?? prev.end)
+    );
     setPeriod("custom");
   }
+
+  const customDayCount = inclusiveDayCount(customRange.start, customRange.end);
 
   return (
     <div className="space-y-6">
@@ -102,34 +105,47 @@ export default function HomePage() {
               </div>
               {period === "custom" ? (
                 <div
-                  className="flex flex-wrap items-end gap-2 rounded-xl border border-white/10 bg-white/5 p-2.5 sm:gap-3"
+                  className="flex flex-col items-stretch gap-2 rounded-xl border border-white/10 bg-white/5 p-2.5 sm:items-end"
                   role="group"
                   aria-label="Custom date range"
                 >
-                  <label className="block min-w-[8.5rem] flex-1">
-                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                      From
-                    </span>
-                    <input
-                      type="date"
-                      value={customRange.start}
-                      max={customRange.end}
-                      onChange={(e) => updateCustom({ start: e.target.value })}
-                      className={dateFieldClass}
-                    />
-                  </label>
-                  <label className="block min-w-[8.5rem] flex-1">
-                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                      To
-                    </span>
-                    <input
-                      type="date"
-                      value={customRange.end}
-                      min={customRange.start}
-                      onChange={(e) => updateCustom({ end: e.target.value })}
-                      className={dateFieldClass}
-                    />
-                  </label>
+                  <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+                    <label className="block min-w-[8.5rem] flex-1">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                        From
+                      </span>
+                      <input
+                        type="date"
+                        value={customRange.start}
+                        max={customRange.end}
+                        onChange={(e) => updateCustom({ start: e.target.value })}
+                        className={dateFieldClass}
+                      />
+                      <span className="mt-1 block text-[11px] text-white/55">
+                        {formatDisplayDateLong(customRange.start)}
+                      </span>
+                    </label>
+                    <label className="block min-w-[8.5rem] flex-1">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                        To
+                      </span>
+                      <input
+                        type="date"
+                        value={customRange.end}
+                        min={customRange.start}
+                        onChange={(e) => updateCustom({ end: e.target.value })}
+                        className={dateFieldClass}
+                      />
+                      <span className="mt-1 block text-[11px] text-white/55">
+                        {formatDisplayDateLong(customRange.end)}
+                      </span>
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-white/45">
+                    {customDayCount === 1
+                      ? "1 calendar day inclusive"
+                      : `${customDayCount} calendar days inclusive`}
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -180,7 +196,7 @@ export default function HomePage() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-bold text-ink">Top 50 sales</h2>
-            <p className="text-sm text-muted">Highest sold items · {m.periodLabel.toLowerCase()}</p>
+            <p className="text-sm text-muted">Highest sold items · {m.periodLabel}</p>
           </div>
           <Link
             href="/reports/top-sales"
@@ -233,7 +249,7 @@ export default function HomePage() {
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold text-ink">Top listers</h2>
-              <p className="text-sm text-muted">Listings posted · {m.periodLabel.toLowerCase()}</p>
+              <p className="text-sm text-muted">Listings posted · {m.periodLabel}</p>
             </div>
             <Link
               href="/reports/productivity"
@@ -278,7 +294,7 @@ export default function HomePage() {
               <Camera className="mt-1 h-4 w-4 shrink-0 text-brand-orange" />
               <div>
                 <h2 className="font-display text-lg font-bold text-ink">Top photographers</h2>
-                <p className="text-sm text-muted">Photo volume · {m.periodLabel.toLowerCase()}</p>
+                <p className="text-sm text-muted">Photo volume · {m.periodLabel}</p>
               </div>
             </div>
             <Link

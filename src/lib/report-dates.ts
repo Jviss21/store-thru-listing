@@ -68,10 +68,12 @@ export function rangeForPreset(id: DatePresetId, now = new Date()): { start: str
   }
 }
 
+/** Inclusive calendar days from start through end (YYYY-MM-DD). */
 export function daysInRange(start: string, end: string): string[] {
+  const { start: s, end: e } = normalizeDateRange(start, end);
   const out: string[] = [];
-  const cur = new Date(`${start}T12:00:00`);
-  const last = new Date(`${end}T12:00:00`);
+  const cur = new Date(`${s}T12:00:00`);
+  const last = new Date(`${e}T12:00:00`);
   while (cur <= last) {
     out.push(ymd(cur));
     cur.setDate(cur.getDate() + 1);
@@ -79,12 +81,77 @@ export function daysInRange(start: string, end: string): string[] {
   return out;
 }
 
-export function inDateRange(iso: string, start: string, end: string) {
-  const d = iso.slice(0, 10);
-  return d >= start && d <= end;
+/** Swap if needed so start ≤ end; both ends are inclusive calendar days. */
+export function normalizeDateRange(start: string, end: string): { start: string; end: string } {
+  if (!start && !end) {
+    const today = ymd(startOfDay(new Date()));
+    return { start: today, end: today };
+  }
+  if (!start) return { start: end, end };
+  if (!end) return { start, end: start };
+  return start <= end ? { start, end } : { start: end, end: start };
 }
 
+export function inclusiveDayCount(start: string, end: string): number {
+  return daysInRange(start, end).length;
+}
+
+export function inDateRange(iso: string, start: string, end: string) {
+  const d = iso.slice(0, 10);
+  const { start: s, end: e } = normalizeDateRange(start, end);
+  return d >= s && d <= e;
+}
+
+/** Short calendar day with weekday, e.g. "Wed, Aug 6, 2026". */
 export function formatDisplayDate(ymdStr: string) {
   const d = new Date(`${ymdStr}T12:00:00`);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/** Long calendar day with weekday, e.g. "Wednesday, Aug 6, 2026". */
+export function formatDisplayDateLong(ymdStr: string) {
+  const d = new Date(`${ymdStr}T12:00:00`);
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/** Inclusive From–To label with weekdays; single day collapses to one date. */
+export function formatInclusiveRangeLabel(
+  start: string,
+  end: string,
+  opts?: { long?: boolean }
+) {
+  const { start: s, end: e } = normalizeDateRange(start, end);
+  const fmt = opts?.long ? formatDisplayDateLong : formatDisplayDate;
+  if (s === e) return fmt(s);
+  return `${fmt(s)} – ${fmt(e)}`;
+}
+
+/** Today as YYYY-MM-DD in local time. */
+export function todayYmd(now = new Date()) {
+  return ymd(startOfDay(now));
+}
+
+/** Inclusive trailing N calendar days ending today (N ≥ 1). */
+export function trailingDaysRange(days: number, now = new Date()): { start: string; end: string } {
+  const endDate = startOfDay(now);
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - Math.max(0, days - 1));
+  return { start: ymd(startDate), end: ymd(endDate) };
+}
+
+/** Month-to-date inclusive through today. */
+export function monthToDateRange(now = new Date()): { start: string; end: string } {
+  const endDate = startOfDay(now);
+  const startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+  return { start: ymd(startDate), end: ymd(endDate) };
 }

@@ -11,7 +11,14 @@
  * No hard-locked ASP or sell-through targets.
  */
 
-import { daysInRange, formatDisplayDate } from "@/lib/report-dates";
+import {
+  daysInRange,
+  formatDisplayDateLong,
+  formatInclusiveRangeLabel,
+  monthToDateRange,
+  todayYmd,
+  trailingDaysRange,
+} from "@/lib/report-dates";
 
 const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3600000).toISOString();
@@ -250,6 +257,7 @@ function sellThroughOf(unitsSold: number, unitsListed: number) {
 
 export const homeMetricsByPeriod: Record<HomePresetPeriod, HomePeriodMetrics> = {
   day: {
+    // Labels overwritten in getHomeMetrics with calendar day (weekday + date).
     periodLabel: "Today",
     rangeLabel: "Sales so far today · jewelry, collectibles, apparel & authenticated luxury",
     topLineRevenue: DAY.revenue,
@@ -290,6 +298,31 @@ export const homeMetricsByPeriod: Record<HomePresetPeriod, HomePeriodMetrics> = 
     topPhotographers: buildPhotographers([4, 0, 6, 1, 2, 7, 5, 3], 7200, 460, 1480, 100),
   },
 };
+
+function labelsForPreset(period: HomePresetPeriod, now = new Date()) {
+  if (period === "day") {
+    const day = todayYmd(now);
+    const long = formatDisplayDateLong(day);
+    return {
+      periodLabel: long,
+      rangeLabel: `Sales so far on ${long} · jewelry, collectibles, apparel & authenticated luxury`,
+    };
+  }
+  if (period === "week") {
+    const range = trailingDaysRange(7, now);
+    const label = formatInclusiveRangeLabel(range.start, range.end, { long: true });
+    return {
+      periodLabel: "Last 7 days",
+      rangeLabel: `${label} · thrift mix + authenticated handbags & sneakers`,
+    };
+  }
+  const range = monthToDateRange(now);
+  const label = formatInclusiveRangeLabel(range.start, range.end, { long: true });
+  return {
+    periodLabel: "Month to date",
+    rangeLabel: `${label} · apparel, collectibles & authenticated designer goods`,
+  };
+}
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
@@ -333,8 +366,7 @@ function sparkForDays(n: number, seed: number): number[] {
 }
 
 function formatCustomPeriodLabel(range: HomeCustomRange) {
-  if (range.start === range.end) return formatDisplayDate(range.start);
-  return `${formatDisplayDate(range.start)} – ${formatDisplayDate(range.end)}`;
+  return formatInclusiveRangeLabel(range.start, range.end, { long: true });
 }
 
 function buildCustomMetrics(range: HomeCustomRange): HomePeriodMetrics {
@@ -344,10 +376,12 @@ function buildCustomMetrics(range: HomeCustomRange): HomePeriodMetrics {
   const seed = (n * 5 + range.start.length + range.end.charCodeAt(range.end.length - 1)) % 11;
   const priceScale = n <= 1 ? 1 : n <= 7 ? 1.02 : 1.05;
   const staffScale = Math.max(1, n / 7);
+  const label = formatCustomPeriodLabel(range);
+  const dayWord = n === 1 ? "1 day" : `${n} days`;
 
   return {
-    periodLabel: formatCustomPeriodLabel(range),
-    rangeLabel: `Custom · ${formatCustomPeriodLabel(range)} · thrift mix + authenticated luxury`,
+    periodLabel: label,
+    rangeLabel: `Custom · ${label} · ${dayWord} inclusive · thrift mix + authenticated luxury`,
     topLineRevenue: vol.revenue,
     asp: aspOf(vol.revenue, vol.unitsSold),
     sellThrough: sellThroughOf(vol.unitsSold, vol.unitsListed),
@@ -381,7 +415,10 @@ export function getHomeMetrics(
   period: HomePeriod,
   customRange?: HomeCustomRange
 ): HomePeriodMetrics {
-  if (period !== "custom") return homeMetricsByPeriod[period];
+  if (period !== "custom") {
+    const base = homeMetricsByPeriod[period];
+    return { ...base, ...labelsForPreset(period) };
+  }
   const range = normalizeCustomRange(
     customRange?.start ?? defaultCustomRange().start,
     customRange?.end ?? defaultCustomRange().end
