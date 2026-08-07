@@ -143,13 +143,16 @@ export function SectionCard({
   title,
   children,
   className,
+  id,
 }: {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
     <div
+      id={id}
       className={cn(
         "rounded-2xl border border-ink/8 bg-white/75 p-5 shadow-card backdrop-blur-md",
         className

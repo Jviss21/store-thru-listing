@@ -4,46 +4,31 @@ import { Printer } from "lucide-react";
 import { Button } from "@/components/ui";
 import { barcodeStubBars } from "@/lib/sku";
 import { cn } from "@/lib/utils";
+import { loadAdminIms, type PrintSettings } from "@/lib/admin-ims";
+import { formatLabelDate, printLabelFromSettings } from "@/lib/print-label";
+import { DEFAULT_ORG_ID } from "@/lib/orgs";
 
 export function printUnitBarcode(opts: {
   sku: string;
   title?: string;
   supplier?: string;
   batch?: string;
+  location?: string;
+  orgId?: string;
+  print?: PrintSettings;
 }) {
-  const { sku, title = "", supplier = "", batch = "" } = opts;
-  const bars = barcodeStubBars(sku);
-  const w = window.open("", "_blank", "noopener,noreferrer,width=420,height=560");
-  if (!w) return;
-  w.document.write(`<!doctype html><html><head><title>Barcode ${sku}</title>
-<style>
-  body{font-family:ui-monospace,Menlo,Consolas,monospace;padding:28px;color:#0d1b34;background:#fff}
-  .card{border:2px solid #0d1b34;border-radius:12px;padding:20px;max-width:320px;margin:0 auto}
-  .gold{background:#f0b429;height:8px;border-radius:4px;margin-bottom:14px}
-  h1{font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px}
-  .title{font-size:13px;font-weight:600;margin:0 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .meta{font-size:11px;color:#5b6475;margin:0 0 14px;line-height:1.4}
-  .bars{text-align:center;font-size:18px;letter-spacing:1px;line-height:1;margin:12px 0 8px}
-  .sku{text-align:center;font-size:18px;font-weight:700;letter-spacing:.08em}
-  .hint{text-align:center;font-size:10px;color:#8a93a3;margin-top:10px}
-</style></head><body onload="print()">
-<div class="card">
-  <div class="gold"></div>
-  <h1>Hammoq · Unit barcode</h1>
-  ${title ? `<p class="title">${escapeHtml(title)}</p>` : ""}
-  <p class="meta">${supplier ? `Supplier: ${escapeHtml(supplier)}<br/>` : ""}${
-    batch ? `Batch: ${escapeHtml(batch)}<br/>` : ""
-  }SKU / barcode</p>
-  <div class="bars">${escapeHtml(bars)}</div>
-  <div class="sku">${escapeHtml(sku)}</div>
-  <p class="hint">Demo label — not sent to a live printer</p>
-</div>
-</body></html>`);
-  w.document.close();
-}
+  const { sku, title = "", supplier = "", batch = "", location, orgId, print } = opts;
+  const settings =
+    print ??
+    loadAdminIms(orgId || DEFAULT_ORG_ID).print;
 
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  printLabelFromSettings(settings, {
+    sku,
+    title: title || undefined,
+    supplier: supplier || (batch ? `Batch ${batch}` : undefined),
+    location: location || undefined,
+    date: formatLabelDate(),
+  });
 }
 
 export function BarcodeStub({
@@ -51,6 +36,8 @@ export function BarcodeStub({
   title,
   supplier,
   batch,
+  location,
+  orgId,
   className,
   compact,
 }: {
@@ -58,6 +45,8 @@ export function BarcodeStub({
   title?: string;
   supplier?: string;
   batch?: string;
+  location?: string;
+  orgId?: string;
   className?: string;
   compact?: boolean;
 }) {
@@ -86,7 +75,7 @@ export function BarcodeStub({
         size="sm"
         variant="outline"
         className={compact ? "h-7 px-2 text-xs" : "w-full"}
-        onClick={() => printUnitBarcode({ sku, title, supplier, batch })}
+        onClick={() => printUnitBarcode({ sku, title, supplier, batch, location, orgId })}
       >
         <Printer className="h-3.5 w-3.5" /> Print barcode
       </Button>

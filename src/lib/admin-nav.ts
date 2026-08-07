@@ -16,7 +16,6 @@ import {
   MapPin,
   Package,
   PackageOpen,
-  Printer,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -98,7 +97,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/shipping", label: "Shipping", icon: Truck },
       { href: "/admin/shipping-boxes", label: "Shipping Boxes", icon: Boxes },
       { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-      { href: "/admin/print-settings", label: "Print settings", icon: Printer },
+      // Print settings merged into Donor Item Creation (/admin/donor-item-creation#print)
     ],
   },
   {

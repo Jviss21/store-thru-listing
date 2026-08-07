@@ -112,6 +112,8 @@ function DonorBatchCreateInner() {
         title: next.title,
         supplier,
         batch: batchBarcode.trim() || undefined,
+        orgId: org.id,
+        print: ims.print,
       });
     }
   }
@@ -467,6 +469,8 @@ function DonorBatchCreateInner() {
                         title: line.title,
                         supplier,
                         batch: batchBarcode.trim(),
+                        orgId: org.id,
+                        print: ims?.print,
                       });
                     }, i * 350);
                   });

@@ -61,6 +61,114 @@ export type ApiToken = {
   lastUsedAt: string | null;
 };
 
+/** Label printer profile — Dymo renders PDF; Zebra renders ZPL. */
+export type PrintProfile = "dymo" | "zebra";
+
+/** Preview mode mirrors the active profile output format. */
+export type PrintPreviewMode = "PDF" | "ZPL";
+
+/**
+ * Optional fields on donor / product barcode labels.
+ * SKU is always included; these toggles add extra lines.
+ */
+export type PrintLabelFields = {
+  inventoryLocation: boolean;
+  supplier: boolean;
+  date: boolean;
+  title: boolean;
+};
+
+export type PrintSettings = {
+  listerConnect: boolean;
+  /** Profile used for print-on-create and floor barcode print. */
+  activeProfile: PrintProfile;
+  labelFields: PrintLabelFields;
+  /** Live preview: PDF (Dymo) vs ZPL (Zebra) — they render differently. */
+  previewMode: PrintPreviewMode;
+  /** @deprecated migrated into labelFields */
+  optionalLabelFields?: string[];
+};
+
+export function defaultPrintLabelFields(): PrintLabelFields {
+  return {
+    inventoryLocation: true,
+    supplier: true,
+    date: false,
+    title: true,
+  };
+}
+
+export function defaultPrintSettings(): PrintSettings {
+  return {
+    listerConnect: true,
+    activeProfile: "dymo",
+    labelFields: defaultPrintLabelFields(),
+    previewMode: "PDF",
+  };
+}
+
+/** Map legacy optionalLabelFields strings → structured toggles. */
+function labelFieldsFromLegacy(fields: string[] | undefined): Partial<PrintLabelFields> {
+  if (!fields?.length) return {};
+  const lower = fields.map((f) => f.toLowerCase());
+  const has = (...keys: string[]) => keys.some((k) => lower.some((f) => f.includes(k)));
+  return {
+    inventoryLocation: has("location", "inventory"),
+    supplier: has("supplier"),
+    date: has("date"),
+    title: has("title"),
+  };
+}
+
+export function normalizePrintSettings(raw: Partial<PrintSettings> | undefined): PrintSettings {
+  const base = defaultPrintSettings();
+  if (!raw) return base;
+
+  const legacyFields = labelFieldsFromLegacy(raw.optionalLabelFields);
+  const labelFields: PrintLabelFields = {
+    ...base.labelFields,
+    ...legacyFields,
+    ...raw.labelFields,
+  };
+
+  let previewMode: PrintPreviewMode = base.previewMode;
+  const rawPreview = raw.previewMode as string | undefined;
+  if (rawPreview === "ZPL" || rawPreview === "Zebra") previewMode = "ZPL";
+  else if (rawPreview === "PDF" || rawPreview === "Dymo") previewMode = "PDF";
+
+  let activeProfile: PrintProfile = raw.activeProfile ?? base.activeProfile;
+  if (!raw.activeProfile) {
+    activeProfile = previewMode === "ZPL" ? "zebra" : "dymo";
+  }
+
+  return {
+    listerConnect: raw.listerConnect ?? base.listerConnect,
+    activeProfile,
+    labelFields,
+    previewMode,
+  };
+}
+
+/** Keep preview mode and active profile in sync. */
+export function printSettingsForProfile(profile: PrintProfile, prev: PrintSettings): PrintSettings {
+  return {
+    ...prev,
+    activeProfile: profile,
+    previewMode: profile === "zebra" ? "ZPL" : "PDF",
+  };
+}
+
+export function printSettingsForPreview(
+  mode: PrintPreviewMode,
+  prev: PrintSettings
+): PrintSettings {
+  return {
+    ...prev,
+    previewMode: mode,
+    activeProfile: mode === "ZPL" ? "zebra" : "dymo",
+  };
+}
+
 /** Org API key for item/donation authentication integrations (demo IMS). */
 export type ItemAuthApiKeyEnv = "live" | "test";
 
@@ -177,11 +285,7 @@ export type AdminImsState = {
     requireBoxSelection: boolean;
     pickingProfiles: { id: string; name: string; active: boolean }[];
   };
-  print: {
-    listerConnect: boolean;
-    optionalLabelFields: string[];
-    previewMode: "PDF" | "Dymo";
-  };
+  print: PrintSettings;
   teammates: TeammateAccount[];
   roles: RoleCard[];
   channels: {
@@ -500,11 +604,7 @@ export function defaultAdminImsState(): AdminImsState {
         { id: "pp-jewelry", name: "Jewelry vault pick", active: false },
       ],
     },
-    print: {
-      listerConnect: true,
-      optionalLabelFields: ["SKU", "Location", "Supplier"],
-      previewMode: "PDF",
-    },
+    print: defaultPrintSettings(),
     teammates: seedTeammates(),
     roles: [
       {
@@ -706,11 +806,16 @@ function deepMergeIms(base: AdminImsState, patch: Partial<AdminImsState>): Admin
         ? patch.orders.pickingProfiles
         : base.orders.pickingProfiles,
     },
-    print: {
+    print: normalizePrintSettings({
       ...base.print,
       ...patch.print,
-      optionalLabelFields: patch.print?.optionalLabelFields ?? base.print.optionalLabelFields,
-    },
+      labelFields: {
+        ...base.print.labelFields,
+        ...patch.print?.labelFields,
+      },
+      optionalLabelFields:
+        patch.print?.optionalLabelFields ?? base.print.optionalLabelFields,
+    }),
     teammates: patch.teammates?.length ? patch.teammates : base.teammates,
     roles: patch.roles?.length ? patch.roles : base.roles,
     channels: {

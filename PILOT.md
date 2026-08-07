@@ -192,7 +192,7 @@ Add new pages by appending to `ADMIN_NAV_GROUPS` in `src/lib/admin-nav.ts` and c
 | Inventory | `/admin/shipping` | EasyPost + toggles |
 | Inventory | `/admin/shipping-boxes` | Box dimensions |
 | Inventory | `/admin/orders` | Packing slip / pick profiles |
-| Inventory | `/admin/print-settings` | Lister Connect / PDF·Dymo |
+| Inventory | `/admin/donor-item-creation#print` | Dymo PDF / Zebra ZPL label fields (was `/admin/print-settings`) |
 | Inventory | `/admin/stations` | Printers & stations (kept) |
 | Team | `/admin/teammates` | Active/inactive roster |
 | Team | `/admin/teammates/[id]` | Edit Account form |
