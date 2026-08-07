@@ -12,6 +12,8 @@ import {
   type DemoSettings,
 } from "@/lib/demo-settings";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
+import { logEvent } from "@/lib/event-log";
 import { isHammoqStaffEmail } from "@/lib/session";
 
 export default function SettingsPage() {
@@ -40,6 +42,13 @@ export default function SettingsPage() {
       name: next.name,
       email: next.email,
       handle: next.handle,
+    });
+    logEvent({
+      section: "admin",
+      action: "Updated workspace settings",
+      resource: "Settings",
+      resourceHref: "/settings",
+      orgId: org.id,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2200);
@@ -161,10 +170,19 @@ export default function SettingsPage() {
               const next = { ...settings, autoList: e.target.checked };
               setSettings(next);
               saveDemoSettings(next);
+              logEvent({
+                section: "admin",
+                action: next.autoList ? "Enabled Auto-List" : "Disabled Auto-List",
+                resource: "Settings",
+                resourceHref: "/settings",
+                orgId: org.id,
+              });
             }}
           />
         </label>
       </Card>
+
+      <SectionEventLog section="admin" title="Settings activity" />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { AdminPageIntro } from "@/components/admin/AdminForm";
 import { useAdminIms } from "@/components/admin/useAdminIms";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { Button } from "@/components/ui";
 import { saveDemoSettings, loadDemoSettings } from "@/lib/demo-settings";
 import { logEvent } from "@/lib/event-log";
@@ -173,6 +174,7 @@ export default function AccountSettingsPage() {
           });
         }}
       />
+      <SectionEventLog section="admin" title="Account activity" />
     </div>
   );
 }

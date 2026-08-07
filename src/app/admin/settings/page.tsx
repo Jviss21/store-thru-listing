@@ -11,6 +11,7 @@ import {
   SelectField,
 } from "@/components/admin/AdminForm";
 import { useAdminIms } from "@/components/admin/useAdminIms";
+import { SectionEventLog } from "@/components/SectionEventLog";
 
 export default function AdminGeneralSettingsPage() {
   const { state, setState, persist, saved, ready } = useAdminIms();
@@ -80,6 +81,8 @@ export default function AdminGeneralSettingsPage() {
           />
         </div>
       </SectionCard>
+
+      <SectionEventLog section="admin" title="Settings activity" />
     </div>
   );
 }

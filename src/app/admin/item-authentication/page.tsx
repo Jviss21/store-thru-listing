@@ -12,6 +12,7 @@ import {
   ToggleRow,
 } from "@/components/admin/AdminForm";
 import { useAdminIms } from "@/components/admin/useAdminIms";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import {
   generateItemAuthApiKey,
   maskItemAuthApiKey,
@@ -220,6 +221,8 @@ export default function AdminItemAuthPage() {
           )}
         </div>
       </SectionCard>
+
+      <SectionEventLog section="admin" title="Item Authentication activity" />
     </div>
   );
 }
