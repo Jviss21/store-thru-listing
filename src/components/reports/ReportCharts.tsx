@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils";
 const COLORS: Record<ProductivityMetric, string> = {
   accepted: "#0d1b34",
   rejected: "#c94a2a",
-  photographed: "#1a7a72",
-  posted: "#2f9e44",
+  photographed: "#0f9b94",
+  posted: "#c9a032",
   shelved: "#e87a1a",
   purged: "#f0b429",
   picked: "#5a6b82",
-  packed: "#8b5a2b",
-  shipped: "#6b4ea2",
+  packed: "#162a4a",
+  shipped: "#c94a2a",
 };
 
 export function MultiSeriesChart({

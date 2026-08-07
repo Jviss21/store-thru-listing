@@ -34,7 +34,7 @@ import { normalizeRole } from "@/lib/roles";
 export default function InfinityAiPage() {
   return (
     <RoleGate path="/infinity-ai">
-      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading {BRAND.ai}â€¦</div>}>
+      <Suspense fallback={<div className="p-8 text-sm text-muted">Loading {BRAND.ai}…</div>}>
         <InfinityAiInner />
       </Suspense>
     </RoleGate>
@@ -151,24 +151,32 @@ function InfinityAiInner() {
 
   return (
     <div className="space-y-5">
-      <div className="overflow-hidden rounded-2xl bg-ink p-6 text-white shadow-card sm:p-8">
-        <div className="flex flex-wrap items-start gap-5">
+      <div className="relative overflow-hidden rounded-2xl bg-ink p-6 text-white shadow-card sm:p-8">
+        <div className="absolute inset-y-0 left-0 w-1.5 bg-accent" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 70% 55% at 100% 0%, rgba(240,180,41,0.14), transparent 55%), radial-gradient(ellipse 50% 40% at 0% 100%, rgba(232,122,26,0.08), transparent 50%)",
+          }}
+        />
+        <div className="relative flex flex-wrap items-start gap-5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent text-ink">
             <Rocket className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
-                Primary Â· photograph in {BRAND.ai}
+                Primary · photograph in {BRAND.ai}
               </p>
               <InfinityBadge />
             </div>
             <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Photo in {BRAND.ai} â†’ appears here
+              Photo in {BRAND.ai} → appears here
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/70">
               Use the {BRAND.ai} iOS app on the floor. Photos and AI listing fields land in this IMS
-              queue â€” then {BRAND.autoList} pushes to channels. This is the main ecom photo path;
+              queue — then {BRAND.autoList} pushes to channels. This is the main ecom photo path;
               Donor Item Creation stays separate for manual batches.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
@@ -195,7 +203,7 @@ function InfinityAiInner() {
                   type="button"
                   className="border-white/30 bg-transparent text-white hover:bg-white/10"
                 >
-                  <GitBranch className="h-4 w-4" /> Item pipeline Â· ecom photo stage
+                  <GitBranch className="h-4 w-4" /> Item pipeline · ecom photo stage
                 </Button>
               </Link>
             </div>
@@ -204,8 +212,8 @@ function InfinityAiInner() {
       </div>
 
       <PageHeader
-        title={`${BRAND.ai} Â· ${BRAND.autoList} queue`}
-        description={`Items that arrived from ${BRAND.ai} / ${BRAND.autoList}. Ready packets use each productâ€™s Listing Strategy for weight, dims, shipping, and channel defaults.`}
+        title={`${BRAND.ai} · ${BRAND.autoList} queue`}
+        description={`Items that arrived from ${BRAND.ai} / ${BRAND.autoList}. Ready packets use each product's Listing Strategy for weight, dims, shipping, and channel defaults.`}
         actions={
           <>
             <InfinityBadge />
@@ -249,7 +257,7 @@ function InfinityAiInner() {
         <Card className="flex flex-wrap items-center justify-between gap-3 border-accent/30 bg-accent/10 p-4">
           <p className="text-sm text-ink">
             Next for <span className="font-mono font-semibold">{handoff}</span>: assign / advance listing
-            strategy (auction â†’ BIN â†’ concurrent â†’ purge).
+            strategy (auction → BIN → concurrent → purge).
           </p>
           <Link href={`/products?q=${encodeURIComponent(handoff)}`}>
             <Button type="button" variant="accent" size="sm">
@@ -265,8 +273,8 @@ function InfinityAiInner() {
       )}
 
       <Card className="border-ink/10 bg-mist/40 p-4 text-sm text-muted">
-        Floor path: photograph in <span className="font-medium text-ink">{BRAND.ai}</span> â†’ queue
-        below â†’ {BRAND.autoList} applies Strategy (Admin â†’ Listing defaults) when building eBay /
+        Floor path: photograph in <span className="font-medium text-ink">{BRAND.ai}</span> → queue
+        below → {BRAND.autoList} applies Strategy (Admin → Listing defaults) when building eBay /
         ShopGoodwill packets.
       </Card>
 

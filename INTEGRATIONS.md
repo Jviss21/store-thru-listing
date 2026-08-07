@@ -108,3 +108,16 @@ Components: `InfinityAiUploadLink`, `HammoqRetailLink` in `src/components/Brand.
 ## Item pipeline (IMS ops)
 
 End-to-end thrift/resale stages, status tags, and “walk one SKU” demo path: **[WORKFLOW.md](./WORKFLOW.md)**.
+
+## Brand tokens
+
+Shared Hammoq palette (navy `#0D1B34`, gold `#F0B429`, orange `#E87A1A`, rust `#C94A2A`). Full CSS variable / Tailwind map: **[BRAND.md](./BRAND.md)**.
+
+| Surface | Token file |
+|---------|------------|
+| IMS | `src/app/globals.css` + `tailwind.config.ts` |
+| Fake eBay / Hammoq Market | `..\..\Online Marketplace\web\src\app\globals.css` (same hexes; legacy `forest`/`amber` aliases) |
+
+## Fake eBay = Hammoq Market
+
+Until real eBay keys are connected, IMS eBay publish pushes to **Hammoq Market** (Online Marketplace / web). Env: `FAKE_EBAY_API_URL` + `FAKE_EBAY_API_KEY`. See Market README for channel API paths.

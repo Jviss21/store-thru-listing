@@ -94,9 +94,35 @@ function WorkflowInner() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-12">
+      <div className="relative overflow-hidden rounded-2xl bg-ink p-6 text-white shadow-card sm:p-8">
+        <div className="absolute inset-y-0 left-0 w-1.5 bg-accent" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 70% 55% at 100% 0%, rgba(240,180,41,0.14), transparent 55%)",
+          }}
+        />
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <GitBranch className="h-5 w-5 text-accent" />
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+              Ops · item journey
+            </p>
+          </div>
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+            Item pipeline
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-white/70">
+            Walk one SKU top-to-bottom: intake → donor → putaway → photos/Auto-List → QA → strategy →
+            channels → fulfill → ship → sold.
+          </p>
+        </div>
+      </div>
+
       <PageHeader
-        title="Item pipeline"
-        description="Walk one SKU top-to-bottom: intake → donor → putaway → photos/Auto-List → QA → strategy → channels → fulfill → ship → sold."
+        title="Scan a SKU"
+        description="Lookup status and jump to the next stage for any unit in the catalog."
       />
 
       <Card className="p-5">

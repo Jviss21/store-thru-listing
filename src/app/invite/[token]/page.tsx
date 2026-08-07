@@ -149,8 +149,10 @@ function AcceptInviteInner() {
 
         {loadError ? (
           <div className="space-y-4 text-center">
-            <p className="text-sm text-red-700">{loadError}</p>
-            <Link href="/login" className="text-sm font-semibold text-primary underline">
+            <p className="rounded-xl border border-coral/30 bg-coral/10 px-3 py-2 text-sm text-coral">
+              {loadError}
+            </p>
+            <Link href="/login" className="text-sm font-semibold text-ink underline-offset-2 hover:underline">
               Go to login
             </Link>
           </div>
@@ -163,7 +165,7 @@ function AcceptInviteInner() {
                 ? "This invite was already accepted."
                 : "This invite has expired. Ask an admin to send a new one."}
             </p>
-            <Link href="/login" className="text-sm font-semibold text-primary underline">
+            <Link href="/login" className="text-sm font-semibold text-ink underline-offset-2 hover:underline">
               Go to login
             </Link>
           </div>
@@ -222,7 +224,7 @@ function AcceptInviteInner() {
                     key={r.id}
                     className={cn(
                       "flex items-center gap-1.5 text-xs",
-                      r.ok ? "text-emerald-700" : password ? "text-coral" : "text-muted"
+                      r.ok ? "text-save-ok" : password ? "text-coral" : "text-muted"
                     )}
                   >
                     {r.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
@@ -246,7 +248,11 @@ function AcceptInviteInner() {
                 autoComplete="new-password"
               />
             </div>
-            {error ? <p className="text-sm text-red-700">{error}</p> : null}
+            {error ? (
+              <p className="rounded-xl border border-coral/30 bg-coral/10 px-3 py-2 text-sm text-coral">
+                {error}
+              </p>
+            ) : null}
             <Button type="submit" className="w-full" disabled={loading || !passwordOk}>
               {loading ? "Creating account…" : "Accept & join"}
             </Button>

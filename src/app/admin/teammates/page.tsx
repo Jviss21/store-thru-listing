@@ -218,13 +218,17 @@ export default function AdminTeammatesPage() {
             {inviteBusy ? "Sending…" : "Send invite"}
           </Button>
         </div>
-        {inviteError ? <p className="mb-3 text-sm text-red-700">{inviteError}</p> : null}
+        {inviteError ? (
+          <p className="mb-3 rounded-xl border border-coral/30 bg-coral/10 px-3 py-2 text-sm text-coral">
+            {inviteError}
+          </p>
+        ) : null}
         {lastInviteUrl && lastEmailStatus ? (
           <div
             className={`mb-4 rounded-lg border px-3 py-3 text-sm ${
               lastEmailStatus.emailSent
-                ? "border-emerald-300/80 bg-emerald-50"
-                : "border-amber-300/80 bg-amber-50"
+                ? "border-save-ok/40 bg-save-ok/10"
+                : "border-gold/40 bg-gold/15"
             }`}
           >
             <p className="font-semibold text-ink">

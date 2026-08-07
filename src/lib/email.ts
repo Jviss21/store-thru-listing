@@ -75,11 +75,11 @@ function inviteText(p: InviteEmailPayload): string {
 function inviteHtml(p: InviteEmailPayload): string {
   const by = p.invitedByName ? ` by <strong>${escapeHtml(p.invitedByName)}</strong>` : "";
   return `<!DOCTYPE html>
-<html><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#0f172a">
+<html><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#0d1b34">
   <p>You've been invited${by} to join <strong>${escapeHtml(p.orgName)}</strong> as <strong>${escapeHtml(p.role)}</strong>.</p>
-  <p><a href="${escapeHtml(p.inviteUrl)}" style="display:inline-block;padding:10px 16px;background:#0f2744;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Accept invite</a></p>
-  <p style="font-size:13px;color:#64748b">Or paste this link:<br/><span style="word-break:break-all">${escapeHtml(p.inviteUrl)}</span></p>
-  <p style="font-size:12px;color:#94a3b8">Expires ${escapeHtml(p.expiresAt)}. If you did not expect this, ignore this email.</p>
+  <p><a href="${escapeHtml(p.inviteUrl)}" style="display:inline-block;padding:10px 16px;background:#0d1b34;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Accept invite</a></p>
+  <p style="font-size:13px;color:#5a6b82">Or paste this link:<br/><span style="word-break:break-all">${escapeHtml(p.inviteUrl)}</span></p>
+  <p style="font-size:12px;color:#5a6b82">Expires ${escapeHtml(p.expiresAt)}. If you did not expect this, ignore this email.</p>
 </body></html>`;
 }
 
