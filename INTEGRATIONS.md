@@ -2,13 +2,14 @@
 
 **Audience:** Product + eng  
 **Repo:** `store-thru-listing` (IMS only)  
-**Updated:** 2026-08-05
+**Updated:** 2026-08-06
 
-Four separate folders / products that stack as one platform when ready — **not** one mixed codebase.
+Five separate folders / products that stack as one platform when ready — **not** one mixed codebase.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Shared platform (future): org / auth / API                      │
+│  Hammoq Backend Admin (org / auth / customers / flags / ops)     │
+│  sibling folder: ..\hammoq-backend  ·  port 3001                 │
 └─────────────────────────────────────────────────────────────────┘
         │              │                │                 │
         ▼              ▼                ▼                 ▼
@@ -28,10 +29,13 @@ Four separate folders / products that stack as one platform when ready — **not
 
 | # | Product | Folder / home | Role |
 |---|---------|---------------|------|
-| 1 | **IMS** | `store-thru-listing` (this repo) | Ecom operations: donor create, products, Auto-List queue, listings, orders, shipments, Admin, Ops |
+| 0 | **Hammoq Backend Admin** | Sibling `..\hammoq-backend` | Platform SoR: add customers, staff, feature flags, kill switches, audit, Open-in-IMS |
+| 1 | **IMS** | `store-thru-listing` (this repo) | Ecom operations: donor create, products, Auto-List queue, listings, orders, shipments, customer Admin |
 | 2 | **InfinityAI** | Separate app/folder (**TBD** — user builds separately) | Photos → AI listing fields → feeds **Auto-List** into IMS |
 | 3 | **Retail production systems** | Separate folder (**future**) | Store retail ops (floor, POS-adjacent, retail inventory) |
 | 4 | **Hammoq Retail** (AI retail app) | Sibling stub `..\hammoq-retail` + App Store | Store triage: **retail-worthy vs ecom-worthy**; retail AI |
+
+**Hammoq Backend vs customer Admin:** `/admin` in IMS is **per-customer** settings. `hammoq-backend` is **Hammoq staff** platform console (replaces the pilot `/ops` console for day-to-day customer management). `/ops` may remain as an in-IMS shortcut during transition.
 
 **Never merge InfinityAI or Hammoq Retail / retail-production source into IMS** until an intentional API integration. Cross-link in docs and deep-link CTAs only. Each remains a separate build until ready to stack as add-ons on shared org/auth/API.
 
@@ -74,6 +78,7 @@ Item at store in Hammoq Retail
 
 | Path | Status |
 |------|--------|
+| `..\hammoq-backend` | **Hammoq Backend Admin** — customers, staff, flags, audit (port 3001). See its README. |
 | `..\hammoq-retail` | Retail **placeholder** stub — leave mostly alone; docs/CTAs may cross-link |
 | InfinityAI folder | **TBD** — built separately; not in this workspace |
 | Retail production systems | **Future** separate folder |
@@ -85,6 +90,7 @@ Item at store in Hammoq Retail
 - Shared org/auth tokens so mobile apps post into IMS APIs without mixing repos
 - Product create / Auto-List enqueue APIs for InfinityAI payloads
 - Triage webhook or sync from Hammoq Retail → IMS product tags / channel path
+- Backend → IMS: `/ops?impersonate=<orgId>` deep-link (Open in IMS from `hammoq-backend`)
 
 Until those land: App Store links + in-app demo surfaces only. No native bridge code in this repo.
 
@@ -120,4 +126,59 @@ Shared Hammoq palette (navy `#0D1B34`, gold `#F0B429`, orange `#E87A1A`, rust `#
 
 ## Fake eBay = Hammoq Market
 
-Until real eBay keys are connected, IMS eBay publish pushes to **Hammoq Market** (Online Marketplace / web). Env: `FAKE_EBAY_API_URL` + `FAKE_EBAY_API_KEY`. See Market README for channel API paths.
+Until real eBay (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_RU_NAME / EBAY_ENV) is connected, IMS treats **eBay publish** as a push to **Hammoq Market** (Online Marketplace / web).
+
+| | |
+|--|--|
+| **Base URL (production)** | https://web-rose-two-83.vercel.app (alias https://web-hammoq.vercel.app) |
+| **Local Market** | http://localhost:3002 |
+| **Channel API** | POST /api/v1/listings · POST .../sold · POST .../delist · GET .../:externalId |
+| **IMS env** | FAKE_EBAY_API_URL + FAKE_EBAY_API_KEY + FAKE_EBAY_STORE_SLUG (aliases: MARKETPLACE_CHANNEL_URL / MARKETPLACE_CHANNEL_API_KEY) |
+| **Demo API key** | hmq_demo_testgoodwill_west_devkey (Market seed / README) |
+
+### How to trigger a push
+
+1. Open a product in IMS → **Mock channel list** (or Infinity AI Auto-List publish with eBay channel).
+2. IMS POSTs to /api/marketplaces/ebay/publish, which upserts on Hammoq Market as Fake eBay.
+3. **Simulate sold + end siblings** calls /api/marketplaces/ebay/sold → Market .../sold (removes from storefront).
+
+Real eBay stays gated: if all EBAY_* vars are set, Fake eBay is skipped and the live/stub eBay client is used instead.
+
+Photo URLs: Market requires absolute `https://` image URLs. Relative paths are rewritten to absolute using `NEXTAUTH_URL`, `VERCEL_URL`, or `NEXT_PUBLIC_APP_URL` when set; otherwise relative photos are skipped and a placeholder is used.
+
+Code: src/lib/api/marketplaces/hammoq-market.ts, ebay.ts, src/lib/channel-sim.ts.
+
+## Customer go-live runbook (Fake eBay — today)
+
+**IMS:** https://store-thru-listing.vercel.app  
+**Fake eBay (Hammoq Market):** https://web-rose-two-83.vercel.app  
+
+### Vercel env (IMS project `store-thru-listing`)
+
+Set for **Production** (and Preview if you test PRs):
+
+```
+FAKE_EBAY_API_URL=https://web-rose-two-83.vercel.app
+FAKE_EBAY_API_KEY=hmq_demo_testgoodwill_west_devkey
+FAKE_EBAY_STORE_SLUG=test-goodwill-west
+NEXTAUTH_URL=https://store-thru-listing.vercel.app
+```
+
+Do **not** set `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` / `EBAY_RU_NAME` / `EBAY_ENV` yet — those switch the client off Fake eBay onto real eBay (still stubbed).
+
+Redeploy after saving env vars.
+
+### Walk-through (one SKU)
+
+1. **Admin invite** — Ops/Admin → invite user by email. If Resend is unset, copy the invite link from the UI and send it manually.
+2. **Donor create** — Donor Item Creation → Manual donor create (`/manifests/new`). Triage **ecom** → Create (SKU + barcode).
+3. **Putaway** — `/products/putaway` → scan/assign shelf.
+4. **Photos** — attach photos on the product (or Infinity AI upload).
+5. **List to Fake eBay** — open product → **Mock channel list** (or Infinity AI publish with eBay). Toast should mention Hammoq Market / Fake eBay. Confirm on Market shop: https://web-rose-two-83.vercel.app/shop
+6. **Sold / end** — **Simulate sold + end siblings** → Market listing marked sold / removed from storefront.
+7. **Fulfill** — Orders → pick list → pack → Shipments → create label (stub OK for today).
+8. **Event logs** — Ops / event log shows publish + sold actions for the SKU.
+
+### Skip for today
+
+Real eBay OAuth, GCP cutover, multi-tenant scale.

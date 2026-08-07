@@ -159,14 +159,18 @@ function ProductDetailInner() {
   useEffect(() => {
     if (!ready || !product) return;
     if (searchParams.get("action") === "simulate-sale") {
-      const result = mockEndOnSale(product.id, "eBay");
-      if (result) {
-        announce(
-          `Sold on eBay (mock). Ended ${result.ended.map((e) => e.channel).join(", ") || "no siblings"}.`
-        );
-        setPipelineTick((t) => t + 1);
-        router.replace(`/products/${encodeURIComponent(product.id)}`);
-      }
+      void (async () => {
+        const result = await mockEndOnSale(product.id, "eBay");
+        if (result) {
+          announce(
+            `Sold on eBay (mock). Ended ${result.ended.map((e) => e.channel).join(", ") || "no siblings"}.${
+              result.marketNote ? ` ${result.marketNote}` : ""
+            }`
+          );
+          setPipelineTick((t) => t + 1);
+          router.replace(`/products/${encodeURIComponent(product.id)}`);
+        }
+      })();
     }
   }, [ready, product, searchParams, announce, router]);
 
@@ -196,7 +200,7 @@ function ProductDetailInner() {
     setPipelineTick((t) => t + 1);
   }
 
-  function simulatePublish() {
+  async function simulatePublish() {
     // Ensure product exists in created store for mock publish
     const existing = getCreatedProducts().find((p) => p.id === product!.id);
     if (!existing && product) {
@@ -222,16 +226,16 @@ function ProductDetailInner() {
         upc: product.upc,
       });
     }
-    const res = mockPublishChannels(product!.id, ["ShopGoodwill", "eBay"]);
+    const res = await mockPublishChannels(product!.id, ["ShopGoodwill", "eBay"]);
     if (res) {
-      announce(res.message);
+      announce(res.marketUrl ? `${res.message} ${res.marketUrl}` : res.message);
       refreshFromStore();
     } else {
       announce("Could not mock-publish — save the product first.", { error: true });
     }
   }
 
-  function simulateSale() {
+  async function simulateSale() {
     const existing = getCreatedProducts().find((p) => p.id === product!.id);
     if (!existing && product) {
       saveCreatedProduct({
@@ -255,14 +259,14 @@ function ProductDetailInner() {
         tags: product.tags,
         upc: product.upc,
       });
-      mockPublishChannels(product.id, ["ShopGoodwill", "eBay"]);
+      await mockPublishChannels(product.id, ["ShopGoodwill", "eBay"]);
     }
-    const result = mockEndOnSale(product!.id, "eBay");
+    const result = await mockEndOnSale(product!.id, "eBay");
     if (result) {
       announce(
         `Sold on eBay (mock). Ended sibling listings: ${
           result.ended.map((e) => e.channel).join(", ") || "none"
-        }.`
+        }.${result.marketNote ? ` ${result.marketNote}` : ""}`
       );
       refreshFromStore();
     }
@@ -408,7 +412,7 @@ function ProductDetailInner() {
               : snapshot.stage.id === "photos" || snapshot.stage.id === "qa"
                 ? {
                     label: "Mock publish SGW + eBay",
-                    onClick: simulatePublish,
+                    onClick: () => void simulatePublish(),
                   }
                 : undefined
           }
@@ -416,10 +420,10 @@ function ProductDetailInner() {
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={simulatePublish}>
+        <Button type="button" variant="outline" size="sm" onClick={() => void simulatePublish()}>
           <Store className="h-3.5 w-3.5" /> Mock channel list
         </Button>
-        <Button type="button" variant="accent" size="sm" onClick={simulateSale}>
+        <Button type="button" variant="accent" size="sm" onClick={() => void simulateSale()}>
           Simulate sold + end siblings
         </Button>
       </div>

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth/options";
-import { listMarketplaceStatuses } from "@/lib/api/marketplaces";
+import { getHammoqMarketConfig, listMarketplaceStatuses } from "@/lib/api/marketplaces";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   }
 
   const [sgw, ebay] = listMarketplaceStatuses();
+  const market = getHammoqMarketConfig();
   return NextResponse.json({
     ok: true,
     data: {
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
         configured: ebay.configured,
         missingEnv: ebay.missingEnv,
         mode: ebay.mode,
+        fakeEbayBaseUrl: ebay.mode === "fake" ? market.baseUrl : null,
       },
     },
   });

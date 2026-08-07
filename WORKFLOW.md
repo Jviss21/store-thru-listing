@@ -16,7 +16,7 @@ Canonical thrift/resale pipeline in this repo — statuses and next-action CTAs 
 | 4 | Photo + Auto-List | `stage:photos` → `qa` / `strategy` | InfinityAI + `/products/auto-list` |
 | 5 | QA / Queued | `stage:qa` · listing `Queued` / `Additional QA Required` | Listings |
 | 6 | Listing strategy | `stage:strategy` | Listing detail + Admin strategies |
-| 7 | Channel list | `stage:listed` · listing `Active` | Mock SGW + eBay (no live keys) |
+| 7 | Channel list | `stage:listed` · listing `Active` | Mock SGW + **Fake eBay → Hammoq Market** when `FAKE_EBAY_*` set |
 | 8 | Order → pick → pack | `stage:fulfill` | `/orders` · `/orders/pick-lists` |
 | 9 | Ship + label | `stage:ship` | `/shipments/new` |
 | 10 | Sold / end siblings | `stage:sold` · sold + `Delisted` siblings | Product “Simulate sold” |
@@ -44,7 +44,7 @@ Stage is **not** a Prisma column — stored as `stage:<id>` inside `tagsJson` so
 4. On Auto-List, select the row (or use `?sku=`) → **Try Auto-List** — mock-publishes SGW/eBay + downloads packets → next is **strategy**.
 5. Open the **product** (`/products/[id]`):
    - **Item pipeline** panel shows stage + next CTA.
-   - **Mock channel list** / **Simulate sold + end siblings** for demo completeness (no API keys).
+   - **Mock channel list** / **Simulate sold + end siblings** — eBay pushes to Hammoq Market when Fake eBay env is set (see [INTEGRATIONS.md](./INTEGRATIONS.md)).
 6. After sale: open **Orders** → pick list → pack → **Shipments** → create label.
 
 Keyboard/scan: putaway barcode field and `/workflow` SKU field are autofocused.
@@ -52,10 +52,11 @@ Keyboard/scan: putaway barcode field and `/workflow` SKU field are autofocused.
 ## What was wired
 
 - `src/lib/workflow.ts` — stage catalog, resolve, next-action CTAs  
-- `src/lib/channel-sim.ts` — mock publish + end-on-sale  
+- `src/lib/channel-sim.ts` — mock publish + end-on-sale (+ Fake eBay → Hammoq Market)  
 - `ItemPipelinePanel` on product detail; `/workflow` + Home widget  
 - Donor create → putaway handoff; putaway → photos/Auto-List; Auto-List → mock list + strategy CTA  
 - `PATCH /api/products/[id]` persists tags/stage to Postgres when available  
 - Order detail: pick list + ship CTAs  
 
 Stack context (InfinityAI / Retail apps): see [INTEGRATIONS.md](./INTEGRATIONS.md).
+
