@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import {
   createPickListFromOpenOrders,
   getPickLists,
@@ -171,6 +172,8 @@ export default function PickListsPage() {
           </table>
         )}
       </Card>
+
+      <SectionEventLog section="orders" title="Event log" />
     </div>
   );
 }

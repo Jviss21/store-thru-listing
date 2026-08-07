@@ -256,10 +256,15 @@ export default function OpsConsolePage() {
 
         <div>
           <h2 className="font-display text-2xl font-bold text-ink">10 pilot organizations</h2>
-          <p className="mt-1 text-sm text-muted">
-            Health, Auto-List volume, kill switches, and impersonation. Org list from auth
-            memberships; product/listing data still mock until marketplace APIs land.
+          <p className="mt-1.5 max-w-2xl text-sm text-muted">
+            Staff-only pilot console — org health, Auto-List volume, kill switches, and
+            impersonation. Not the customer Admin console.
           </p>
+          <ol className="mt-2 max-w-2xl list-decimal space-y-0.5 pl-4 text-sm text-muted">
+            <li>Select an org row to inspect flags and recent sync errors.</li>
+            <li>Impersonate to open the customer app as that tenant (End impersonation in the header).</li>
+            <li>Use kill switches when a channel or Auto-List path needs to pause.</li>
+          </ol>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white/80 shadow-card">

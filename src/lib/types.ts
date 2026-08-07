@@ -68,7 +68,7 @@ export interface Product {
   conditionDescription?: string; brand?: string; mpn?: string; upc?: string; weightLbs?: number;
   weightUnit?: "LBS" | "KG"; lengthIn?: number; widthIn?: number; heightIn?: number; dimUnit?: "IN" | "CM";
   boxPadding?: string; shippingMethod?: string; shippingBox?: string; shippingWeightLbs?: number;
-  strategy?: string; tags?: string[]; uprightProductId?: string; subtitle?: string; productNotes?: string;
+  strategy?: string; tags?: string[]; imsProductId?: string; subtitle?: string; productNotes?: string;
   ebayCategoryId?: string; listingType?: ListingType; listingDuration?: string; startTime?: string;
   listImmediately?: boolean; startingPrice?: number; buyItNowPrice?: number; reservePrice?: number;
   handlingTimeDays?: number; allowBestOffer?: boolean; shippingPolicy?: string; returnsPolicy?: string;
@@ -79,7 +79,7 @@ export interface Listing {
   id: string; productId: string; channel: ListingChannel; title: string; subtitle?: string; sku: string;
   status: ListingStatus; price: number; quantity: number; strategy: string; tags: string[];
   postedBy: string; postedAt: string; productCreatedAt: string; location: string; supplier: string;
-  carrier: string; categoryPath: string; externalId: string; uprightProductId: string;
+  carrier: string; categoryPath: string; externalId: string; imsProductId: string;
   privateDescription: string; condition: string; conditionDescription?: string; brand: string;
   mpn?: string; upc?: string; weightLbs: number; weightUnit?: "LBS" | "KG"; lengthIn: number;
   widthIn: number; heightIn: number; dimUnit?: "IN" | "CM"; boxPadding?: string; shippingMethod?: string;
@@ -128,7 +128,7 @@ export interface Order {
 export type ShipmentStatus = "Label created" | "In transit" | "Delivered";
 export interface Shipment {
   id: string;
-  /** Numeric display ID shown in the Shipments list (Upright-style). */
+  /** Numeric display ID shown in the Shipments list. */
   shipmentNumber: string;
   orderId: string;
   orderNumber: string;
@@ -166,7 +166,7 @@ export interface EbayListingInputPack {
   weightLbs: number; lengthIn: number; widthIn: number; heightIn: number; dimUnit: string;
   boxPadding: string; returnsPolicy: string; paymentPolicy: string; itemLocation: string;
   privateDescription: string; productNotes: string; inventoryLocation: string; supplier: string;
-  carrier: string; strategy: string; tags: string; uprightProductId: string; externalId: string;
+  carrier: string; strategy: string; tags: string; imsProductId: string; externalId: string;
   status: string; bids: number; generatedAt: string;
 }
 

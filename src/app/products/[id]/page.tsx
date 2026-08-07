@@ -34,6 +34,7 @@ import { getEbayAspectsClient } from "@/lib/api/ebay-aspects";
 import { getProduct, listings } from "@/lib/mock-data";
 import type { Product } from "@/lib/types";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { findShelfLocation } from "@/lib/putaway-store";
 import {
   buildWorkflowSnapshot,
@@ -491,6 +492,8 @@ function ProductDetailInner() {
         orgId={org.id}
       />
       <SaveConfirmBar show={justSaved} message="Product saved successfully" />
+
+      <SectionEventLog section="products" title="Event log" />
     </div>
   );
 }

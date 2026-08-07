@@ -15,6 +15,7 @@ import { BarcodeStub, printUnitBarcode } from "@/components/BarcodeStub";
 import { Button, Card, Input, Textarea } from "@/components/ui";
 import { ManifestStatusBadge, ReviewStatusBadge } from "@/components/StatusBadge";
 import { getCreatedManifest } from "@/lib/demo-actions";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { REJECT_REASONS, getManifest } from "@/lib/mock-data";
 import type { ItemReviewStatus, Manifest, ManifestItem, ManifestStatus } from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
@@ -473,6 +474,8 @@ export default function ManifestDetailPage() {
           </Card>
         </div>
       )}
+
+      <SectionEventLog section="manifests" title="Event log" />
     </div>
   );
 }

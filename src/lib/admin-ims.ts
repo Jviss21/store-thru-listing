@@ -209,8 +209,6 @@ export type AdminImsState = {
       shippingDestinations: string;
       descriptionFooter: string;
     };
-    shopify: { activated: boolean; notes: string };
-    goodwillfinds: { activated: boolean; notes: string };
   };
   developer: {
     tokens: ApiToken[];
@@ -623,14 +621,6 @@ export function defaultAdminImsState(): AdminImsState {
         shippingDestinations: "No International shipments (U.S. Only)",
         descriptionFooter: "Sold as-is. See photos for condition details.",
       },
-      shopify: {
-        activated: false,
-        notes: "Shopify channel stub — activate when OAuth credentials are available.",
-      },
-      goodwillfinds: {
-        activated: false,
-        notes: "GoodwillFinds channel stub — activate when partner API is configured.",
-      },
     },
     developer: {
       tokens: [
@@ -726,8 +716,6 @@ function deepMergeIms(base: AdminImsState, patch: Partial<AdminImsState>): Admin
     channels: {
       ebay: { ...base.channels.ebay, ...patch.channels?.ebay },
       shopgoodwill: { ...base.channels.shopgoodwill, ...patch.channels?.shopgoodwill },
-      shopify: { ...base.channels.shopify, ...patch.channels?.shopify },
-      goodwillfinds: { ...base.channels.goodwillfinds, ...patch.channels?.goodwillfinds },
     },
     developer: {
       tokens: patch.developer?.tokens?.length ? patch.developer.tokens : base.developer.tokens,

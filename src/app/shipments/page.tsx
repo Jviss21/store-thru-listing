@@ -172,6 +172,11 @@ function ShipmentsInner() {
       <PageHeader
         title="Shipments"
         description="Labels, carriers, and EasyPost tracking for fulfilled orders."
+        howTo={[
+          "Search or filter by carrier, channel, and status.",
+          "Open a row to view / reprint the label, or create a new shipment from an order.",
+          "Export CSV when you need a warehouse or finance handoff.",
+        ]}
         actions={
           <>
             <Button
@@ -553,7 +558,7 @@ function ShipmentsInner() {
         />
       )}
 
-      <SectionEventLog section="shipments" />
+      <SectionEventLog section="shipments" title="Event log" />
     </div>
   );
 }

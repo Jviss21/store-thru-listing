@@ -34,13 +34,36 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-display text-2xl font-bold text-ink">Overview</h2>
-        <p className="mt-1 text-sm text-muted">
-          Org health for the inventory ops backend. Signed in as {CURRENT_USER.name} (
-          {CURRENT_USER.role}
+        <h2 className="font-display text-2xl font-bold text-ink">Admin</h2>
+        <p className="mt-1.5 max-w-2xl text-sm text-muted">
+          Org configuration for inventory ops — teammates, channels, listing strategies, shipping,
+          and audit. Signed in as {CURRENT_USER.name} ({CURRENT_USER.role}
           {canAdmin ? " — admin-capable" : ""}).
         </p>
+        <ol className="mt-2 max-w-2xl list-decimal space-y-0.5 pl-4 text-sm text-muted">
+          <li>Use the Admin sidebar sections (Team, Channels, Products & Listing, …).</li>
+          <li>Start with Teammates / Roles, then channel connections and listing strategies.</li>
+          <li>Master event log (Admin only) shows the full cross-system audit trail.</li>
+        </ol>
       </div>
+
+      <Card className="border-accent/35 bg-accent/10 p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-display text-lg font-bold text-ink">Master event log</p>
+            <p className="mt-1 text-sm text-muted">
+              Full org audit trail with section and date filters. Admin / Hammoq Ops only.
+            </p>
+          </div>
+          <Link
+            href="/admin/audit"
+            className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-ink/90"
+          >
+            Open Master event log
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="p-4">

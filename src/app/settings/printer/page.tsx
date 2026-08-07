@@ -81,7 +81,7 @@ export default function PrinterSettingsPage() {
         </div>
       </Card>
 
-      <SectionEventLog section="admin" title="Printer activity" />
+      <SectionEventLog section="admin" title="Event log" />
     </div>
   );
 }

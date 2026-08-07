@@ -376,7 +376,7 @@ function buildProducts(): Product[] {
             : ["eBay"]
         : [];
     const titleBase = SAMPLE_TITLES[i % SAMPLE_TITLES.length];
-    const uprightProductId = String(41516000 + i);
+    const imsProductId = String(41516000 + i);
     const brand = ["Adidas", "Harley-Davidson", "Cuisinart", "Sony", "Levi's", "Generic"][i % 6];
     const condition = CONDITIONS[i % CONDITIONS.length];
     rows.push({
@@ -416,7 +416,7 @@ function buildProducts(): Product[] {
           : i % 3 === 0
             ? ["Demo", "Priority"]
             : ["Demo"],
-      uprightProductId,
+      imsProductId,
     });
   }
   return rows;
@@ -466,7 +466,7 @@ function buildListings(): Listing[] {
             : id % 3 === 0
               ? `SGW-${400000 + id}`
               : "—",
-        uprightProductId: product.uprightProductId ?? String(41516000 + id),
+        imsProductId: product.imsProductId ?? String(41516000 + id),
         privateDescription: product.privateDescription ?? product.sku,
         condition: product.condition ?? "Used - Good",
         brand: product.brand ?? "Unbranded",
@@ -650,7 +650,7 @@ function buildShipments(): Shipment[] {
   const carriers = ["FedEx", "UPS", "USPS", "OnTrac"];
   const statuses = ["Label created", "In transit", "Delivered"] as const;
   const pool = orders.filter((o) => o.fulfillmentStatus !== "Unfulfilled");
-  // Dense mock set so search / filter / sort feel real (Upright-scale density).
+  // Dense mock set so search / filter / sort feel real.
   const target = 120;
   for (let i = 0; i < target; i++) {
     const o = pool[i % pool.length]!;

@@ -141,7 +141,7 @@ Replace mock aspects with eBay Commerce Taxonomy **getItemAspectsForCategory** w
 | Form | Strategy select auto-fills form; user can override |
 | Auto-List | Pack builders apply strategy when product weight/dims are blank or zero |
 
-## Screenshot field inventory (Upright Labs reference — 2026-08-03)
+## Screenshot field inventory (IMS listing form — 2026-08-03)
 
 User intent: **fields change by category/subcategory**; **listing strategy** auto-fills weight, measurements, pricing, shipping carrier, etc. for auto-upload.
 
@@ -202,8 +202,8 @@ Add new pages by appending to `ADMIN_NAV_GROUPS` in `src/lib/admin-nav.ts` and c
 | Channels | `/admin/channels/shopgoodwill` | SGW defaults form |
 | Channels | `/admin/marketplaces` | All connections (kept) |
 
-> Shopify and GoodwillFinds channel stubs were removed from the Admin UI (nav + `/admin/channels/shopify` / `goodwillfinds` pages).
-> Embedded Listings stub was removed from the Admin UI (nav + `/admin/embedded-listings` page).
+> Unused channel stubs and Embedded Listings were removed from the Admin UI.
+> Downloads and reports cover ShopGoodwill + eBay only.
 | Advanced | `/admin/developer` | API tokens table |
 
 ### Account settings

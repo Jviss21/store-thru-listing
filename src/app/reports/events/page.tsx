@@ -10,8 +10,8 @@ export default function EventLogsPage() {
     <RoleGate requireMasterLog path="/reports/events">
       <ReportPageFrame>
         <MasterEventLog
-          title="Event logs"
-          description="Organization-wide audit trail (timestamp, user, section, action, resource). Restricted to Admin and Hammoq Ops."
+          title="Master event log"
+          description="Organization-wide audit trail (timestamp, user, section, action, resource). Restricted to Admin and Hammoq Ops. Filter by section and date range below."
         />
       </ReportPageFrame>
     </RoleGate>

@@ -21,6 +21,7 @@ import {
   saveCreatedProduct,
 } from "@/lib/demo-actions";
 import { logEvent } from "@/lib/event-log";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import {
   BRAND,
   CATEGORY_PATHS,
@@ -495,6 +496,8 @@ function DonorBatchCreateInner() {
           />
         </div>
       </Card>
+
+      <SectionEventLog section="manifests" title="Event log" />
     </div>
   );
 }

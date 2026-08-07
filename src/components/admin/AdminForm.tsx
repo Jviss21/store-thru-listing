@@ -15,10 +15,12 @@ export function AdminBreadcrumb({ trail }: { trail: string[] }) {
 export function AdminPageIntro({
   title,
   description,
+  howTo,
   actions,
 }: {
   title: string;
   description?: string;
+  howTo?: string[];
   actions?: React.ReactNode;
 }) {
   return (
@@ -26,6 +28,13 @@ export function AdminPageIntro({
       <div>
         <h2 className="font-display text-2xl font-bold text-ink">{title}</h2>
         {description ? <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p> : null}
+        {howTo && howTo.length > 0 ? (
+          <ol className="mt-2 max-w-2xl list-decimal space-y-0.5 pl-4 text-sm text-muted">
+            {howTo.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </div>

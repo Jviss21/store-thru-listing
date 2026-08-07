@@ -130,6 +130,11 @@ export default function AccountSettingsPage() {
       <AdminPageIntro
         title="Account"
         description="Edit your login profile, role preferences, and optional ShopGoodwill credentials."
+        howTo={[
+          "Update name, username, email/password, and MFA reset as needed.",
+          "Set role only if you are Admin / Ops (others are read-only).",
+          "Optional: store ShopGoodwill credentials used for channel tools.",
+        ]}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href="/settings">
@@ -174,7 +179,7 @@ export default function AccountSettingsPage() {
           });
         }}
       />
-      <SectionEventLog section="admin" title="Account activity" />
+      <SectionEventLog section="admin" title="Event log" />
     </div>
   );
 }

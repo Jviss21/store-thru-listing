@@ -12,6 +12,7 @@ import {
 } from "@/lib/shipments-store";
 import type { ListingChannel } from "@/lib/types";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { loadAdminIms } from "@/lib/admin-ims";
 import { ShipmentLabelModal } from "@/components/ShipmentLabelModal";
 import type { Shipment } from "@/lib/types";
@@ -257,6 +258,8 @@ export default function NewShipmentPage() {
           }}
         />
       )}
+
+      <SectionEventLog section="shipments" title="Event log" />
     </div>
   );
 }

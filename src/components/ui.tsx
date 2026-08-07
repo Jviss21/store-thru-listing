@@ -118,10 +118,13 @@ export function Badge({
 export function PageHeader({
   title,
   description,
+  howTo,
   actions,
 }: {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
+  /** Short numbered “How to use” steps under the description. */
+  howTo?: string[];
   actions?: React.ReactNode;
 }) {
   return (
@@ -129,6 +132,13 @@ export function PageHeader({
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-ink">{title}</h1>
         {description && <p className="mt-1.5 max-w-2xl text-sm text-muted">{description}</p>}
+        {howTo && howTo.length > 0 && (
+          <ol className="mt-2 max-w-2xl list-decimal space-y-0.5 pl-4 text-sm text-muted">
+            {howTo.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        )}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>

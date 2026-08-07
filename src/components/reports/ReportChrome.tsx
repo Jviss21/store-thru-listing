@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Card } from "@/components/ui";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { ReportsNav } from "@/components/reports/ReportsNav";
 import { cn } from "@/lib/utils";
 
@@ -55,12 +57,18 @@ export function ReportPageFrame({
   children: React.ReactNode;
   className?: string;
 }) {
+  const pathname = usePathname();
+  const showSectionLog = !pathname.startsWith("/reports/events");
+
   return (
     <div className={cn("flex flex-col gap-5 lg:flex-row lg:items-start", className)}>
       <aside className="w-full shrink-0 lg:sticky lg:top-4 lg:w-56">
         <ReportsNav />
       </aside>
-      <div className="min-w-0 flex-1 space-y-5">{children}</div>
+      <div className="min-w-0 flex-1 space-y-5">
+        {children}
+        {showSectionLog ? <SectionEventLog section="reports" title="Event log" /> : null}
+      </div>
     </div>
   );
 }

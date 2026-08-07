@@ -82,7 +82,12 @@ function ChannelListings({ channel, fromPath }: { channel: "eBay" | "ShopGoodwil
     <div className="space-y-5">
       <PageHeader
         title={`Manage ${channel} Listings`}
-        description="Click a row or Edit to open the full listing editor."
+        description={`Live and queued ${channel} listings for this org — review QA holds, edit drafts, and export CSV.`}
+        howTo={[
+          "Switch ShopGoodwill / eBay above, then filter by status or search title / SKU.",
+          "Open a row (or Edit) to fix title, photos, price, and channel fields.",
+          "Clear Additional QA Required before items can sell.",
+        ]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -159,7 +164,7 @@ function ChannelListings({ channel, fromPath }: { channel: "eBay" | "ShopGoodwil
         )}
       </Card>
 
-      <SectionEventLog section="listings" />
+      <SectionEventLog section="listings" title="Event log" />
     </div>
   );
 }

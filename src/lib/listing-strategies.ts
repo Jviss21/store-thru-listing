@@ -231,7 +231,7 @@ export function getStrategySteps(s: ListingStrategy): StrategyStep[] {
   return ensureStrategySteps(s).steps ?? defaultLifecycleSteps(s);
 }
 
-/** Seeded strategies — names match Upright / Goodwill screenshot conventions where possible. */
+/** Seeded strategies — common ShopGoodwill + eBay category defaults. */
 export const LISTING_STRATEGIES: ListingStrategy[] = [
   {
     id: "clothing-shoes",
@@ -296,7 +296,7 @@ export const LISTING_STRATEGIES: ListingStrategy[] = [
     returnsPolicy: "Return Default",
     paymentPolicy: "Auction Items",
     storeCategory: "Travel",
-    notes: "Matches Upright backpack / luggage strategy defaults.",
+    notes: "Backpack / luggage defaults — medium box, FedEx.",
   },
   {
     id: "hardgoods-1499",

@@ -45,7 +45,7 @@ export const IN_APP_REPORTS: ReportNavItem[] = [
   },
   {
     href: "/reports/events",
-    label: "Event logs",
+    label: "Master event log",
     description: "Timestamp, resource, event, and IP audit trail.",
   },
   {
@@ -105,12 +105,6 @@ export const DOWNLOAD_REPORTS: ReportNavItem[] = [
     href: "/reports/downloads/auto-list",
     label: `${BRAND.autoList} queue`,
     description: `${BRAND.ai} ${BRAND.autoList} queue snapshot for the selected range.`,
-  },
-  {
-    href: "/reports/downloads/goodwillfinds",
-    label: "Goodwillfinds listings",
-    description: "Not enabled for Test Goodwill — light stub only.",
-    stub: true,
   },
 ];
 

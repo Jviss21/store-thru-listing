@@ -154,9 +154,14 @@ function ProductsInner() {
     <div className="space-y-5">
       <PageHeader
         title="Products"
-        description={`${BRAND.ai} Auto-List sits alongside your catalog — export downloads real CSV files.${
+        description={`Your inventory catalog — search SKUs, open a product journey, scan for putaway, or export CSV / barcodes.${
           dbSource === "prisma" ? " Showing Postgres catalog ∪ seed." : ""
         }`}
+        howTo={[
+          "Filter by Active / Draft / Recycled, or search title and SKU.",
+          "Open a row to edit photos, strategy, and channel status.",
+          `Use Scan / putaway for shelf assign; publish ready items from ${BRAND.ai}.`,
+        ]}
         actions={
           <>
             <Link href="/products/scan">
@@ -347,7 +352,7 @@ function ProductsInner() {
       </Card>
       )}
 
-      <SectionEventLog section="products" />
+      <SectionEventLog section="products" title="Event log" />
     </div>
   );
 }

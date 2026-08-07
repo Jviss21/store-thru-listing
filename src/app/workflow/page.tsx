@@ -17,6 +17,7 @@ import {
   type WorkflowStageId,
 } from "@/lib/workflow";
 import { RoleGate } from "@/components/RoleGate";
+import { SectionEventLog } from "@/components/SectionEventLog";
 
 const ECOM = WORKFLOW_STAGES.filter((s) => s.id !== "retail");
 
@@ -115,8 +116,13 @@ function WorkflowInner() {
           </h1>
           <p className="mt-2 max-w-xl text-sm text-white/70">
             Walk one SKU top-to-bottom: intake → donor → putaway → photos/Auto-List → QA → strategy →
-            channels → fulfill → ship → sold.
+            channels → fulfill → ship → sold. Opened from Settings · Item pipeline.
           </p>
+          <ol className="mt-3 max-w-xl list-decimal space-y-0.5 pl-4 text-sm text-white/60">
+            <li>Scan or enter a SKU / barcode below.</li>
+            <li>Review the stage panel and jump to the suggested next action.</li>
+            <li>Return to Settings when you are done — this page is not in the main sidebar.</li>
+          </ol>
         </div>
       </div>
 
@@ -256,6 +262,8 @@ function WorkflowInner() {
           5. Ship
         </Link>
       </div>
+
+      <SectionEventLog section="products" title="Event log" />
     </div>
   );
 }

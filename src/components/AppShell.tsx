@@ -169,7 +169,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 pathname.startsWith("/admin/audit") ? "text-accent" : "text-muted"
               )}
             />
-            Event log
+            Master event log
           </Link>
         )}
         {showAdmin && (

@@ -213,7 +213,12 @@ function InfinityAiInner() {
 
       <PageHeader
         title={`${BRAND.ai} · ${BRAND.autoList} queue`}
-        description={`Items that arrived from ${BRAND.ai} / ${BRAND.autoList}. Ready packets use each product's Listing Strategy for weight, dims, shipping, and channel defaults.`}
+        description={`Photo → listing handoff from ${BRAND.ai}. Ready packets use each product's Listing Strategy for weight, dims, shipping, and channel defaults.`}
+        howTo={[
+          "Photograph in the Infinity AI app; items appear here when ready for IMS.",
+          "Select rows, review strategy defaults, then publish (Lister+) or open the product to edit.",
+          "Export CSV / listing packs for offline QA when needed.",
+        ]}
         actions={
           <>
             <InfinityBadge />
@@ -369,7 +374,7 @@ function InfinityAiInner() {
         </table>
       </Card>
 
-      <SectionEventLog section="auto-list" />
+      <SectionEventLog section="auto-list" title="Event log" />
     </div>
   );
 }

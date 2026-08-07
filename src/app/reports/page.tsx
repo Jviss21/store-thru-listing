@@ -50,7 +50,12 @@ export default function ReportsIndexPage() {
     <ReportPageFrame>
       <PageHeader
         title="Reports"
-        description={`Upright-style reporting for ${ORG_NAME} — one screen per report, navy/gold Hammoq branding.`}
+        description={`Analytics and CSV downloads for ${ORG_NAME} — productivity, sales, donor intake, and channel exports.`}
+        howTo={[
+          "Open an in-app report for charts and filters on screen.",
+          "Use Downloads when you need a CSV emailed or saved.",
+          "Pick a date range and timezone on each report page before generating.",
+        ]}
       />
       <ReportGroup title="In-app reports" icon={LayoutDashboard} items={IN_APP_REPORTS} />
       <ReportGroup title="Downloads" icon={Download} items={DOWNLOAD_REPORTS} />

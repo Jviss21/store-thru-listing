@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { notifications } from "@/lib/mock-data";
 import { relativeTime } from "@/lib/utils";
 
@@ -35,6 +36,8 @@ export default function NotificationsPage() {
           </Link>
         ))}
       </Card>
+
+      <SectionEventLog section="admin" title="Event log" />
     </div>
   );
 }

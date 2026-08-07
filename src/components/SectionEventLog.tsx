@@ -50,22 +50,24 @@ export function SectionEventLog({
     };
   }, [refresh, org.id]);
 
-  const heading = title ?? `${EVENT_SECTION_LABELS[section]} activity`;
+  const heading = title ?? "Event log";
+  const sectionLabel = EVENT_SECTION_LABELS[section];
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("mt-2 overflow-hidden border-ink/12 shadow-sm", className)}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-mist/40"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-mist/40"
         aria-expanded={open}
       >
-        <span className="flex items-center gap-2">
+        <span className="flex flex-wrap items-center gap-2">
           <Activity className="h-4 w-4 text-accent" />
-          <span className="font-display text-sm font-bold text-ink">{heading}</span>
+          <span className="font-display text-base font-bold text-ink">{heading}</span>
           <span className="rounded-full bg-mist px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
-            Event log
+            Activity
           </span>
+          <span className="text-xs font-medium text-muted">{sectionLabel}</span>
         </span>
         {open ? (
           <ChevronUp className="h-4 w-4 text-muted" />

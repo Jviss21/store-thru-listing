@@ -28,17 +28,33 @@ const SECTIONS: Array<EventSection | "all"> = [
   "reports",
 ];
 
+function dayStartIso(ymd: string) {
+  return `${ymd}T00:00:00.000`;
+}
+
+function dayEndIso(ymd: string) {
+  return `${ymd}T23:59:59.999`;
+}
+
 export function MasterEventLog({
   title = "Master event log",
-  description = "Cross-system audit trail — Admin and Hammoq Ops only.",
+  description = "Full cross-system audit trail for this org. Admin and Hammoq Ops only — Ops Lead and listing roles use section activity panels instead.",
+  howTo = [
+    "Filter by section or date range, or search user / action / resource.",
+    "Follow resource links when present to jump back into the workflow.",
+    "Download CSV for offline review or compliance handoff.",
+  ],
 }: {
   title?: string;
   description?: string;
+  howTo?: string[];
 }) {
   const { org } = useOrg();
   const [rows, setRows] = useState<EventLogEntry[]>([]);
   const [section, setSection] = useState<EventSection | "all">("all");
   const [q, setQ] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [flash, setFlash] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -59,18 +75,33 @@ export function MasterEventLog({
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (section !== "all" && r.section !== section) return false;
+      if (dateFrom) {
+        const fromMs = new Date(dayStartIso(dateFrom)).getTime();
+        if (new Date(r.at).getTime() < fromMs) return false;
+      }
+      if (dateTo) {
+        const toMs = new Date(dayEndIso(dateTo)).getTime();
+        if (new Date(r.at).getTime() > toMs) return false;
+      }
       if (!q.trim()) return true;
       const hay = `${r.user} ${r.userName ?? ""} ${r.action} ${r.resource} ${r.detail ?? ""} ${r.entityId ?? ""} ${r.section}`.toLowerCase();
       return hay.includes(q.trim().toLowerCase());
     });
-  }, [rows, section, q]);
+  }, [rows, section, q, dateFrom, dateTo]);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="font-display text-2xl font-bold text-ink">{title}</h2>
-          <p className="mt-1 text-sm text-muted">{description}</p>
+          <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p>
+          {howTo.length > 0 ? (
+            <ol className="mt-2 max-w-2xl list-decimal space-y-0.5 pl-4 text-sm text-muted">
+              {howTo.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          ) : null}
         </div>
         <Button
           variant="outline"
@@ -102,13 +133,47 @@ export function MasterEventLog({
         </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          className="max-w-sm"
-          placeholder="Search user, action, resource…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Input
+            className="max-w-sm"
+            placeholder="Search user, action, resource…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+              From
+              <Input
+                type="date"
+                className="h-9 w-auto"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+              To
+              <Input
+                type="date"
+                className="h-9 w-auto"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </label>
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+              >
+                Clear dates
+              </button>
+            )}
+          </div>
+        </div>
         <div className="flex flex-wrap gap-1">
           {SECTIONS.map((s) => (
             <button

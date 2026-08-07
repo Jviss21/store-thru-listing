@@ -32,6 +32,7 @@ import {
 import { formatDisplayDateLong, inclusiveDayCount } from "@/lib/report-dates";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 
 function formatSoldAt(iso: string, hourly: boolean) {
   const d = new Date(iso);
@@ -88,6 +89,17 @@ export default function HomePage() {
               </p>
               <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/50">
                 Powered by {BRAND.product}
+              </p>
+              <p className="mt-3 max-w-lg text-sm leading-relaxed text-white/70">
+                Sales dashboard for this workspace — pick a period below, then jump to{" "}
+                <Link href="/infinity-ai" className="font-semibold text-accent hover:underline">
+                  {BRAND.ai}
+                </Link>{" "}
+                for photos → listings or{" "}
+                <Link href="/manifests" className="font-semibold text-accent hover:underline">
+                  Donor Item Creation
+                </Link>{" "}
+                to intake units.
               </p>
             </div>
             <div className="flex flex-col items-stretch gap-2 sm:items-end">
@@ -420,6 +432,8 @@ export default function HomePage() {
           </Button>
         </Link>
       </section>
+
+      <SectionEventLog section="products" title="Event log" limit={8} defaultOpen />
     </div>
   );
 }

@@ -14,13 +14,15 @@ import {
 import { useOrg } from "@/components/OrgProvider";
 import { SectionEventLog } from "@/components/SectionEventLog";
 import { logEvent } from "@/lib/event-log";
+import { canViewMasterEventLog } from "@/lib/roles";
 import { isHammoqStaffEmail } from "@/lib/session";
 
 export default function SettingsPage() {
-  const { org, updateSession, isOps } = useOrg();
+  const { org, updateSession, isOps, session } = useOrg();
   const [settings, setSettings] = useState<DemoSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
   const [saved, setSaved] = useState(false);
+  const showMasterLog = canViewMasterEventLog(session.role, isOps);
 
   useEffect(() => {
     setSettings(loadDemoSettings());
@@ -58,7 +60,12 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Settings"
-        description={`Workspace preferences for ${org.name}.`}
+        description={`Workspace preferences for ${org.name} — account, printers, Infinity AI toggles, and the Item pipeline walkthrough.`}
+        howTo={[
+          "Edit Account for profile, role, and ShopGoodwill login.",
+          "Open Item pipeline to scan a SKU and see the next stage.",
+          "Use Connections (sidebar) for ShopGoodwill / eBay OAuth.",
+        ]}
         actions={
           <div className="flex flex-wrap gap-3">
             <Link
@@ -107,6 +114,21 @@ export default function SettingsPage() {
           </Button>
         </Link>
       </Card>
+
+      {showMasterLog ? (
+        <Card className="max-w-xl space-y-3 border-ink/15 p-5">
+          <p className="font-display text-lg font-bold text-ink">Master event log</p>
+          <p className="text-sm text-muted">
+            Cross-system audit trail for this org (Admin and Hammoq Ops). Section Event log panels
+            still appear at the bottom of each floor page for everyone with access.
+          </p>
+          <Link href="/admin/audit">
+            <Button type="button" variant="outline">
+              Open Master event log
+            </Button>
+          </Link>
+        </Card>
+      ) : null}
 
       <Card className="max-w-xl space-y-4 p-5">
         <p className="text-sm font-semibold text-ink">Quick profile (legacy)</p>
@@ -201,7 +223,7 @@ export default function SettingsPage() {
         </label>
       </Card>
 
-      <SectionEventLog section="admin" title="Settings activity" />
+      <SectionEventLog section="admin" title="Event log" />
     </div>
   );
 }

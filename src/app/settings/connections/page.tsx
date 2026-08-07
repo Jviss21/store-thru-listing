@@ -234,7 +234,7 @@ export default function SettingsConnectionsPage() {
         </div>
       )}
 
-      <SectionEventLog section="admin" title="Connections activity" />
+      <SectionEventLog section="admin" title="Event log" />
     </div>
   );
 }

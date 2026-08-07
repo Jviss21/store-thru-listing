@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
 import { canViewMasterEventLog } from "@/lib/roles";
 import { RoleGate } from "@/components/RoleGate";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { ADMIN_NAV_GROUPS, isAdminNavActive } from "@/lib/admin-nav";
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
@@ -99,7 +100,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             })}
           </nav>
 
-          <div className="min-w-0 flex-1 animate-rise">{children}</div>
+          <div className="min-w-0 flex-1 animate-rise space-y-6">
+            {children}
+            {!pathname.startsWith("/admin/audit") ? (
+              <SectionEventLog section="admin" title="Event log" />
+            ) : null}
+          </div>
         </div>
       </div>
     </RoleGate>

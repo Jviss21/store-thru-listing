@@ -21,6 +21,7 @@ import {
 } from "@/components/orders/MoreFiltersDrawer";
 import { Badge, Button, Card, EmptyState, Input, PageHeader } from "@/components/ui";
 import { useOrg } from "@/components/OrgProvider";
+import { SectionEventLog } from "@/components/SectionEventLog";
 import { exportOrdersCsv } from "@/lib/demo-actions";
 import { createPickListFromOpenOrders, getLiveOrders } from "@/lib/pick-lists-store";
 import { orders as seedOrders } from "@/lib/mock-data";
@@ -192,7 +193,12 @@ function OrdersInner() {
     <div className="space-y-5">
       <PageHeader
         title="Orders"
-        description="Marketplace orders across channels — search, filter, and fulfill like Upright Lister."
+        description="Marketplace orders across ShopGoodwill and eBay — search, filter, and fulfill in IMS."
+        howTo={[
+          "Use tabs (Open, Ready to fulfill, Overdue…) or search by order / SKU / customer.",
+          "Open an order to pick, pack, and create a shipment.",
+          "Build pick lists from open orders when you are ready to pull stock.",
+        ]}
         actions={
           <>
             <Button
@@ -559,6 +565,8 @@ function OrdersInner() {
         }}
         locationOptions={locationOptions}
       />
+
+      <SectionEventLog section="orders" title="Event log" />
     </div>
   );
 }
