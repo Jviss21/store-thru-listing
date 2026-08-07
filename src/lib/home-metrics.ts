@@ -1,6 +1,6 @@
 /** Period-aware org metrics for the Test Goodwill home screen.
  *
- * Formulas (stable across Day / Week / Month / Custom):
+ * Formulas (stable across Day / Hour / Week / Month / Custom):
  *   ASP            = topLineRevenue / unitsSold   (falls out of the mix)
  *   Sell through   = unitsSold / unitsListed      (natural thrift band)
  *   Top line       = ASP × unitsSold
@@ -9,6 +9,9 @@
  * Catalog mix: jewelry, collectibles, clothing, shoes, home goods,
  * plus authenticated designer / luxury pieces as higher-ASP outliers.
  * No hard-locked ASP or sell-through targets.
+ *
+ * Day  = today's daily summary (KPIs + top sales).
+ * Hour = dedicated 8am–8pm hourly breakdown (chart + hour table) for today.
  */
 
 import {
@@ -25,18 +28,18 @@ const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3600000).toISOString();
 const daysAgo = (d: number) => new Date(now - d * 86400000).toISOString();
 
-export type HomePeriod = "day" | "week" | "month" | "custom";
+export type HomePeriod = "day" | "hour" | "week" | "month" | "custom";
 export type HomePresetPeriod = Exclude<HomePeriod, "custom">;
 
 export type HomeCustomRange = { start: string; end: string };
 
 export const HOME_PERIODS: { id: HomePeriod; label: string; hint: string }[] = [
-  { id: "day", label: "Day", hint: "Today" },
+  { id: "day", label: "Day", hint: "Today summary" },
+  { id: "hour", label: "Hour", hint: "Today by hour" },
   { id: "week", label: "Week", hint: "Last 7 days" },
   { id: "month", label: "Month", hint: "Month to date" },
   { id: "custom", label: "Custom", hint: "Pick dates" },
 ];
-
 function ymdLocal(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -82,7 +85,15 @@ export type HomePhotographerRow = {
   items: number;
 };
 
-/** Spark / sales chart bucket size. Day (and short Custom) use hours. */
+/** One business-hour bucket for Hour mode (units + revenue). */
+export type HomeHourRow = {
+  hour: number;
+  label: string;
+  units: number;
+  revenue: number;
+};
+
+/** Spark / sales chart bucket size. Hour (and short Custom) use hours. */
 export type SparkGranularity = "hour" | "day";
 
 export type HomePeriodMetrics = {
@@ -98,11 +109,12 @@ export type HomePeriodMetrics = {
   /** Axis labels aligned 1:1 with salesSpark (e.g. "9am", "Mon 8"). */
   sparkLabels: string[];
   sparkGranularity: SparkGranularity;
+  /** Populated in Hour mode: per-hour units + revenue (8am–8pm). */
+  hourRows: HomeHourRow[];
   topSales: HomeSaleRow[];
   topListers: HomeListerRow[];
   topPhotographers: HomePhotographerRow[];
 };
-
 /** Format 0–23 as 12am / 9am / 12pm / 3pm. */
 export function formatHourLabel(hour: number): string {
   const h = ((Math.floor(hour) % 24) + 24) % 24;
@@ -316,6 +328,42 @@ export function sparkForBusinessHours(unitsSold: number, seed = 1): number[] {
   return distributeByWeights(unitsSold, weights, seed);
 }
 
+/** Per-hour units + revenue for Hour mode table (sums match day totals). */
+export function buildHourRows(
+  unitsSold: number,
+  revenue: number,
+  seed = 1
+): HomeHourRow[] {
+  const units = sparkForBusinessHours(unitsSold, seed);
+  const revParts = distributeByWeights(
+    Math.round(revenue * 100),
+    units.map((u) => Math.max(u, 0.5)),
+    seed + 3
+  ).map((cents) => cents / 100);
+  // Fix floating pennies so sum === revenue
+  let revDiff =
+    Math.round(revenue * 100) - revParts.reduce((a, b) => a + Math.round(b * 100), 0);
+  let i = 0;
+  while (revDiff !== 0 && revParts.length > 0) {
+    const idx = (i + seed) % revParts.length;
+    const step = revDiff > 0 ? 0.01 : -0.01;
+    if (revDiff < 0 && revParts[idx]! + step < 0) {
+      i += 1;
+      if (i > revParts.length * 4) break;
+      continue;
+    }
+    revParts[idx] = Math.round((revParts[idx]! + step) * 100) / 100;
+    revDiff -= revDiff > 0 ? 1 : -1;
+    i += 1;
+  }
+  return HOME_BUSINESS_HOURS.map((hour, idx) => ({
+    hour,
+    label: formatHourLabel(hour),
+    units: units[idx]!,
+    revenue: revParts[idx]!,
+  }));
+}
+
 /** Hourly spark spanning multiple calendar days (Custom ≤ 2 days). */
 function sparkForHourlyRange(dayCount: number, unitsSold: number, seed: number): {
   salesSpark: number[];
@@ -379,9 +427,27 @@ export const homeMetricsByPeriod: Record<HomePresetPeriod, HomePeriodMetrics> = 
     sellThrough: sellThroughOf(DAY.unitsSold, DAY.unitsListed),
     paidOrders: DAY.unitsSold,
     unitsSold: DAY.unitsSold,
+    // Compact spark for header; detailed hourly view lives on Hour tab.
     salesSpark: sparkForBusinessHours(DAY.unitsSold, 1),
     sparkLabels: businessHourLabels(),
     sparkGranularity: "hour",
+    hourRows: [],
+    topSales: buildTopSales(1, 1, (i) => hoursAgo(1 + (i % 14))),
+    topListers: buildListers([0, 2, 1, 5, 3, 4, 6, 7], 148, 14, 2980, 265),
+    topPhotographers: buildPhotographers([1, 0, 4, 2, 6, 3, 5, 7], 360, 32, 78, 6),
+  },
+  hour: {
+    periodLabel: "By hour",
+    rangeLabel: "Hourly sales · 8am–8pm · jewelry, collectibles, apparel & authenticated luxury",
+    topLineRevenue: DAY.revenue,
+    asp: aspOf(DAY.revenue, DAY.unitsSold),
+    sellThrough: sellThroughOf(DAY.unitsSold, DAY.unitsListed),
+    paidOrders: DAY.unitsSold,
+    unitsSold: DAY.unitsSold,
+    salesSpark: sparkForBusinessHours(DAY.unitsSold, 1),
+    sparkLabels: businessHourLabels(),
+    sparkGranularity: "hour",
+    hourRows: buildHourRows(DAY.unitsSold, DAY.revenue, 1),
     topSales: buildTopSales(1, 1, (i) => hoursAgo(1 + (i % 14))),
     topListers: buildListers([0, 2, 1, 5, 3, 4, 6, 7], 148, 14, 2980, 265),
     topPhotographers: buildPhotographers([1, 0, 4, 2, 6, 3, 5, 7], 360, 32, 78, 6),
@@ -398,6 +464,7 @@ export const homeMetricsByPeriod: Record<HomePresetPeriod, HomePeriodMetrics> = 
     salesSpark: [],
     sparkLabels: [],
     sparkGranularity: "day",
+    hourRows: [],
     topSales: buildTopSales(4, 1.03, (i) => daysAgo(i % 7)),
     topListers: buildListers([2, 0, 5, 1, 6, 4, 3, 7], 980, 78, 19200, 1680),
     topPhotographers: buildPhotographers([0, 4, 1, 6, 2, 5, 7, 3], 1840, 140, 380, 28),
@@ -413,6 +480,7 @@ export const homeMetricsByPeriod: Record<HomePresetPeriod, HomePeriodMetrics> = 
     salesSpark: [],
     sparkLabels: [],
     sparkGranularity: "day",
+    hourRows: [],
     topSales: buildTopSales(9, 1.06, (i) => daysAgo(i % 28)),
     topListers: buildListers([5, 2, 0, 6, 1, 3, 4, 7], 4100, 310, 88500, 7400),
     topPhotographers: buildPhotographers([4, 0, 6, 1, 2, 7, 5, 3], 7200, 460, 1480, 100),
@@ -426,6 +494,14 @@ function labelsForPreset(period: HomePresetPeriod, now = new Date()) {
     return {
       periodLabel: long,
       rangeLabel: `Sales so far on ${long} · jewelry, collectibles, apparel & authenticated luxury`,
+    };
+  }
+  if (period === "hour") {
+    const day = todayYmd(now);
+    const long = formatDisplayDateLong(day);
+    return {
+      periodLabel: `By hour · ${long}`,
+      rangeLabel: `Hourly breakdown · 8am–8pm on ${long} · thrift mix + authenticated luxury`,
     };
   }
   if (period === "week") {
@@ -505,6 +581,7 @@ function buildCustomMetrics(range: HomeCustomRange): HomePeriodMetrics {
     salesSpark: spark.salesSpark,
     sparkLabels: spark.sparkLabels,
     sparkGranularity: hourly ? "hour" : "day",
+    hourRows: hourly && n === 1 ? buildHourRows(vol.unitsSold, vol.revenue, seed) : [],
     topSales: buildTopSales(seed || 2, priceScale, (i) => {
       const day = days[i % days.length]!;
       const hour = HOME_BUSINESS_HOURS[i % HOME_BUSINESS_HOURS.length]!;
@@ -538,18 +615,29 @@ function attachPresetSpark(
       salesSpark: sparkForBusinessHours(base.unitsSold, 1),
       sparkLabels: businessHourLabels(),
       sparkGranularity: "hour",
+      hourRows: [],
+    };
+  }
+  if (period === "hour") {
+    const spark = sparkForBusinessHours(base.unitsSold, 1);
+    return {
+      ...base,
+      salesSpark: spark,
+      sparkLabels: businessHourLabels(),
+      sparkGranularity: "hour",
+      hourRows: buildHourRows(base.unitsSold, base.topLineRevenue, 1),
     };
   }
   if (period === "week") {
     const range = trailingDaysRange(7, now);
     const days = daysInRange(range.start, range.end);
     const spark = sparkForDailyRange(days, base.unitsSold, 4);
-    return { ...base, ...spark, sparkGranularity: "day" };
+    return { ...base, ...spark, sparkGranularity: "day", hourRows: [] };
   }
   const range = monthToDateRange(now);
   const days = daysInRange(range.start, range.end);
   const spark = sparkForDailyRange(days, base.unitsSold, 9);
-  return { ...base, ...spark, sparkGranularity: "day" };
+  return { ...base, ...spark, sparkGranularity: "day", hourRows: [] };
 }
 
 /** Resolve metrics for a preset period or a custom from–to range. */

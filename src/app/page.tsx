@@ -69,6 +69,9 @@ export default function HomePage() {
   }
 
   const customDayCount = inclusiveDayCount(customRange.start, customRange.end);
+  /** Day keeps the daily summary; Hour owns the dedicated hourly chart + table. */
+  const showSalesChart = period !== "day";
+  const showHourTable = period === "hour" && m.hourRows.length > 0;
 
   return (
     <div className="space-y-6">
@@ -197,14 +200,75 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mt-6">
-            <HomeSalesChart
-              key={metricsKey}
-              values={m.salesSpark}
-              labels={m.sparkLabels}
-              granularity={m.sparkGranularity}
-            />
-          </div>
+          {showSalesChart ? (
+            <div className="mt-6">
+              <HomeSalesChart
+                key={metricsKey}
+                values={m.salesSpark}
+                labels={m.sparkLabels}
+                granularity={m.sparkGranularity}
+              />
+            </div>
+          ) : null}
+
+          {showHourTable ? (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[var(--ink-soft)]">
+              <div className="flex flex-wrap items-end justify-between gap-2 border-b border-white/10 px-4 py-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
+                    Sales by hour
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/50">
+                    Business hours · 8am–8pm · units + revenue
+                  </p>
+                </div>
+                <p className="text-xs tabular-nums text-white/55">
+                  {formatNumber(m.unitsSold)} units · {formatCurrency(m.topLineRevenue)}
+                </p>
+              </div>
+              <div className="max-h-64 overflow-auto">
+                <table className="w-full min-w-[280px] text-left text-sm">
+                  <thead className="sticky top-0 border-b border-white/10 bg-ink/80 text-[10px] uppercase tracking-wide text-white/45 backdrop-blur">
+                    <tr>
+                      <th className="px-4 py-2.5 font-semibold">Hour</th>
+                      <th className="px-3 py-2.5 font-semibold text-right">Units</th>
+                      <th className="px-4 py-2.5 font-semibold text-right">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {m.hourRows.map((row) => {
+                      const isPeak =
+                        row.units === Math.max(...m.hourRows.map((h) => h.units));
+                      return (
+                        <tr
+                          key={`${metricsKey}-hour-${row.hour}`}
+                          className={cn(
+                            "border-b border-white/5 last:border-0",
+                            isPeak ? "bg-accent/10" : "hover:bg-white/5"
+                          )}
+                        >
+                          <td
+                            className={cn(
+                              "px-4 py-2 font-medium tabular-nums",
+                              isPeak ? "text-accent" : "text-white/85"
+                            )}
+                          >
+                            {row.label}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-white/80">
+                            {formatNumber(row.units)}
+                          </td>
+                          <td className="px-4 py-2 text-right font-semibold tabular-nums text-white">
+                            {formatCurrency(row.revenue)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-[var(--ink-soft)] px-4 py-4">

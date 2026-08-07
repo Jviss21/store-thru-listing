@@ -5,7 +5,7 @@ import type { SparkGranularity } from "@/lib/home-metrics";
 
 /**
  * Labeled sales volume chart for Home.
- * Day / short Custom → hourly bars (8am–8pm); Week / Month → daily bars.
+ * Hour / short Custom → hourly bars (8am–8pm); Week / Month → daily bars.
  * Hammoq navy bars with gold highlight on the peak bucket.
  */
 export function HomeSalesChart({
