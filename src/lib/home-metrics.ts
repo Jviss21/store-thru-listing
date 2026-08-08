@@ -404,7 +404,6 @@ function sparkForDailyRange(days: string[], unitsSold: number, seed: number): {
   salesSpark: number[];
   sparkLabels: string[];
 } {
-  const n = Math.max(1, days.length);
   const weights = days.map((_, i) => 10 + ((i + seed) % 5) + Math.round(Math.sin((i + seed) * 0.8) * 3));
   return {
     salesSpark: distributeByWeights(unitsSold, weights, seed),
