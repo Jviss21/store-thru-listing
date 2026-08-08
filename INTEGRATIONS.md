@@ -31,7 +31,7 @@ Five separate folders / products that stack as one platform when ready — **not
 |---|---------|---------------|------|
 | 0 | **Hammoq Backend Admin** | Sibling `..\hammoq-backend` | Platform SoR: add customers, staff, feature flags, kill switches, audit, Open-in-IMS |
 | 1 | **IMS** | `store-thru-listing` (this repo) | Ecom operations: donor create, products, Auto-List queue, listings, orders, shipments, customer Admin |
-| 2 | **InfinityAI** | Separate app/folder (**TBD** — user builds separately) | Photos → AI listing fields → feeds **Auto-List** into IMS |
+| 2 | **InfinityAI / Photo WebApp** | Sibling `..\..\Hammoq Photo WebApp` + InfinityAI App Store | Photos → Unshelved intake via `/api/photo-station`; AI listing fields → Auto-List |
 | 3 | **Retail production systems** | Separate folder (**future**) | Store retail ops (floor, POS-adjacent, retail inventory) |
 | 4 | **Hammoq Retail** (AI retail app) | Sibling stub `..\hammoq-retail` + App Store | Store triage: **retail-worthy vs ecom-worthy**; retail AI |
 
@@ -49,6 +49,21 @@ Five separate folders / products that stack as one platform when ready — **not
 Seller: Hammoq Inc for both.
 
 ## Fusion flows (product)
+
+### InfinityAI / Photo WebApp → Unshelved intake
+
+```
+Hammoq Photo WebApp (this companion)
+  → same IMS credentials (validated via /api/auth/login)
+  → scan exact printed SKU/barcode (TG-{seq} / same-as-sku Code 128)
+  → square photos + supplier + location
+  → POST /api/photo-station  (status Unshelved, tags unshelved + stage:photos)
+  → product appears in IMS Products for Auto-List / Infinity AI queue
+```
+
+- Env: shared `PHOTO_STATION_SECRET` on IMS + Photo WebApp; `IMS_BASE_URL` on Photo WebApp.
+- Auth headers for companion: `x-photo-station-secret`, `x-photo-station-email`, `x-photo-station-org`.
+- Folder: `Documents\HAMMOQ\Hammoq Photo WebApp` (port 3005).
 
 ### InfinityAI → Auto-List (ecom listing path)
 
@@ -153,6 +168,7 @@ Until real eBay (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_RU_NAME / EBAY_ENV) 
 | **Channel API** | POST /api/v1/listings · POST .../sold · POST .../delist · GET .../:externalId |
 | **IMS env** | FAKE_EBAY_API_URL + FAKE_EBAY_API_KEY (aliases: MARKETPLACE_CHANNEL_URL / MARKETPLACE_CHANNEL_API_KEY) |
 | **Demo API key** | hmq_demo_testgoodwill_west_devkey (Market seed / README) |
+| **Market DB** | Neon Postgres DB `hammoq_market` via Market Vercel `DATABASE_URL` (+ `DATABASE_URL_UNPOOLED`). Not SQLite/`/tmp` — shared DB so IMS publishes appear on `/shop` + `/listing/:id`. Separate from IMS/`neondb` tables. |
 
 ### How to trigger a push
 

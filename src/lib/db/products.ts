@@ -217,3 +217,25 @@ export async function findProductById(
     return null;
   }
 }
+
+/** Match printed IMS barcode / SKU exactly (barcode first, then sku). */
+export async function findProductBySkuOrBarcode(
+  orgId: string,
+  code: string
+): Promise<ProductDto | null> {
+  if (!isDbReady() || !prisma) return null;
+  const value = code.trim();
+  if (!value) return null;
+  try {
+    const byBarcode = await prisma.product.findFirst({
+      where: { orgId, barcode: value },
+    });
+    if (byBarcode) return toDto(byBarcode);
+    const bySku = await prisma.product.findFirst({
+      where: { orgId, sku: value },
+    });
+    return bySku ? toDto(bySku) : null;
+  } catch {
+    return null;
+  }
+}
